@@ -204,7 +204,8 @@ class RftoolInterface(object):
                 - type : 2(PMOD digital out data)
                     8-bit logic, max. 4kB.
 
-        Bitstream : BRAM accumulation design (3)
+        Bitstream : BRAM accumulation design (3) or
+                    BRAM accumulation design for max sampling rate (5)
             type : int
                 0 -> ADC capture/accumulation data
                 1 -> DAC waveform data
@@ -363,7 +364,8 @@ class RftoolInterface(object):
                 Data size (unit: byte)
                 Usually specify the length of the data (e.g. len(data)).
 
-        Bitstream : BRAM accumulation design (3)
+        Bitstream : BRAM accumulation design (3) or 
+                    BRAM accumulation design for max sampling rate (5)
             type : int
                 0 -> ADC capture/accumulation data
                 1 -> DAC waveform data
