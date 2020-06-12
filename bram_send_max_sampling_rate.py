@@ -3,7 +3,7 @@
 
 """
 rftoolクライアントサンプルプログラム:
-    BRAM 32Kサンプル 8ch DAC/8ch ADC 動作テスト 2.048 GSPS
+    BRAM 32Kサンプル 8ch DAC 動作テスト 6.554 GSPS
 
 <使用ライブラリ>
     numpy
