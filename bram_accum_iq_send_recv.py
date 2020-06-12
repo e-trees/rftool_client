@@ -3,7 +3,7 @@
 
 """
 rftoolクライアントサンプルプログラム:
-    BRAM 32Kサンプル 8ch DAC/8ch ADC 動作テスト 2.048 GSPS
+    BRAM 16Kサンプル DAC出力 / ADC積算 動作テスト 4.096 GSPS
 
 <使用ライブラリ>
     numpy
@@ -11,12 +11,13 @@ rftoolクライアントサンプルプログラム:
     matplotlib
 
 <使用DACアナログ出力>
-    全チャンネル
+    DAC229_T1_CH2 (Tile 1 Block 2)
+    DAC229_T1_CH3 (Tile 1 Block 3)
 
 <使用ADCアナログ入力>
-    全チャンネル
+    ADC224_T0_CH0 (Tile 0 Block 0)
+    ADC224_T0_CH1 (Tile 0 Block 1)
 """
-
 
 from RftoolClient import client, rfterr, wavegen, ndarrayutil
 import os
@@ -228,10 +229,10 @@ def config_bitstream(rftcmd, num_design):
 
 
 def check_intr_flags(rftcmd, type, ch):
-    if type == 0:  # ADC
+    if type == ADC:
         tile = int(ch / 2)
         block = ch % 2
-    elif type == 1:  # DAC
+    elif type == DAC:
         tile = int(ch / 4)
         block = ch % 4
     flags = rftcmd.GetIntrStatus(type, tile, block)[3]
