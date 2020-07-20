@@ -156,13 +156,13 @@ def check_intr_flags(rftcmd, type, ch):
         return
     else:
         print("# WARNING: An interrupt flag was asserted in {} Ch.{} (Tile:{} Block:{}).".format(
-            "ADC" if type == 0 else "DAC", ch, tile, block))
+            "ADC" if type == ADC else "DAC", ch, tile, block))
     details = []
     if (flags & 0x40000000):
         details.append("Datapath interrupt asserted.")
     if (flags & 0x000003F0):
         details.append("Overflow detected in {} stage datapath.".format(
-            "ADC Decimation" if type == 0 else "DAC Interpolation"))
+            "ADC Decimation" if type == ADC else "DAC Interpolation"))
     if (flags & 0x00000400):
         details.append("Overflow detected in QMC Gain/Phase.")
     if (flags & 0x00000800):
@@ -256,7 +256,7 @@ def main():
 
         for ch in range(8):
             print("Send waveform data to DAC Ch.{} BlockRAM".format(ch))
-            rft.if_data.WriteDataToMemory(1, ch, w_size, w_data)
+            rft.if_data.WriteDataToMemory(DAC, ch, w_size, w_data)
 
         print("Setting trigger information.")
         rft.command.SetTriggerInfo(DAC, 0xFF, DAC_SAMPLES, USE_REAL)
@@ -269,8 +269,8 @@ def main():
         wait_trig_done(rft.command)
 
         print("Check interrupt flags.")
-        for ch in range(8):  # DAC
-            check_intr_flags(rft.command, 1, ch)
+        for ch in range(8):
+            check_intr_flags(rft.command, DAC, ch)
     
     print("Processing sample data.")
     print("- DAC sample data")
