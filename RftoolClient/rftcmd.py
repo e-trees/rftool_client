@@ -1946,3 +1946,10 @@ class RftoolCommand(object):
         self.cmd = "ClearBRAM"
         self.res = self.rft_if.put(self.cmd)
         return
+
+    def ClearDRAM(self, type):
+        """Clear a DRAM block.
+        """
+        self.cmd = self._joinargs("ClearDRAM", [type])
+        self.res = self.rft_if.put(self.cmd)
+        return
