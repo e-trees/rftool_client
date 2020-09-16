@@ -94,3 +94,11 @@ class NdarrayUtil:
         data = numpy.frombuffer(data, dtype="<i4").reshape(-1, 2)
         data = data[:, 0] + (1j * data[:, 1])
         return data.astype("complex128")
+
+    @classmethod
+    def bytes_to_real_64(cls, data):
+        if not isinstance(data, bytes):
+            raise ValueError(
+                "argument must be bytes, but {} found".format(type(data)))
+
+        return numpy.frombuffer(data, dtype="<i8")

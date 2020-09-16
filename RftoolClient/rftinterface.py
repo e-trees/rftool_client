@@ -484,3 +484,39 @@ class RftoolInterface(object):
         self._logger.debug(res)
 
         return data
+
+
+    def PutCmdWithData(self, command, data):
+        """Send a command followed by data.
+
+        Parameters
+        ----------
+        cmd : string
+            The command to send.
+        data : bytes
+            The data to send
+
+        Returns
+        -------
+        The response of the sent command.
+        """
+
+        self.send_command(command)
+        self._logger.debug("> " + command)
+
+        try:
+            self.send_data(data)
+        except (ConnectionError, socket.timeout):
+            self.err_connection = True
+            raise
+
+        try:
+            res = self.recv_response().replace("\r\n", "")
+            if res[:5] == "ERROR":
+                raise rfterr.RftoolExecuteCommandError(res)
+            self._logger.debug(res)
+        except (ConnectionError, socket.timeout):
+            self.err_connection = True
+            raise
+
+        return res
