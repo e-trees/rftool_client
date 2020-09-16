@@ -4,7 +4,6 @@
 from RftoolClient import cmdutil
 import logging
 
-
 """
 rftcmd.py
     - RFTOOL commands

@@ -6,7 +6,7 @@ client.py
     - A Client for command/data interface of Xilinx ZCU111 TRD 2019.1 RFTOOL
 """
 
-from RftoolClient import rftcmd, rftinterface, rfterr
+from RftoolClient import rftcmd, awgsacmd, rftinterface, rfterr
 import socket
 import logging
 
@@ -21,6 +21,7 @@ class RftoolClient(object):
         self.if_ctrl = rftinterface.RftoolInterface(self._logger)
         self.if_data = rftinterface.RftoolInterface(self._logger)
         self.command = rftcmd.RftoolCommand(self.if_ctrl, self._logger)
+        self.awg_sa_cmd = awgsacmd.AwgSaCommand(self.if_ctrl, self.if_data, self._logger)
 
         self.address = ""
         self.port_ctrl = 0
