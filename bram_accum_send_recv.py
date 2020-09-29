@@ -256,6 +256,16 @@ def main(num_trig):
         rft.command.SetTriggerCycle(32768, 1)  # trigger 32768 times
         rft.command.SetAccumulateMode(0)  # disable accumulation
 
+        print("Configure PMOD.")
+        # 4 つの PMOD 出力データ (0xAA, 0xBB, 0xCC, xDD) を設定
+        rft.if_data.WriteDataToMemory(2, 0, 4, b"\xAA\xBB\xCC\xDD")
+        rft.command.SetPMODConfig(
+            bit_to_enable = 0xFF, # 全 PMOD の出力 bit を有効にする
+            num_samples = 4,      # 出力されるサンプル数 (1サンプル = 8 bit)
+            latency = 0,          # トリガーレイテンシ
+            divratio = 32,        # 1 サンプルの出力が保持される長さ (DAC tile 1 のサンプリングレートに依存)
+            polarity = 0x0F)      # 下位 4 bit の PMOD 出力を反転する
+
         print("Start trigger.")
         rft.command.StartTrigger()  # for ADC calibration
 

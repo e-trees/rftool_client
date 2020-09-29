@@ -26,3 +26,17 @@ class CmdUtil:
             except ValueError:
                 ret.append(str_arg)
         return ret
+    
+    @classmethod
+    def split_response(cls, resstr, delimiter):
+        ret = []
+        str_resps = resstr.split(delimiter)
+        for str_resp in str_resps:
+            try:
+                if "." in str_resp:
+                    ret.append(float(str_resp))
+                else:
+                    ret.append(int(str_resp))
+            except ValueError:
+                ret.append(str_resp)
+        return ret
