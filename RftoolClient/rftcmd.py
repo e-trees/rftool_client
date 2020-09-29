@@ -1939,6 +1939,31 @@ class RftoolCommand(object):
         self.res = self.rft_if.put(self.cmd)
         return
 
+    def SetPMODConfig(self, bit_to_enable, num_samples, latency, divratio, polarity):
+        """Set parameters of PL PMOD 0 logic.
+        Parameters
+        ----------
+        bit_to_enable : int
+            Mask bits corresponding to the PL PMOD 0 logic output to be enabled.
+            e.g. when masking pin 0 and pin 2, specify 0x5(=0b00000101).
+        num_samples : int
+            Number of samples for PMOD (max. 4096samples).
+        latency : int
+            Trigger latency for PL PMOD 0 logic output.
+        divratio : int
+            Division ratio for PL PMOD 0 logic output.
+            The logic output depends on DAC Tile 1 Fabric clock.
+            Higher this value, slower output data rate.
+        polarity : int
+            Logic output polarity per bits for PL PMOD 0.
+            0: Positive (0 to 0V, 1 to 3.3V, 0V output during standby)
+            1: Negative (0 to 3.3V, 1 to 0V, 3.3V output during standby)
+            e.g. when polarity of pin 0 and pin 2 negative, specify 0x5(=0b00000101).
+        """
+        self.cmd = self._joinargs("SetPMODConfig", [bit_to_enable, num_samples, latency, divratio, polarity])
+        self.res = self.rft_if.put(self.cmd)
+        return
+
     def ClearBRAM(self):
         """Clear All BRAM. (e-trees)
         """
