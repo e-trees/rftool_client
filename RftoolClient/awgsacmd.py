@@ -7,6 +7,7 @@ from AwgSa import WaveSequence
 from AwgSa import AwgId
 from AwgSa import AwgSaCmdResult
 from AwgSa import CaptureConfig
+from AwgSa import DigitalOutputSequence
 
 class AwgSaCommand(object):
     """AWG SA 制御用のコマンドを定義するクラス"""
@@ -20,6 +21,7 @@ class AwgSaCommand(object):
         self.rft_data_if = data_interface
         self._joinargs = cmdutil.CmdUtil.joinargs
         self._splitargs = cmdutil.CmdUtil.splitargs
+        self._split_response = cmdutil.CmdUtil.split_response
         self._logger.debug("RftoolCommand __init__")
         return
 
@@ -48,8 +50,7 @@ class AwgSaCommand(object):
            raise ValueError("invalid num_repeats  " + str(num_repeats))
         
         data = wave_sequence.serialize()
-        command = self._joinargs(
-            "SetWaveSequence", [int(awg_id), wave_sequence.num_wave_steps(), num_repeats, len(data)])
+        command = self._joinargs("SetWaveSequence", [int(awg_id), num_repeats, len(data)])
         self.rft_data_if.PutCmdWithData(command, data)
 
 
@@ -96,7 +97,7 @@ class AwgSaCommand(object):
         波形出力およびキャプチャ処理を開始する
         """
         command = "StartWaveSequence"
-        res = self.rft_ctrl_if.put(command)
+        self.rft_ctrl_if.put(command)
 
 
     def is_wave_sequence_complete(self, awg_id):
@@ -143,7 +144,7 @@ class AwgSaCommand(object):
             raise ValueError("invalid capture_config " + str(capture_config))
         
         data = capture_config.serialize()
-        command = self._joinargs("SetCaptureConfig", [capture_config.num_sequences(), len(data)])
+        command = self._joinargs("SetCaptureConfig", [len(data)])
         self.rft_data_if.PutCmdWithData(command, data)
         
 
@@ -169,12 +170,13 @@ class AwgSaCommand(object):
         if (not isinstance(step_id, int) or (step_id < 0 or 0x7FFFFFFF < step_id)):
             raise ValueError("invalid step_id " + str(step_id))
 
-        data_size = self.get_capture_data_size(awg_id, step_id)
-
         command = self._joinargs("ReadCaptureData", [int(awg_id), step_id])
         self.rft_data_if.send_command(command)
-        data = self.rft_data_if.recv_data(data_size)
-        self.rft_data_if.recv_response() # end of capture data
+        res = self.rft_data_if.recv_response() # キャプチャデータの前のコマンド成否レスポンス  [SA_SUCCESS/SA_FAILURE, data size]
+        [result, data_size] = self._split_response(res, ",")
+        if (result == "AWG_SUCCESS"):
+            data = self.rft_data_if.recv_data(data_size)
+            self.rft_data_if.recv_response() # end of capture data
 
         res = self.rft_data_if.recv_response() # end of 'ReadCaptureData' command
         if res[:5] == "ERROR":
@@ -193,7 +195,7 @@ class AwgSaCommand(object):
 
         command = self._joinargs("GetCaptureDataSize ", [int(awg_id), step_id])
         res = self.rft_ctrl_if.put(command)
-        return int(res)
+        return int(res)  # byte
         
 
     def initialize_awg_sa(self):
@@ -232,7 +234,7 @@ class AwgSaCommand(object):
         return False if int(res) == 0 else True
 
 
-    def is_capture_step_overranged(self, awg_id, step_id):
+    def is_accumulated_value_overranged(self, awg_id, step_id):
         """
         引数で指定したキャプチャステップで積算値の範囲オーバーが発生したかどうかを調べる
         
@@ -255,6 +257,153 @@ class AwgSaCommand(object):
         if (not isinstance(step_id, int) or (step_id < 0 or 0x7FFFFFFF < step_id)):
             raise ValueError("invalid step_id " + str(step_id))
 
-        command = self._joinargs("IsCaptureStepOverranged ", [int(awg_id), step_id])
+        command = self._joinargs("IsAccumulatedValueOverranged", [int(awg_id), step_id])
+        res = self.rft_ctrl_if.put(command)
+        return False if int(res) == 0 else True
+
+
+    def is_capture_data_fifo_overflowed(self, awg_id, step_id):
+        """
+        引数で指定したキャプチャステップで, ADC から送られる波形データを
+        格納する FIFO のオーバーフローが発生したかどうかを調べる.        
+        Parameters
+        ----------
+        awg_id : AwgId
+            調べたいキャプチャステップを含むキャプチャシーケンスをセットした AWG の ID
+        step_id : int
+            調べたいキャプチャステップのID
+        
+        Returns
+        -------
+        flag : int
+            True -> オーバーフローした
+            False -> オーバーフローしていない (正常)
+        """
+        if (not AwgId.has_value(awg_id)):
+            raise ValueError("invalid awg_id  " + str(awg_id))
+        
+        if (not isinstance(step_id, int) or (step_id < 0 or 0x7FFFFFFF < step_id)):
+            raise ValueError("invalid step_id " + str(step_id))
+
+        command = self._joinargs("IsCaptureDataFifoOverflowed", [int(awg_id), step_id])
+        res = self.rft_ctrl_if.put(command)
+        return False if int(res) == 0 else True
+
+
+    def get_spectrum(self, awg_id, step_id, start_sample_idx, num_frames, *, is_iq_data = False):
+        """
+        キャプチャしたデータの FFT スペクトラムを取得する
+        
+        Parameters
+        ----------
+        awg_id : AwgId
+            スペクトラムを取得したいデータをキャプチャした AWG の ID
+        step_id : int
+            スペクトラムを取得したいキャプチャステップのID
+        start_sample_idx : int
+            キャプチャデータ中のスペクトラムを得たい部分の先頭サンプルのインデックス. (0 始まり)
+            I/Q データの場合は, まとめて 1 サンプルと数える.
+        num_frames : int
+            取得する FFT のフレーム数
+        is_iq_data : bool
+            キャプチャデータが I/Q データの場合 True. Real データの場合 False.
+        Returns
+        -------
+        spectrum : bytes
+            スペクトラムデータ
+        """
+
+        if (not AwgId.has_value(awg_id)):
+            raise ValueError("invalid awg_id  " + str(awg_id))
+        
+        if (not isinstance(step_id, int) or (step_id < 0 or 0x7FFFFFFF < step_id)):
+            raise ValueError("invalid step_id " + str(step_id))
+        
+        if (not isinstance(start_sample_idx, int) or start_sample_idx < 0):
+            raise ValueError("invalid start_sample_idx " + str(start_sample_idx))
+
+        if (not isinstance(num_frames, int) or num_frames < 0):
+            raise ValueError("invalid num_frames " + str(num_frames))
+
+        if (not isinstance(is_iq_data, bool)):
+            raise ValueError("invalid is_iq_data " + str(is_iq_data))
+
+        if (is_iq_data and start_sample_idx % 8 != 0):
+           raise ValueError("'start_sample_idx' must be a multiple of 8 for I/Q data.  " + str(start_sample_idx))
+
+        if ((not is_iq_data) and start_sample_idx % 16 != 0):
+            raise ValueError("'start_sample_idx' must be a multiple of 16 for Real data.  " + str(start_sample_idx))
+
+        is_iq_data = 1 if is_iq_data else 0
+        command = self._joinargs(
+            "GetSpectrum", [int(awg_id), step_id, start_sample_idx, num_frames, is_iq_data])
+        self.rft_data_if.send_command(command)
+        res = self.rft_data_if.recv_response() # スペクトルデータの前のコマンド成否レスポンス  [SA_SUCCESS/SA_FAILURE, data size]
+        [result, data_size] = self._split_response(res, ",")
+
+        if (result == "SA_SUCCESS"):
+            spectrum = self.rft_data_if.recv_data(data_size)
+            self.rft_data_if.recv_response() # end of spectrum data
+
+        res = self.rft_data_if.recv_response() # end of 'GetSpectrum' command
+        if res[:5] == "ERROR":
+            raise rfterr.RftoolExecuteCommandError(res)
+        self._logger.debug(res)
+        return spectrum
+
+
+    def get_fft_size(self):
+        """
+        スペクトラムアナライザの FFT サイズを返す
+        """
+        return 8192
+
+
+    def set_digital_output_sequence(self, awg_id, dout_sequence):
+        """
+        デジタル出力シーケンスをハードウェアにセットする.
+
+        Parameters
+        ----------
+        awg_id : AwgId
+            このシーケンスのデジタル出力の基準となる波形を生成する AWG の ID
+        dout_sequence : DigitalOutputSequence
+            設定するデジタル出力シーケンス
+        """
+        if (not isinstance(dout_sequence, DigitalOutputSequence)):
+            raise ValueError("invalid dout_sequence  " + str(dout_sequence))
+
+        if (not AwgId.has_value(awg_id)):
+           raise ValueError("invalid awg_id  " + str(awg_id))
+        
+        data = dout_sequence.serialize()
+        command = self._joinargs("SetDoutSequence", [int(awg_id), len(data)])
+        self.rft_data_if.PutCmdWithData(command, data)
+
+
+    def is_digital_output_step_skipped(self, awg_id, step_id):
+        """
+        引数で指定したデジタル出力ステップがスキップされていたかどうかを調べる
+        
+        Parameters
+        ----------
+        awg_id : AwgId
+            調べたいデジタル出力ステップを含むデジタル出力シーケンスをセットした AWG の ID
+        step_id : int
+            調べたいデジタル出力ステップのID
+        
+        Returns
+        -------
+        flag : int
+            True -> スキップされた
+            False -> スキップされていない (正常)
+        """
+        if (not AwgId.has_value(awg_id)):
+            raise ValueError("invalid awg_id  " + str(awg_id))
+        
+        if (not isinstance(step_id, int) or (step_id < 0 or 0x7FFFFFFF < step_id)):
+            raise ValueError("invalid step_id " + str(step_id))
+
+        command = self._joinargs("IsDoutStepSkipped", [int(awg_id), step_id])
         res = self.rft_ctrl_if.put(command)
         return False if int(res) == 0 else True

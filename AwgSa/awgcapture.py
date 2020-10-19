@@ -19,7 +19,7 @@ class AwgCapture(object):
         time : float
             キャプチャ時間. (単位:ns)
         delay : float
-            step_id で指定した波形ステップの出力開始から, キャプチャを開始するまでの遅延時間 (単位:ns)
+            このキャプチャに対応する波形ステップの開始から, キャプチャを開始するまでの遅延時間 (単位:ns)
         do_accumulation : bool
             波形シーケンスを繰り返した際に, キャプチャデータを累積するかどうか. (True:累積する, False:累積しない)
         """

@@ -22,7 +22,7 @@ finally:
 
 # Parameters
 ZCU111_IP_ADDR = "192.168.1.3"
-PLOT_DIR = "plot_awg_send_recv/"
+PLOT_DIR = "plot_awg_digital_output/"
 
 # Log level
 LOG_LEVEL = logging.INFO
@@ -224,13 +224,14 @@ def check_skipped_step(awg_sa_cmd):
     キャプチャが出来なかった場合, そのキャプチャはスキップされる.
     """
     if awg_sa_cmd.is_capture_step_skipped(awgsa.AwgId.AWG_0, step_id=0):
-        print("The Step id 0 in AWG 0 has been skipped!!")
+        print("The capture step id 0 in AWG 0 has been skipped!!")
 
     if awg_sa_cmd.is_capture_step_skipped(awgsa.AwgId.AWG_0, step_id=1):
-        print("The Step id 1 in AWG 0 has been skipped!!")
+        print("The capture step id 1 in AWG 0 has been skipped!!")
 
     if awg_sa_cmd.is_capture_step_skipped(awgsa.AwgId.AWG_1, step_id=0):
-        print("The Step id 0 in AWG 1 has been skipped!!")
+        print("The capture step id 0 in AWG 1 has been skipped!!")
+
 
 def check_capture_data_fifo_oevrflow(awg_sa_cmd):
     """
@@ -246,6 +247,18 @@ def check_capture_data_fifo_oevrflow(awg_sa_cmd):
 
     if awg_sa_cmd.is_capture_data_fifo_overflowed(awgsa.AwgId.AWG_1, step_id=0):
         print("The ADC data FIFO in AWG 1 has overflowed at step id 0!!")
+
+
+def check_skipped_digital_output(awg_sa_cmd):
+    """
+    スキップされたデジタル出力ステップが無いかチェックする.
+    """
+    if awg_sa_cmd.is_digital_output_step_skipped(awgsa.AwgId.AWG_0, step_id=1):
+        print("The digital output step id 1 in AWG 0 has been skipped!!")
+
+    if awg_sa_cmd.is_digital_output_step_skipped(awgsa.AwgId.AWG_1, step_id=0):
+        print("The digital output step id 0 in AWG 1 has been skipped!!")
+
 
 def output_graphs(*id_and_data_list):
 
@@ -291,37 +304,29 @@ def set_wave_sequence(awg_sa_cmd):
     """
     # 波形の定義
     wave_0 = awgsa.AwgWave(
-        wave_type = awgsa.AwgWave.SINE,
-        frequency = 10.0,
-        phase = 0,
-        amplitude = 30000,
-        num_cycles = 4)
-
-    wave_1 = awgsa.AwgWave(
-        wave_type = awgsa.AwgWave.SAWTOOTH,
-        frequency = 10.0,
-        phase = 0,
-        amplitude = 30000,
-        num_cycles = 3,
-        crest_pos = 1.0)
-
-    wave_2 = awgsa.AwgWave(
         wave_type = awgsa.AwgWave.GAUSSIAN,
-        frequency = 10.0,
+        frequency = 1.0,
         phase = 0,
         amplitude = 30000,
-        num_cycles = 4,
+        num_cycles = 2,
         variance = 0.2,
         domain_begin = -1.5,
         domain_end = 1.5)
 
-    wave_3 = awgsa.AwgWave(
-        wave_type = awgsa.AwgWave.SQUARE,
-        frequency = 10.0,
+    wave_1 = awgsa.AwgWave(
+        wave_type = awgsa.AwgWave.SINE,
+        frequency = 1.0,
         phase = 0,
         amplitude = 30000,
-        num_cycles = 4,
-        duty_cycle = 50.0)
+        num_cycles = 4)
+
+    wave_2 = awgsa.AwgWave(
+        wave_type = awgsa.AwgWave.SAWTOOTH,
+        frequency = 1.0,
+        phase = 0,
+        amplitude = 30000,
+        num_cycles = 8,
+        crest_pos = 1.0)
 
     # 波形シーケンスの定義
     # キャプチャする波形ステップは, キャプチャの終了処理にかかるオーバーヘッドを考慮し, 
@@ -330,14 +335,11 @@ def set_wave_sequence(awg_sa_cmd):
         .add_step(step_id = 0, wave = wave_0, interval = wave_0.get_duration() + 2000)
         .add_step(step_id = 1, wave = wave_1, interval = wave_1.get_duration() + 2000))
 
-    # interval = wave_2.get_duration() の代わりに interval = 0 としても同じ.
-    # interval にその波形の長さ以下の値を指定すると, その波形ステップを出力後に, 可能な限り早く次のステップの波形が出力される.
     wave_sequence_1 = (awgsa.WaveSequence(DAC_FREQ)
-        .add_step(step_id = 0, wave = wave_2, interval = wave_2.get_duration())
-        .add_step(step_id = 1, wave = wave_3, interval = wave_3.get_duration() + 2000))
+        .add_step(step_id = 0, wave = wave_2, interval = wave_2.get_duration() + 2000))
 
     # AWG に波形シーケンスをセットする
-    awg_sa_cmd.set_wave_sequence(awg_id = awgsa.AwgId.AWG_0, wave_sequence = wave_sequence_0, num_repeats = 1)
+    awg_sa_cmd.set_wave_sequence(awgsa.AwgId.AWG_0, wave_sequence_0, num_repeats = 1)
     awg_sa_cmd.set_wave_sequence(awgsa.AwgId.AWG_1, wave_sequence_1, num_repeats = 1)
     return (wave_sequence_0, wave_sequence_1)
 
@@ -382,6 +384,33 @@ def set_capture_sequence(awg_sa_cmd, seq_0, seq_1):
     # AWG に キャプチャシーケンスを設定する
     awg_sa_cmd.set_capture_config(capture_config)
 
+
+def set_digital_output_sequence(awg_sa_cmd):
+
+    dout_0 = (awgsa.DigitalOutputVector()
+        .append_data(0xA9, 1000)
+        .append_data(0x76, 1500)
+        .append_data(0xBF, 1500)
+        .append_data(0x00, 1))
+
+    dout_1 = (awgsa.DigitalOutputVector(delay=1000.0)
+        .append_data(0x5E, 2000)
+        .append_data(0x43, 1000)
+        .append_data(0x21, 3000)
+        .append_data(0xD6, 1000)
+        .append_data(0x00, 1))
+
+    dout_sequence_0 = (awgsa.DigitalOutputSequence()
+        .add_step(step_id = 1, dout_vec = dout_0))
+
+    dout_sequence_1 = (awgsa.DigitalOutputSequence()
+        .add_step(step_id = 0, dout_vec = dout_1))
+
+    # HW にデジタル出力シーケンスをセットする
+    awg_sa_cmd.set_digital_output_sequence(awg_id = awgsa.AwgId.AWG_0, dout_sequence = dout_sequence_0)
+    awg_sa_cmd.set_digital_output_sequence(awgsa.AwgId.AWG_1, dout_sequence_1)
+
+
 def main():   
 
     with client.RftoolClient(logger=logger) as rft:
@@ -406,6 +435,8 @@ def main():
         (wave_seq_0, wave_seq_1) = set_wave_sequence(rft.awg_sa_cmd)
         # キャプチャシーケンス設定
         set_capture_sequence(rft.awg_sa_cmd, wave_seq_0, wave_seq_1)
+        # デジタル出力シーケンス設定
+        set_digital_output_sequence(rft.awg_sa_cmd)
         # 波形出力 & キャプチャスタート
         rft.awg_sa_cmd.start_wave_sequence()
         # 終了待ち
@@ -413,6 +444,7 @@ def main():
         # エラーチェック
         check_skipped_step(rft.awg_sa_cmd)
         check_capture_data_fifo_oevrflow(rft.awg_sa_cmd)
+        check_skipped_digital_output(rft.awg_sa_cmd)
         for ch in range(8):
             check_intr_flags(rft.command, ADC, ch)
         for ch in range(8):
@@ -432,7 +464,6 @@ def main():
             (awgsa.AwgId.AWG_0, 0, r_sample_0),
             (awgsa.AwgId.AWG_0, 1, r_sample_1),
             (awgsa.AwgId.AWG_1, 0, r_sample_2))
-
     print("Done.")
     return
 

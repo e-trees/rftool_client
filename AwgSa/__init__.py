@@ -18,3 +18,9 @@ from .capturesequence import *
 
 from . import captureconfig
 from . captureconfig import *
+
+from . import digitaloutputvector
+from . digitaloutputvector import *
+
+from . import digitaloutputsequence
+from . digitaloutputsequence import *
