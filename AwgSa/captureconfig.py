@@ -20,7 +20,7 @@ class CaptureConfig(object):
         
         Parameters
         ----------
-        awg_id : int
+        awg_id : AwgId
             capture_sequence をセットする AWG の ID.
         capture_sequence : CaptureSequence
             追加するキャプチャシーケンス
@@ -41,6 +41,7 @@ class CaptureConfig(object):
     def serialize(self):
         data = bytearray()
         data += "CPCF".encode('utf-8')
+        data += self.num_sequences().to_bytes(4, 'little')
 
         capture_sequence_list = sorted(self.capture_sequence_list.items())
         for elem in capture_sequence_list:
@@ -56,3 +57,19 @@ class CaptureConfig(object):
 
     def num_sequences(self):
         return len(self.capture_sequence_list)
+
+
+    def get_capture_sequence(self, awg_id):
+        """
+        Parameters
+        ----------
+        キャプチャシーケンスを取得する
+        awg_id : AwgId
+            取得したいキャプチャシーケンスをセットした AWG の ID
+        
+        Returns
+        ----------
+        capture_sequence : CaptureSequence
+            awg_id の AWG にセットされたキャプチャシーケンス
+        """
+        return self.capture_sequence_list[int(awg_id)]

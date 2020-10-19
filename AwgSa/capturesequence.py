@@ -5,16 +5,12 @@ from . import AwgCapture
 import struct
 
 class CaptureSequence(object):
-    """ キャプチャステップからなるシーケンスを保持する """
+    """ キャプチャステップのシーケンスを保持する """
     _MIN_SAMPLING_RATE = 1000.0
     _MAX_SAMPLING_RATE = 4096.0
     _MAX_CAPTURE_STEPS = 32
 
-    def __init__(
-        self,
-        sampling_rate,
-        *,
-        enable_iq_mixer = False):
+    def __init__(self, sampling_rate, *, is_iq_data = False):
         """
         キャプチャシーケンスオブジェクトを作成する.
 
@@ -22,19 +18,19 @@ class CaptureSequence(object):
         ----------
         sampling_rate : float
             ADC サンプリングレート [Msps]
-        enable_iq_mixer : bool
-            IQ Mixer を有効にするかどうか (True:有効, False:無効)
+        is_iq_data : bool
+            I/Q データをキャプチャするかどうか (True: I/Q データをキャプチャする, False: Real データをキャプチャする)
         """
 
         if (not isinstance(sampling_rate, (int, float)) or\
            (sampling_rate < CaptureSequence._MIN_SAMPLING_RATE or CaptureSequence._MAX_SAMPLING_RATE < sampling_rate)):
            raise ValueError("invalid sampling rate  " + str(sampling_rate))
         
-        if not isinstance(enable_iq_mixer, bool):
-            raise ValueError("invalid enable_iq_mixer  " + str(enable_iq_mixer))
+        if not isinstance(is_iq_data, bool):
+            raise ValueError("invalid is_iq_data  " + str(is_iq_data))
         
         self.sampling_rate = float(sampling_rate)
-        self.enable_iq_mixer = 1 if enable_iq_mixer else 0
+        self.is_iq_data = 1 if is_iq_data else 0
         self.capture_list = {}
         return
 
@@ -70,7 +66,7 @@ class CaptureSequence(object):
 
         data = bytearray()
         data += struct.pack("<d", self.sampling_rate)
-        data += self.enable_iq_mixer.to_bytes(4, 'little')
+        data += self.is_iq_data.to_bytes(4, 'little')
         data += self.num_capture_steps().to_bytes(4, 'little')
 
         capture_list = sorted(self.capture_list.items())

@@ -129,3 +129,62 @@ class AwgWave(object):
         """
         return 1000.0 * self.num_cycles / self.frequency
 
+    def get_frequency(self):
+        return self.frequency
+
+
+class AwgIQWave(object):
+    """
+    I 相 と Q 相の波形を持つオブジェクトを作成する.
+
+    Parameters
+    ----------
+    i_wave : AwgWave
+        I 相の波形
+    q_wave : AwgWave
+        Q 相の波形
+    """
+    def __init__(self, i_wave, q_wave):
+
+        if (not isinstance(i_wave, AwgWave)):
+            raise ValueError("invalid i_wave " + str(i_wave))
+
+        if (not isinstance(q_wave, AwgWave)):
+            raise ValueError("invalid q_wave " + str(q_wave))
+
+        if (i_wave.num_cycles != q_wave.num_cycles):
+            raise ValueError(
+                "The number of cycles of I wave and Q wave must be the same.\n" + 
+                "I wave cycles = " + str(i_wave.num_cycles) + "    Q wave cycles = " + str(q_wave.num_cycles))
+
+        self.i_wave = i_wave
+        self.q_wave = q_wave
+        return
+
+
+    def get_i_wave(self):
+        """
+        I 相の波形を取得する
+        """
+        return self.i_wave
+
+
+    def get_q_wave(self):
+        """
+        Q 相の波形を取得する
+        """
+        return self.q_wave
+
+
+    def get_duration(self):
+        """
+        この波形が出力される時間 (単位:ns) を取得する.
+        I/Q データの出力時間は, I 相と Q 相の長い方の出力時間である.
+        """
+        return max(self.i_wave.get_duration(), self.q_wave.get_duration())
+
+    def serialize(self):
+        data = bytearray()
+        data += self.i_wave.serialize()
+        data += self.q_wave.serialize()
+        return data
