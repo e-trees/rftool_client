@@ -8,10 +8,10 @@ import struct
 class CaptureConfig(object):
     """ キャプチャシーケンスのリストを保持する """
 
-    _MAX_CAPTURE_SEQUENCES = 8
+    __MAX_CAPTURE_SEQUENCES = 8
 
     def __init__(self):
-        self.capture_sequence_list = {}
+        self.__capture_sequence_list = {}
         return
 
     def add_capture_sequence(self, awg_id, capture_sequence):
@@ -28,13 +28,13 @@ class CaptureConfig(object):
         if (not AwgId.has_value(awg_id)):
             raise ValueError("invalid awg_id  " + str(awg_id))
 
-        if (len(self.capture_sequence_list) == self._MAX_CAPTURE_SEQUENCES):
-            raise ValueError("No more capture sequences can be added. (max=" + str(self._MAX_CAPTURE_SEQUENCES) + ")")
+        if (len(self.__capture_sequence_list) == self.__MAX_CAPTURE_SEQUENCES):
+            raise ValueError("No more capture sequences can be added. (max=" + str(self.__MAX_CAPTURE_SEQUENCES) + ")")
 
         if (not isinstance(capture_sequence, CaptureSequence)):
             raise ValueError("invalid capture sequence" + str(capture_sequence))
 
-        self.capture_sequence_list[int(awg_id)] = capture_sequence
+        self.__capture_sequence_list[int(awg_id)] = capture_sequence
         return self
 
 
@@ -43,7 +43,7 @@ class CaptureConfig(object):
         data += "CPCF".encode('utf-8')
         data += self.num_sequences().to_bytes(4, 'little')
 
-        capture_sequence_list = sorted(self.capture_sequence_list.items())
+        capture_sequence_list = sorted(self.__capture_sequence_list.items())
         for elem in capture_sequence_list:
             awg_id = elem[0]
             capture_sequence = elem[1]
@@ -56,7 +56,7 @@ class CaptureConfig(object):
 
 
     def num_sequences(self):
-        return len(self.capture_sequence_list)
+        return len(self.__capture_sequence_list)
 
 
     def get_capture_sequence(self, awg_id):
@@ -72,4 +72,4 @@ class CaptureConfig(object):
         capture_sequence : CaptureSequence
             awg_id の AWG にセットされたキャプチャシーケンス
         """
-        return self.capture_sequence_list[int(awg_id)]
+        return self.__capture_sequence_list[int(awg_id)]

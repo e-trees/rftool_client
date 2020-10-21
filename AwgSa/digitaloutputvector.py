@@ -15,8 +15,8 @@ class DigitalOutputVector(object):
         delay : float
             このデジタル出力に対応する波形ステップの開始から, 最初のデジタルデータを出力するまでの遅延時間 (単位:ns)
         """
-        self.delay = delay
-        self.output_list = []
+        self.__delay = delay
+        self.__output_list = []
         return
 
     def append_data(self, val, duration):
@@ -30,7 +30,7 @@ class DigitalOutputVector(object):
         duration : float
             出力期間 (単位:ns)
         """
-        if (len(self.output_list) == DigitalOutputVector._MAX_NUM_OUTPUT_DATA):
+        if (len(self.__output_list) == DigitalOutputVector._MAX_NUM_OUTPUT_DATA):
             raise ValueError("No more output data can be appended. (max=" + str(DigitalOutputVector._MAX_NUM_OUTPUT_DATA) + ")")
 
         if (not isinstance(val, int) or (val < 0 or 255 < val)):
@@ -39,7 +39,7 @@ class DigitalOutputVector(object):
         if (not isinstance(duration, (float, int)) or 1.0e+10 < duration):
             raise ValueError("invalid duration " + str(duration))
 
-        self.output_list.append((val, float(duration)))
+        self.__output_list.append((val, float(duration)))
         return self
 
 
@@ -48,22 +48,22 @@ class DigitalOutputVector(object):
         全出力データの出力期間 (単位:ns) の合計を取得する.
         """
         duration = 0.0
-        for output in self.output_list:
+        for output in self.__output_list:
             duration += output[1]
         return duration
 
 
     def num_output_data(self):
-        return len(self.output_list)
+        return len(self.__output_list)
 
 
     def serialize(self):
 
         data = bytearray()
-        data += struct.pack("<d", self.delay)
-        data += len(self.output_list).to_bytes(4, 'little')
+        data += struct.pack("<d", self.__delay)
+        data += len(self.__output_list).to_bytes(4, 'little')
 
-        for output in self.output_list:
+        for output in self.__output_list:
             output_data = output[0]
             duration = output[1]
             data += output_data.to_bytes(4, 'little')

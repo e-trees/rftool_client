@@ -13,16 +13,16 @@ class AwgSaCommand(object):
     """AWG SA 制御用のコマンドを定義するクラス"""
 
     def __init__(self, ctrl_interface, data_interface, logger=None):
-        self._logger = logging.getLogger(__name__)
-        self._logger.addHandler(logging.NullHandler())
-        self._logger = logger or self._logger
+        self.__logger = logging.getLogger(__name__)
+        self.__logger.addHandler(logging.NullHandler())
+        self.__logger = logger or self.__logger
 
-        self.rft_ctrl_if = ctrl_interface
-        self.rft_data_if = data_interface
-        self._joinargs = cmdutil.CmdUtil.joinargs
-        self._splitargs = cmdutil.CmdUtil.splitargs
-        self._split_response = cmdutil.CmdUtil.split_response
-        self._logger.debug("RftoolCommand __init__")
+        self.__rft_ctrl_if = ctrl_interface
+        self.__rft_data_if = data_interface
+        self.__joinargs = cmdutil.CmdUtil.joinargs
+        self.__splitargs = cmdutil.CmdUtil.splitargs
+        self.__split_response = cmdutil.CmdUtil.split_response
+        self.__logger.debug("RftoolCommand __init__")
         return
 
 
@@ -50,8 +50,8 @@ class AwgSaCommand(object):
            raise ValueError("invalid num_repeats  " + str(num_repeats))
         
         data = wave_sequence.serialize()
-        command = self._joinargs("SetWaveSequence", [int(awg_id), num_repeats, len(data)])
-        self.rft_data_if.PutCmdWithData(command, data)
+        command = self.__joinargs("SetWaveSequence", [int(awg_id), num_repeats, len(data)])
+        self.__rft_data_if.PutCmdWithData(command, data)
 
 
     def enable_awg(self, *awg_id_list):
@@ -69,8 +69,8 @@ class AwgSaCommand(object):
                 raise ValueError("invalid awg_id  " + str(awg_id))
             enable_list[int(awg_id)] = 1
 
-        command = self._joinargs("EnableAwg", enable_list)
-        self.rft_ctrl_if.put(command)
+        command = self.__joinargs("EnableAwg", enable_list)
+        self.__rft_ctrl_if.put(command)
 
 
     def disable_awg(self, *awg_id_list):
@@ -88,8 +88,8 @@ class AwgSaCommand(object):
                 raise ValueError("invalid awg_id  " + str(awg_id))
             disable_list[int(awg_id)] = 1
 
-        command = self._joinargs("DisableAwg", disable_list)
-        self.rft_ctrl_if.put(command)
+        command = self.__joinargs("DisableAwg", disable_list)
+        self.__rft_ctrl_if.put(command)
 
 
     def start_wave_sequence(self):
@@ -97,7 +97,7 @@ class AwgSaCommand(object):
         波形出力およびキャプチャ処理を開始する
         """
         command = "StartWaveSequence"
-        self.rft_ctrl_if.put(command)
+        self.__rft_ctrl_if.put(command)
 
 
     def is_wave_sequence_complete(self, awg_id):
@@ -118,8 +118,8 @@ class AwgSaCommand(object):
         """ 
         if (not AwgId.has_value(awg_id)):
             raise ValueError("invalid awg_id  " + str(awg_id))
-        command = self._joinargs("IsWaveSequenceComplete", [int(awg_id)])
-        res = self.rft_ctrl_if.put(command)
+        command = self.__joinargs("IsWaveSequenceComplete", [int(awg_id)])
+        res = self.__rft_ctrl_if.put(command)
         res = int(res)
         if res == 0:
             return AwgSaCmdResult.WAVE_SEQUENCE_NOT_COMPLETE
@@ -144,8 +144,8 @@ class AwgSaCommand(object):
             raise ValueError("invalid capture_config " + str(capture_config))
         
         data = capture_config.serialize()
-        command = self._joinargs("SetCaptureConfig", [len(data)])
-        self.rft_data_if.PutCmdWithData(command, data)
+        command = self.__joinargs("SetCaptureConfig", [len(data)])
+        self.__rft_data_if.PutCmdWithData(command, data)
         
 
     def read_capture_data(self, awg_id, step_id):
@@ -170,18 +170,18 @@ class AwgSaCommand(object):
         if (not isinstance(step_id, int) or (step_id < 0 or 0x7FFFFFFF < step_id)):
             raise ValueError("invalid step_id " + str(step_id))
 
-        command = self._joinargs("ReadCaptureData", [int(awg_id), step_id])
-        self.rft_data_if.send_command(command)
-        res = self.rft_data_if.recv_response() # キャプチャデータの前のコマンド成否レスポンス  [SA_SUCCESS/SA_FAILURE, data size]
-        [result, data_size] = self._split_response(res, ",")
+        command = self.__joinargs("ReadCaptureData", [int(awg_id), step_id])
+        self.__rft_data_if.send_command(command)
+        res = self.__rft_data_if.recv_response() # キャプチャデータの前のコマンド成否レスポンス  [SA_SUCCESS/SA_FAILURE, data size]
+        [result, data_size] = self.__split_response(res, ",")
         if (result == "AWG_SUCCESS"):
-            data = self.rft_data_if.recv_data(data_size)
-            self.rft_data_if.recv_response() # end of capture data
+            data = self.__rft_data_if.recv_data(data_size)
+            self.__rft_data_if.recv_response() # end of capture data
 
-        res = self.rft_data_if.recv_response() # end of 'ReadCaptureData' command
+        res = self.__rft_data_if.recv_response() # end of 'ReadCaptureData' command
         if res[:5] == "ERROR":
             raise rfterr.RftoolExecuteCommandError(res)
-        self._logger.debug(res)
+        self.__logger.debug(res)
         return data
 
 
@@ -193,8 +193,8 @@ class AwgSaCommand(object):
         if (not isinstance(step_id, int) or (step_id < 0 or 0x7FFFFFFF < step_id)):
             raise ValueError("invalid step_id " + str(step_id))
 
-        command = self._joinargs("GetCaptureDataSize ", [int(awg_id), step_id])
-        res = self.rft_ctrl_if.put(command)
+        command = self.__joinargs("GetCaptureDataSize ", [int(awg_id), step_id])
+        res = self.__rft_ctrl_if.put(command)
         return int(res)  # byte
         
 
@@ -203,7 +203,7 @@ class AwgSaCommand(object):
         AWG および AWG 制御用ライブラリの初期化を行う
         """
         command = "InitializeAwgSa"
-        self.rft_ctrl_if.put(command)
+        self.__rft_ctrl_if.put(command)
 
 
     def is_capture_step_skipped(self, awg_id, step_id):
@@ -229,8 +229,8 @@ class AwgSaCommand(object):
         if (not isinstance(step_id, int) or (step_id < 0 or 0x7FFFFFFF < step_id)):
             raise ValueError("invalid step_id " + str(step_id))
 
-        command = self._joinargs("IsCaptureStepSkipped ", [int(awg_id), step_id])
-        res = self.rft_ctrl_if.put(command)
+        command = self.__joinargs("IsCaptureStepSkipped ", [int(awg_id), step_id])
+        res = self.__rft_ctrl_if.put(command)
         return False if int(res) == 0 else True
 
 
@@ -257,8 +257,8 @@ class AwgSaCommand(object):
         if (not isinstance(step_id, int) or (step_id < 0 or 0x7FFFFFFF < step_id)):
             raise ValueError("invalid step_id " + str(step_id))
 
-        command = self._joinargs("IsAccumulatedValueOverranged", [int(awg_id), step_id])
-        res = self.rft_ctrl_if.put(command)
+        command = self.__joinargs("IsAccumulatedValueOverranged", [int(awg_id), step_id])
+        res = self.__rft_ctrl_if.put(command)
         return False if int(res) == 0 else True
 
 
@@ -285,8 +285,8 @@ class AwgSaCommand(object):
         if (not isinstance(step_id, int) or (step_id < 0 or 0x7FFFFFFF < step_id)):
             raise ValueError("invalid step_id " + str(step_id))
 
-        command = self._joinargs("IsCaptureDataFifoOverflowed", [int(awg_id), step_id])
-        res = self.rft_ctrl_if.put(command)
+        command = self.__joinargs("IsCaptureDataFifoOverflowed", [int(awg_id), step_id])
+        res = self.__rft_ctrl_if.put(command)
         return False if int(res) == 0 else True
 
 
@@ -335,20 +335,20 @@ class AwgSaCommand(object):
             raise ValueError("'start_sample_idx' must be a multiple of 16 for Real data.  " + str(start_sample_idx))
 
         is_iq_data = 1 if is_iq_data else 0
-        command = self._joinargs(
+        command = self.__joinargs(
             "GetSpectrum", [int(awg_id), step_id, start_sample_idx, num_frames, is_iq_data])
-        self.rft_data_if.send_command(command)
-        res = self.rft_data_if.recv_response() # スペクトルデータの前のコマンド成否レスポンス  [SA_SUCCESS/SA_FAILURE, data size]
-        [result, data_size] = self._split_response(res, ",")
+        self.__rft_data_if.send_command(command)
+        res = self.__rft_data_if.recv_response() # スペクトルデータの前のコマンド成否レスポンス  [SA_SUCCESS/SA_FAILURE, data size]
+        [result, data_size] = self.__split_response(res, ",")
 
         if (result == "SA_SUCCESS"):
-            spectrum = self.rft_data_if.recv_data(data_size)
-            self.rft_data_if.recv_response() # end of spectrum data
+            spectrum = self.__rft_data_if.recv_data(data_size)
+            self.__rft_data_if.recv_response() # end of spectrum data
 
-        res = self.rft_data_if.recv_response() # end of 'GetSpectrum' command
+        res = self.__rft_data_if.recv_response() # end of 'GetSpectrum' command
         if res[:5] == "ERROR":
             raise rfterr.RftoolExecuteCommandError(res)
-        self._logger.debug(res)
+        self.__logger.debug(res)
         return spectrum
 
 
@@ -377,8 +377,8 @@ class AwgSaCommand(object):
            raise ValueError("invalid awg_id  " + str(awg_id))
         
         data = dout_sequence.serialize()
-        command = self._joinargs("SetDoutSequence", [int(awg_id), len(data)])
-        self.rft_data_if.PutCmdWithData(command, data)
+        command = self.__joinargs("SetDoutSequence", [int(awg_id), len(data)])
+        self.__rft_data_if.PutCmdWithData(command, data)
 
 
     def is_digital_output_step_skipped(self, awg_id, step_id):
@@ -404,6 +404,6 @@ class AwgSaCommand(object):
         if (not isinstance(step_id, int) or (step_id < 0 or 0x7FFFFFFF < step_id)):
             raise ValueError("invalid step_id " + str(step_id))
 
-        command = self._joinargs("IsDoutStepSkipped", [int(awg_id), step_id])
-        res = self.rft_ctrl_if.put(command)
+        command = self.__joinargs("IsDoutStepSkipped", [int(awg_id), step_id])
+        res = self.__rft_ctrl_if.put(command)
         return False if int(res) == 0 else True
