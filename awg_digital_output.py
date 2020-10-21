@@ -354,7 +354,7 @@ def set_capture_sequence(awg_sa_cmd, seq_0, seq_1):
     capture_0 = awgsa.AwgCapture(
         time = seq_0.get_wave(step_id = 0).get_duration() + 20,
         delay = 335,
-        do_accumulation = False) # 積算は未実装なので do_accumulation = False を指定
+        do_accumulation = False)
 
     capture_1 = awgsa.AwgCapture(
         time = seq_0.get_wave(step_id = 1).get_duration() + 20,

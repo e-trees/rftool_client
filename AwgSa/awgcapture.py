@@ -34,15 +34,15 @@ class AwgCapture(object):
         if not isinstance(do_accumulation, bool):
             raise ValueError("invalid do_accumulation  " + str(do_accumulation))
         
-        self.time = float(time)
-        self.delay = float(delay)
-        self.do_accumulation = 1 if do_accumulation else 0
+        self.__time = float(time)
+        self.__delay = float(delay)
+        self.__do_accumulation = 1 if do_accumulation else 0
         return
 
 
     def serialize(self):
         data = bytearray()
-        data += struct.pack("<d", self.time)
-        data += struct.pack("<d", self.delay)
-        data += self.do_accumulation.to_bytes(4, 'little')
+        data += struct.pack("<d", self.__time)
+        data += struct.pack("<d", self.__delay)
+        data += self.__do_accumulation.to_bytes(4, 'little')
         return data

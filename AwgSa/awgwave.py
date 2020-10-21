@@ -2,8 +2,42 @@
 # coding: utf-8
 
 import struct
+import numpy as np
 
-class AwgWave(object):
+class WaveParamSerializer(object):
+    
+    def _serialize_params(
+        self,
+        wave_type,
+        frequency,
+        phase,
+        amplitude,
+        offset,
+        num_cycles,
+        duty_cycle,
+        crest_pos,
+        variance,
+        domain_begin,
+        domain_end,
+        num_any_wave_samples):
+
+        data = bytearray()
+        data += wave_type.to_bytes(4, 'little')
+        data += struct.pack("<d", frequency)
+        data += struct.pack("<d", phase)
+        data += struct.pack("<d", amplitude)
+        data += struct.pack("<d", offset)
+        data += num_cycles.to_bytes(4, 'little')
+        data += struct.pack("<d", duty_cycle)
+        data += struct.pack("<d", crest_pos)
+        data += struct.pack("<d", variance)
+        data += struct.pack("<d", domain_begin)
+        data += struct.pack("<d", domain_end)
+        data += num_any_wave_samples.to_bytes(4, 'little')
+        return data
+
+
+class AwgWave(WaveParamSerializer):
     """
     波形情報を持つオブジェクトを作成する.
 
@@ -36,12 +70,12 @@ class AwgWave(object):
     SQUARE = 1
     SAWTOOTH = 2
     GAUSSIAN = 3
-    _WAVE_MAX = 4
+    __WAVE_MAX = 4
 
     def __init__(
         self,
         wave_type,
-        frequency,
+        frequency, 
         *,
         phase = 0.0,
         amplitude = 32760,
@@ -54,7 +88,7 @@ class AwgWave(object):
         domain_end = 2.0):
 
         if (not isinstance(wave_type, int)) or\
-           (wave_type < AwgWave.SINE or AwgWave._WAVE_MAX <= wave_type):
+           (wave_type < AwgWave.SINE or AwgWave.__WAVE_MAX <= wave_type):
             raise ValueError("invalid wave type  " + str(wave_type))
         
         if (not isinstance(frequency, (int, float)) or\
@@ -91,46 +125,120 @@ class AwgWave(object):
            raise ValueError("invalid end of the domain of the definition  " + str(domain_end))
 
 
-        self.wave_type = wave_type
-        self.frequency = float(frequency)
+        self.__wave_type = wave_type
+        self.__frequency = float(frequency)
         if float(phase) < 0.0:
-            self.phase = float(phase) % -360.0 + 360.0
+            self.__phase = float(phase) % -360.0 + 360.0
         else:
-            self.phase = float(phase) % 360.0
+            self.__phase = float(phase) % 360.0
         
-        self.amplitude = float(amplitude)
-        self.offset = float(offset)
-        self.num_cycles = num_cycles
-        self.duty_cycle = float(duty_cycle)
-        self.crest_pos = float(crest_pos)
-        self.variance = float(variance)
-        self.domain_begin = float(domain_begin)
-        self.domain_end = float(domain_end)
+        self.__amplitude = float(amplitude)
+        self.__offset = float(offset)
+        self.__num_cycles = num_cycles
+        self.__duty_cycle = float(duty_cycle)
+        self.__crest_pos = float(crest_pos)
+        self.__variance = float(variance)
+        self.__domain_begin = float(domain_begin)
+        self.__domain_end = float(domain_end)
         return
 
+
     def serialize(self):
-        data = bytearray()
-        data += self.wave_type.to_bytes(4, 'little')
-        data += struct.pack("<d", self.frequency)
-        data += struct.pack("<d", self.phase)
-        data += struct.pack("<d", self.amplitude)
-        data += struct.pack("<d", self.offset)
-        data += self.num_cycles.to_bytes(4, 'little')
-        data += struct.pack("<d", self.duty_cycle)
-        data += struct.pack("<d", self.crest_pos)
-        data += struct.pack("<d", self.variance)
-        data += struct.pack("<d", self.domain_begin)
-        data += struct.pack("<d", self.domain_end)
+        data = self._serialize_params(
+            self.__wave_type, self.__frequency, self.__phase,
+            self.__amplitude, self.__offset, self.__num_cycles,
+            self.__duty_cycle, self.__crest_pos, self.__variance,
+            self.__domain_begin, self.__domain_end, 0)
         return data
+
 
     def get_duration(self):
         """
         この波形が出力される時間 (単位:ns) を取得する
         """
-        return 1000.0 * self.num_cycles / self.frequency
+        return 1000.0 * self.__num_cycles / self.__frequency
+
 
     def get_frequency(self):
-        return self.frequency
+        """
+        この波形の周波数を返す. (単位:MHz)
+        """
+        return self.__frequency
+
+
+    def get_num_cycles(self):
+        return self.__num_cycles
+
+
+class AwgAnyWave(WaveParamSerializer):
+    """
+    任意のサンプル値を持つ波形オブジェクトを作成する
+
+    Parameters
+    ----------
+    sampling_rate : float
+        この波形を出力する際のサンプリングレート (単位:Msps)
+        
+    samples : numpy.ndarray
+        サンプル値の配列.
+        dtype は int16 とすること.
+    """
+
+    __ANY_WAVE = 1000
+
+    def __init__(self, sampling_rate, samples, num_cycles):
+        
+        if (not isinstance(sampling_rate, (int, float))):
+            raise ValueError("invalid samplin rate  " + str(sampling_rate))
+
+        if (not isinstance(samples, np.ndarray)):
+            raise ValueError("invalid samples " + str(samples))
+
+        if (samples.dtype != np.int16):
+            raise ValueError("The type of samples must be numpy.int16.  " + str(samples.dtype))
+
+        if (not isinstance(num_cycles, int) or (num_cycles <= 0 or 0xFFFFFFFE < num_cycles)):
+            raise ValueError("invalid number of cycles " + str(num_cycles))
+
+        if (len(samples) == 0):
+            raise ValueError("samples has no data.")
+
+        self.__sampling_rate = float(sampling_rate)
+        self.__samples = samples
+        self.__num_cycles = num_cycles
+        return
+
+
+    def get_duration(self):
+        """
+        この波形が出力される時間 (単位:ns) を取得する
+        """
+        return 1000.0 * self.__num_cycles / self.get_frequency()
+
+
+    def get_frequency(self):
+        """
+        この波形の周波数を返す. (単位:MHz)
+        """
+        return self.__sampling_rate / len(self.__samples)
+
+
+    def get_sampling_rate(self):
+        return self.__sampling_rate
+
+
+    def get_num_cycles(self):
+        return self.__num_cycles
+
+
+    def serialize(self):
+        data = self._serialize_params(
+            AwgAnyWave.__ANY_WAVE, self.get_frequency(), 0.0,
+            0.0, 0.0, self.__num_cycles,
+            0.0, 0.0, 0.0,
+            0.0, 0.0, len(self.__samples))
+        data += self.__samples.tobytes()
+        return data
 
 
 class AwgIQWave(object):
@@ -146,19 +254,20 @@ class AwgIQWave(object):
     """
     def __init__(self, i_wave, q_wave):
 
-        if (not isinstance(i_wave, AwgWave)):
+        if not isinstance(i_wave, (AwgWave, AwgAnyWave)):
             raise ValueError("invalid i_wave " + str(i_wave))
 
-        if (not isinstance(q_wave, AwgWave)):
+        if not isinstance(q_wave, (AwgWave, AwgAnyWave)):
             raise ValueError("invalid q_wave " + str(q_wave))
 
-        if (i_wave.num_cycles != q_wave.num_cycles):
+        if i_wave.get_num_cycles() != q_wave.get_num_cycles():
             raise ValueError(
                 "The number of cycles of I wave and Q wave must be the same.\n" + 
-                "I wave cycles = " + str(i_wave.num_cycles) + "    Q wave cycles = " + str(q_wave.num_cycles))
+                "I wave cycles = " + str(i_wave.get_num_cycles()) + "    " + 
+                "Q wave cycles = " + str(q_wave.get_num_cycles()))
 
-        self.i_wave = i_wave
-        self.q_wave = q_wave
+        self.__i_wave = i_wave
+        self.__q_wave = q_wave
         return
 
 
@@ -166,14 +275,14 @@ class AwgIQWave(object):
         """
         I 相の波形を取得する
         """
-        return self.i_wave
+        return self.__i_wave
 
 
     def get_q_wave(self):
         """
         Q 相の波形を取得する
         """
-        return self.q_wave
+        return self.__q_wave
 
 
     def get_duration(self):
@@ -181,10 +290,11 @@ class AwgIQWave(object):
         この波形が出力される時間 (単位:ns) を取得する.
         I/Q データの出力時間は, I 相と Q 相の長い方の出力時間である.
         """
-        return max(self.i_wave.get_duration(), self.q_wave.get_duration())
+        return max(self.__i_wave.get_duration(), self.__q_wave.get_duration())
+
 
     def serialize(self):
         data = bytearray()
-        data += self.i_wave.serialize()
-        data += self.q_wave.serialize()
+        data += self.__i_wave.serialize()
+        data += self.__q_wave.serialize()
         return data
