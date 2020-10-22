@@ -24,3 +24,6 @@ from . digitaloutputvector import *
 
 from . import digitaloutputsequence
 from . digitaloutputsequence import *
+
+from . import awgsaerror
+from . awgsaerror import *

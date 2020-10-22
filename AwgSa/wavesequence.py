@@ -3,6 +3,7 @@
 
 from . import AwgWave, AwgAnyWave, AwgIQWave
 import struct
+import copy
 
 class WaveSequence(object):
     """波形ステップのシーケンスを保持する"""
@@ -43,7 +44,7 @@ class WaveSequence(object):
         ----------
         step_id : int
             波形ステップID.  波形シーケンスの波形は, 波形ステップID が小さい順に出力される.
-        wave : AwgWave, AwgIQWave
+        wave : AwgWave, AwgIQWave, AwgAnyWave
             波形ステップで出力する波形の波形オブジェクト
         interval : float
             このステップの波形出力開始から次のステップの波形出力開始までの間隔. (単位:ns)
@@ -58,11 +59,12 @@ class WaveSequence(object):
             raise ValueError("No more steps can be added. (max=" + str(self.__MAX_WAVE_STEPS) + ")")
 
         self.__check_wave_type(wave)
-        self.__check_sampling_rate(wave)
 
         if (not isinstance(interval, (float, int)) or 1.0e+10 < interval):
             raise ValueError("invalid interval " + str(interval))
 
+        wave = copy.deepcopy(wave)
+        self.__set_sampling_rate(wave)
         self.__wave_step_list[step_id] = (wave, float(interval))
         return self
 
@@ -81,21 +83,18 @@ class WaveSequence(object):
         raise ValueError("invalid wave " + str(wave))
 
 
-    def __check_sampling_rate(self, wave):
+    def __set_sampling_rate(self, wave):
         """
-        任意波形のオブジェクトのサンプリングレートとこのシーケンスのサンプリングレートが一致しているか調べる.
-        一致していない場合, 警告文を出力する.
+        wave から辿れる AwgAnyWave にサンプリングレートを設定する
         """
-        if isinstance(wave, AwgAnyWave) and self.__sampling_rate != wave.get_sampling_rate():
-            print("The sampling rates of 'WaveSequence' and 'AwgAnyWave' do not match!!")
+        if isinstance(wave, AwgAnyWave):
+            wave._set_sampling_rate(self.__sampling_rate)
 
         if isinstance(wave, AwgIQWave):
-            if (isinstance(wave.get_i_wave(), AwgAnyWave) and 
-                self.__sampling_rate != wave.get_i_wave().get_sampling_rate()):
-                print("The sampling rates of 'WaveSequence' and 'AwgAnyWave' of I data do not match!!")
-            if (isinstance(wave.get_q_wave(), AwgAnyWave) and 
-                self.__sampling_rate != wave.get_q_wave().get_sampling_rate()):
-                print("The sampling rates of 'WaveSequence' and 'AwgAnyWave' of Q data do not match!!")
+            if isinstance(wave.get_i_wave(), AwgAnyWave):
+                wave.get_i_wave()._set_sampling_rate(self.__sampling_rate)
+            if isinstance(wave.get_q_wave(), AwgAnyWave):
+                wave.get_q_wave()._set_sampling_rate(self.__sampling_rate)
 
 
     def serialize(self):
