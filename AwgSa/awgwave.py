@@ -3,6 +3,7 @@
 
 import struct
 import numpy as np
+from . import awgsaerror
 
 class WaveParamSerializer(object):
     
@@ -186,11 +187,8 @@ class AwgAnyWave(WaveParamSerializer):
 
     __ANY_WAVE = 1000
 
-    def __init__(self, sampling_rate, samples, num_cycles):
+    def __init__(self, samples, num_cycles):
         
-        if (not isinstance(sampling_rate, (int, float))):
-            raise ValueError("invalid samplin rate  " + str(sampling_rate))
-
         if (not isinstance(samples, np.ndarray)):
             raise ValueError("invalid samples " + str(samples))
 
@@ -203,7 +201,7 @@ class AwgAnyWave(WaveParamSerializer):
         if (len(samples) == 0):
             raise ValueError("samples has no data.")
 
-        self.__sampling_rate = float(sampling_rate)
+        self.__sampling_rate = None
         self.__samples = samples
         self.__num_cycles = num_cycles
         return
@@ -220,11 +218,18 @@ class AwgAnyWave(WaveParamSerializer):
         """
         この波形の周波数を返す. (単位:MHz)
         """
+        if self.__sampling_rate == None:
+            raise awgsaerror.InvalidOperationError("The sampling rate has not been set.")
         return self.__sampling_rate / len(self.__samples)
 
 
-    def get_sampling_rate(self):
-        return self.__sampling_rate
+    def _set_sampling_rate(self, sampling_rate):
+        """
+        このメソッドを AwgSa パッケージ外から呼ばないこと!!
+        """
+        if not isinstance(sampling_rate, (int, float)):
+            raise ValueError("invalid samplin rate  " + str(sampling_rate))
+        self.__sampling_rate = float(sampling_rate)
 
 
     def get_num_cycles(self):

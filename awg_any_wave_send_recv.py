@@ -458,6 +458,25 @@ def output_spectrum_data(awg_id_to_spectrum, num_frames, fft_size):
             (awg_id, 0, num_frames, real, imaginary, absolute))
 
 
+def calc_duration(num_samples, sampling_rate):
+    """
+    波形のサンプル数とサンプリングレートから波形の出力時間を計算する.
+    
+    Parameters
+    ----------
+    num_samples : int
+        出力波形のサンプル数
+        
+    sampling_rate : float
+        サンプリングレート (単位: Msps)
+    
+    Returns
+    -------
+    出力時間 (単位:ns)
+    """
+    return 1000.0 * sampling_rate / num_samples
+
+
 def create_wave():
     """
     周波数と振幅が 1 周期ごとに変化する sin 波のサンプルデータを作成する
@@ -497,31 +516,23 @@ def set_wave_sequence(awg_sa_cmd):
     """
     # 波形の定義
     samples = create_wave()
-
-    wave_0 = awgsa.AwgAnyWave(
-        sampling_rate = DAC_FREQ,
-        samples = samples,
-        num_cycles = 10)
+    wave_0 = awgsa.AwgAnyWave(samples = samples, num_cycles = 10)
 
     (i_samples, q_samples) = create_iq_wave()
-    i_wave = awgsa.AwgAnyWave(
-        sampling_rate = DAC_FREQ,
-        samples = i_samples,
-        num_cycles = 1000)
-    q_wave = awgsa.AwgAnyWave(
-        sampling_rate = DAC_FREQ,
-        samples = q_samples,
-        num_cycles = 1000)
+    i_wave = awgsa.AwgAnyWave(samples = i_samples, num_cycles = 1000)
+    q_wave = awgsa.AwgAnyWave(samples = q_samples, num_cycles = 1000)
     wave_1 = awgsa.AwgIQWave(i_wave, q_wave)
 
     # 波形シーケンスの定義
     # キャプチャする波形ステップは, キャプチャの終了処理にかかるオーバーヘッドを考慮し, 
     # get_duration() で取得できる波形長 + 2000 ns 程度の幅を設定する.
+    duration = calc_duration(len(samples) * wave_0.get_num_cycles(), DAC_FREQ)
     wave_sequence_0 = (awgsa.WaveSequence(DAC_FREQ, is_iq_data = False)
-        .add_step(step_id = 0, wave = wave_0, interval = wave_0.get_duration() + 2000))
+        .add_step(step_id = 0, wave = wave_0, interval = duration + 2000))
 
+    duration = calc_duration(len(i_samples) * i_wave.get_num_cycles(), DAC_FREQ)
     wave_sequence_1 = (awgsa.WaveSequence(DAC_FREQ, is_iq_data = True)
-        .add_step(step_id = 0, wave = wave_1, interval = wave_1.get_duration() + 2000))
+        .add_step(step_id = 0, wave = wave_1, interval = duration + 2000))
 
     # AWG に波形シーケンスをセットする
     awg_sa_cmd.set_wave_sequence(awgsa.AwgId.AWG_0, wave_sequence_0, num_repeats = 1)
@@ -609,8 +620,6 @@ def main():
         output_capture_data(awg_id_to_wave_data, awg_id_to_wave_seq, num_frames, start_sample_idx, fft_size)
 
         # スペクトラム取得
-        spectrum_0 = rft.awg_sa_cmd.get_spectrum(
-            awgsa.AwgId.AWG_0, step_id = 0, start_sample_idx = start_sample_idx, num_frames = num_frames)
         spectrum_1 = rft.awg_sa_cmd.get_spectrum(
             awgsa.AwgId.AWG_1, step_id = 0, start_sample_idx = start_sample_idx, num_frames = num_frames)
 
