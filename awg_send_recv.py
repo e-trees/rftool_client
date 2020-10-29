@@ -276,7 +276,7 @@ def calibrate_adc(awg_sa_cmd):
         num_cycles = 100000)
 
     calib_wave_sequence = (awgsa.WaveSequence(DAC_FREQ)
-        .add_step(step_id = 0, wave = calib_wave, interval = calib_wave.get_duration()))
+        .add_step(step_id = 0, wave = calib_wave, post_blank = 0))
 
     # AWG に波形シーケンスをセットする
     awg_sa_cmd.set_wave_sequence(awgsa.AwgId.AWG_0, calib_wave_sequence, num_repeats = 1)
@@ -324,17 +324,14 @@ def set_wave_sequence(awg_sa_cmd):
         duty_cycle = 50.0)
 
     # 波形シーケンスの定義
-    # キャプチャする波形ステップは, キャプチャの終了処理にかかるオーバーヘッドを考慮し, 
-    # get_duration() で取得できる波形長 + 2000 ns 程度の幅を設定する.
+    # 波形ステップの開始から終了までの期間は, キャプチャの終了処理にかかるオーバーヘッドを考慮し, 波形出力期間 + 2000 ns を設定する.
     wave_sequence_0 = (awgsa.WaveSequence(DAC_FREQ)
-        .add_step(step_id = 0, wave = wave_0, interval = wave_0.get_duration() + 2000)
-        .add_step(step_id = 1, wave = wave_1, interval = wave_1.get_duration() + 2000))
+        .add_step(step_id = 0, wave = wave_0, post_blank = 2000)
+        .add_step(step_id = 1, wave = wave_1, post_blank = 2000))
 
-    # interval = wave_2.get_duration() の代わりに interval = 0 としても同じ.
-    # interval にその波形の長さ以下の値を指定すると, その波形ステップを出力後に, 可能な限り早く次のステップの波形が出力される.
     wave_sequence_1 = (awgsa.WaveSequence(DAC_FREQ)
-        .add_step(step_id = 0, wave = wave_2, interval = wave_2.get_duration())
-        .add_step(step_id = 1, wave = wave_3, interval = wave_3.get_duration() + 2000))
+        .add_step(step_id = 0, wave = wave_2, post_blank = 0)
+        .add_step(step_id = 1, wave = wave_3, post_blank = 2000))
 
     # AWG に波形シーケンスをセットする
     awg_sa_cmd.set_wave_sequence(awg_id = awgsa.AwgId.AWG_0, wave_sequence = wave_sequence_0, num_repeats = 1)
@@ -347,8 +344,7 @@ def set_capture_sequence(awg_sa_cmd, seq_0, seq_1):
     キャプチャシーケンスを AWG にセットする
     """
     # キャプチャ時間は, キャプチャする波形の長さ + 20 ns とする.
-    # delay が 波形シーケンスの interval を超えないように注意.
-    # capture_0 は 波形シーケンス 0 の step 0 の波形をキャプチャするため, これの interval を超えないようにする.
+    # delay が波形ステップの開始から終了までの時間を超えないように注意.
     capture_0 = awgsa.AwgCapture(
         time = seq_0.get_wave(step_id = 0).get_duration() + 20,
         delay = 335,
@@ -432,6 +428,12 @@ def main():
             (awgsa.AwgId.AWG_0, 0, r_sample_0),
             (awgsa.AwgId.AWG_0, 1, r_sample_1),
             (awgsa.AwgId.AWG_1, 0, r_sample_2))
+
+        # 送信波形をグラフ化
+        wave_seq_0.get_waveform_sequence().save_as_img(PLOT_DIR + "waveform/seq_0_waveform.png")
+        wave_seq_1.get_waveform_sequence().save_as_img(PLOT_DIR + "waveform/seq_1_waveform.png")
+        rft.awg_sa_cmd.get_waveform_sequence(awgsa.AwgId.AWG_0).save_as_img(PLOT_DIR + "waveform/output_seq_0_waveform.png")
+        rft.awg_sa_cmd.get_waveform_sequence(awgsa.AwgId.AWG_1).save_as_img(PLOT_DIR + "waveform/output_seq_1_waveform.png")
 
     print("Done.")
     return

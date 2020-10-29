@@ -8,6 +8,9 @@ from AwgSa import AwgId
 from AwgSa import AwgSaCmdResult
 from AwgSa import CaptureConfig
 from AwgSa import DigitalOutputSequence
+from AwgSa import WaveSequenceParams
+from AwgSa import FlattenedWaveformSequence
+from AwgSa import FlattenedIQWaveformSequence
 
 class AwgSaCommand(object):
     """AWG SA 制御用のコマンドを定義するクラス"""
@@ -407,3 +410,65 @@ class AwgSaCommand(object):
         command = self.__joinargs("IsDoutStepSkipped", [int(awg_id), step_id])
         res = self.__rft_ctrl_if.put(command)
         return False if int(res) == 0 else True
+
+
+    def get_waveform_sequence(self, awg_id):
+        """
+        awg_id で指定した AWG が出力する波形のサンプル値を保持するオブジェクトを取得する.
+
+        Returns
+        -------
+        waveform_seq : FlattenedWaveformSequence, FlattenedIQWaveformSequence
+            波形のサンプル値を保持するオブジェクト.
+            awg_id で指定した AWG に Real データの波形シーケンスを設定した場合は, FlattenedWaveformSequence が返る.
+            I/Q データの波形シーケンスを設定した場合は, FlattenedIQWaveformSequence が返る.
+            [補足]
+            戻り値のオブジェクトから参照できるサンプルデータは, WaveSequence.get_waveform_sequence(...) の場合と異なり, 
+            実際に DAC に入力される値である.
+        """
+        if (not AwgId.has_value(awg_id)):
+           raise ValueError("invalid awg_id  " + str(awg_id))
+
+        wave_seq_params = self.__get_wave_seq_params(awg_id)
+
+        command = self.__joinargs("GetWaveRAM", [int(awg_id)])
+        self.__rft_data_if.send_command(command)
+        res = self.__rft_data_if.recv_response() # 波形 RAM データの前のコマンド成否レスポンス  [SA_SUCCESS/SA_FAILURE, wave ram data size]
+        [result, wave_ram_data_size] = self.__split_response(res, ",")
+        
+        if (result == "AWG_SUCCESS"):
+            wave_ram_data = self.__rft_data_if.recv_data(wave_ram_data_size)
+            self.__rft_data_if.recv_response() # end of wave ram data
+
+        res = self.__rft_data_if.recv_response() # end of 'GetWaveRAM' command
+        if res[:5] == "ERROR":
+            raise rfterr.RftoolExecuteCommandError(res)
+        self.__logger.debug(res)
+        
+        if wave_seq_params.is_iq_data:
+            return FlattenedIQWaveformSequence.build_from_wave_ram(wave_seq_params, wave_ram_data)
+        else:
+            return FlattenedWaveformSequence.build_from_wave_ram(wave_seq_params, wave_ram_data)
+
+
+    def __get_wave_seq_params(self, awg_id):
+        """
+        awg_id で指定した AWG に設定されている波形シーケンスのパラメータをバイトデータとして取得する
+        """
+        if (not AwgId.has_value(awg_id)):
+           raise ValueError("invalid awg_id  " + str(awg_id))
+
+        command = self.__joinargs("GetWaveSequenceParams", [int(awg_id)])
+        self.__rft_data_if.send_command(command)
+        res = self.__rft_data_if.recv_response() # パラメータの前のコマンド成否レスポンス  [SA_SUCCESS/SA_FAILURE, wave sequence param size]
+        [result, seq_param_size] = self.__split_response(res, ",")
+
+        if (result == "AWG_SUCCESS"):
+            seq_params_bytes = self.__rft_data_if.recv_data(seq_param_size)
+            self.__rft_data_if.recv_response() # end of wave seq param data
+
+        res = self.__rft_data_if.recv_response() # end of 'GetWaveSequenceParams' command
+        if res[:5] == "ERROR":
+            raise rfterr.RftoolExecuteCommandError(res)
+        self.__logger.debug(res)
+        return WaveSequenceParams.build_from_bytes(seq_params_bytes)

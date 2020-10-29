@@ -2,6 +2,7 @@
 # coding: utf-8
 
 import struct
+import copy
 import numpy as np
 from . import awgsaerror
 
@@ -160,6 +161,10 @@ class AwgWave(WaveParamSerializer):
         return 1000.0 * self.__num_cycles / self.__frequency
 
 
+    def get_wave_type(self):
+        return self.__wave_type
+
+
     def get_frequency(self):
         """
         この波形の周波数を返す. (単位:MHz)
@@ -167,8 +172,40 @@ class AwgWave(WaveParamSerializer):
         return self.__frequency
 
 
+    def get_phase(self):
+        return self.__phase
+
+
+    def get_amplitude(self):
+        return self.__amplitude
+
+
+    def get_offset(self):
+        return self.__offset
+
+
     def get_num_cycles(self):
         return self.__num_cycles
+
+
+    def get_duty_cycle(self):
+        return self.__duty_cycle
+
+
+    def get_crest_pos(self):
+        return self.__crest_pos
+
+
+    def get_variance(self):
+        return self.__variance
+
+
+    def get_domain_begin(self):
+        return self.__domain_begin
+
+
+    def get_domain_end(self):
+        return self.__domain_end
 
 
 class AwgAnyWave(WaveParamSerializer):
@@ -202,7 +239,7 @@ class AwgAnyWave(WaveParamSerializer):
             raise ValueError("samples has no data.")
 
         self.__sampling_rate = None
-        self.__samples = samples
+        self.__samples = copy.deepcopy(samples)
         self.__num_cycles = num_cycles
         return
 
@@ -221,6 +258,10 @@ class AwgAnyWave(WaveParamSerializer):
         if self.__sampling_rate == None:
             raise awgsaerror.InvalidOperationError("The sampling rate has not been set.")
         return self.__sampling_rate / len(self.__samples)
+
+
+    def get_samples(self):
+        return copy.deepcopy(self.__samples)
 
 
     def _set_sampling_rate(self, sampling_rate):
