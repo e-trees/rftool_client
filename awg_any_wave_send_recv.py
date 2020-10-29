@@ -225,7 +225,7 @@ def calibrate_adc(awg_sa_cmd):
         num_cycles = 100000)
 
     calib_wave_sequence = (awgsa.WaveSequence(DAC_FREQ)
-        .add_step(step_id = 0, wave = calib_wave, interval = calib_wave.get_duration()))
+        .add_step(step_id = 0, wave = calib_wave, post_blank = 0))
 
     awg_sa_cmd.set_wave_sequence(awgsa.AwgId.AWG_0, calib_wave_sequence, num_repeats = 1)
     awg_sa_cmd.set_wave_sequence(awgsa.AwgId.AWG_1, calib_wave_sequence, num_repeats = 1)
@@ -524,15 +524,12 @@ def set_wave_sequence(awg_sa_cmd):
     wave_1 = awgsa.AwgIQWave(i_wave, q_wave)
 
     # 波形シーケンスの定義
-    # キャプチャする波形ステップは, キャプチャの終了処理にかかるオーバーヘッドを考慮し, 
-    # get_duration() で取得できる波形長 + 2000 ns 程度の幅を設定する.
-    duration = calc_duration(len(samples) * wave_0.get_num_cycles(), DAC_FREQ)
+    # 波形ステップの開始から終了までの期間は, キャプチャの終了処理にかかるオーバーヘッドを考慮し, 波形出力期間 + 2000 ns を設定する.
     wave_sequence_0 = (awgsa.WaveSequence(DAC_FREQ, is_iq_data = False)
-        .add_step(step_id = 0, wave = wave_0, interval = duration + 2000))
+        .add_step(step_id = 0, wave = wave_0, post_blank = 2000))
 
-    duration = calc_duration(len(i_samples) * i_wave.get_num_cycles(), DAC_FREQ)
     wave_sequence_1 = (awgsa.WaveSequence(DAC_FREQ, is_iq_data = True)
-        .add_step(step_id = 0, wave = wave_1, interval = duration + 2000))
+        .add_step(step_id = 0, wave = wave_1, post_blank = 2000))
 
     # AWG に波形シーケンスをセットする
     awg_sa_cmd.set_wave_sequence(awgsa.AwgId.AWG_0, wave_sequence_0, num_repeats = 1)
@@ -626,7 +623,11 @@ def main():
         # スペクトラム出力
         awg_id_to_spectrum = {awgsa.AwgId.AWG_1 : spectrum_1}
         output_spectrum_data(awg_id_to_spectrum, num_frames, fft_size)
-        
+
+        # 送信波形をグラフ化
+        wave_seq_0.get_waveform_sequence().save_as_img(PLOT_DIR + "waveform/seq_0_waveform.png")
+        rft.awg_sa_cmd.get_waveform_sequence(awgsa.AwgId.AWG_0).save_as_img(PLOT_DIR + "waveform/output_seq_0_waveform.png")
+
     print("Done.")
     return
 

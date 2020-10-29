@@ -2,6 +2,7 @@
 # coding: utf-8
 
 from . import AwgWave, AwgAnyWave, AwgIQWave
+from .flattenedwaveformsequence import FlattenedWaveformSequence, FlattenedIQWaveformSequence
 import struct
 import copy
 
@@ -32,40 +33,45 @@ class WaveSequence(object):
 
         self.__sampling_rate = sampling_rate
         self.__is_iq_data = 1 if is_iq_data else 0
-        self.__wave_step_list = {}
+        self.__step_id_to_wave = {}
+        self.__step_id_to_interval = {}
         return
 
 
-    def add_step(self, step_id, wave, *, interval = 0):
+    def add_step(self, step_id, wave, *, post_blank = 0):
         """
-        波形ステップを追加する
-        
+        波形ステップを追加する.
+
         Parameters
         ----------
         step_id : int
             波形ステップID.  波形シーケンスの波形は, 波形ステップID が小さい順に出力される.
         wave : AwgWave, AwgIQWave, AwgAnyWave
             波形ステップで出力する波形の波形オブジェクト
-        interval : float
-            このステップの波形出力開始から次のステップの波形出力開始までの間隔. (単位:ns)
+        post_blank : float
+            このステップの波形の出力終了から次のステップの波形の出力開始までの間隔. (単位:ns)
+            波形ステップの終了から開始までの間隔は, post_blank の値に関わらず最大 60 ns ほど空く場合がある.
         """
         if (not isinstance(step_id, int) or (step_id < 0 or 0x7FFFFFFF < step_id)):
             raise ValueError("invalid step_id " + str(step_id))
 
-        if (step_id in self.__wave_step_list):
+        if (step_id in self.__step_id_to_wave):
             raise ValueError("The step id (" + str(step_id) + ") is already registered.")
 
-        if (len(self.__wave_step_list) == self.__MAX_WAVE_STEPS):
+        if (len(self.__step_id_to_wave) == self.__MAX_WAVE_STEPS):
             raise ValueError("No more steps can be added. (max=" + str(self.__MAX_WAVE_STEPS) + ")")
 
+        if (not isinstance(post_blank, (float, int))):
+            raise ValueError("invalid post_blank " + str(post_blank))
+
         self.__check_wave_type(wave)
+        self.__set_sampling_rate_to_wave(wave)
+        self.__step_id_to_wave[step_id] = copy.deepcopy(wave)
+        interval = float(wave.get_duration() + post_blank)
+        if 1.0e+10 < interval:
+            raise ValueError("The time from the start to the end of the step is too long.")
 
-        if (not isinstance(interval, (float, int)) or 1.0e+10 < interval):
-            raise ValueError("invalid interval " + str(interval))
-
-        wave = copy.deepcopy(wave)
-        self.__set_sampling_rate(wave)
-        self.__wave_step_list[step_id] = (wave, float(interval))
+        self.__step_id_to_interval[step_id] = interval
         return self
 
 
@@ -83,7 +89,7 @@ class WaveSequence(object):
         raise ValueError("invalid wave " + str(wave))
 
 
-    def __set_sampling_rate(self, wave):
+    def __set_sampling_rate_to_wave(self, wave):
         """
         wave から辿れる AwgAnyWave にサンプリングレートを設定する
         """
@@ -104,14 +110,10 @@ class WaveSequence(object):
         data += struct.pack("<d", self.__sampling_rate)
         data += self.__is_iq_data.to_bytes(4, 'little')
         data += self.num_wave_steps().to_bytes(4, 'little')
-
-        wave_step_list = sorted(self.__wave_step_list.items())
-        overhead = 10 * 1 / 3 # FPGA の AWG スタートにかかるオーバーヘッド (ns) 300MHz x 1clk
-        for elem in wave_step_list:
-            step_id = elem[0]
-            wave = elem[1][0]
-            interval = elem[1][1]
-            interval = max(interval - overhead, wave.get_duration() - overhead, 0.0)
+        wave_list = sorted(self.__step_id_to_wave.items())
+        for step_id, wave in wave_list:
+            interval = self.__step_id_to_interval[step_id]
+            interval = max(interval, wave.get_duration(), 0.0)
             data += step_id.to_bytes(4, 'little')
             data += struct.pack("<d", interval)
             data += wave.serialize()
@@ -120,7 +122,7 @@ class WaveSequence(object):
     
 
     def num_wave_steps(self):
-        return len(self.__wave_step_list)
+        return len(self.__step_id_to_wave)
 
 
     def get_step_duration(self, step_id):
@@ -139,11 +141,10 @@ class WaveSequence(object):
         duration : float
             引数で指定したステップの開始から次のステップの開始までの時間 (単位:ns)
         """
-
-        if not step_id in self.__wave_step_list:
+        if not step_id in self.__step_id_to_wave:
             raise ValueError("invalid step_id " + str(step_id))
         
-        return max(self.__wave_step_list[step_id][0].get_duration(), self.__wave_step_list[step_id][1])
+        return max(self.__step_id_to_wave[step_id].get_duration(), self.__step_id_to_interval[step_id])
 
 
     def get_whole_duration(self):
@@ -155,7 +156,7 @@ class WaveSequence(object):
             この波形シーケンスが持つ全ステップの時間の合計 (単位:ns)
         """    
         duration = 0.0
-        for key in self.__wave_step_list.keys():
+        for key in self.__step_id_to_wave.keys():
             duration += self.get_step_duration(key)
 
         return duration
@@ -175,7 +176,27 @@ class WaveSequence(object):
         duration : AwgWave
             引数の ステップID に対応する AwgWave オブジェクト (単位:ns)
         """        
-        if not step_id in self.__wave_step_list:
+        if not step_id in self.__step_id_to_wave:
             raise ValueError("invalid step_id " + str(step_id))
         
-        return self.__wave_step_list[step_id][0]
+        return self.__step_id_to_wave[step_id]
+
+
+    def get_waveform_sequence(self):
+        """
+        この波形シーケンスに登録された波形のサンプルデータを参照するためのオブジェクトを取得する.
+        [補足]
+        戻り値のオブジェクトから参照できるサンプルデータは, python ライブラリ内部で計算される.
+        実際に DAC に入力されるサンプルデータは, AWG のファームウェア内部で計算されるため, 
+        戻り値のオブジェクトから参照できるサンプルデータと完全に一致する保証はない
+        
+        Returns
+        -------
+        FlattenedWaveformSequence
+        """
+        if self.__is_iq_data == 1:
+            return FlattenedIQWaveformSequence.build_from_wave_obj(
+                self.__step_id_to_wave, self.__step_id_to_interval, self.__sampling_rate)
+        else:
+            return FlattenedWaveformSequence.build_from_wave_obj(
+                self.__step_id_to_wave, self.__step_id_to_interval, self.__sampling_rate)

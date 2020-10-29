@@ -217,7 +217,7 @@ def calibrate_adc(awg_sa_cmd):
         num_cycles = 100000)
 
     calib_wave_sequence = (awgsa.WaveSequence(DAC_FREQ)
-        .add_step(step_id = 0, wave = calib_wave, interval = calib_wave.get_duration()))
+        .add_step(step_id = 0, wave = calib_wave, post_blank = 0))
 
     awg_sa_cmd.set_wave_sequence(awgsa.AwgId.AWG_0, calib_wave_sequence, num_repeats = 1)
     awg_sa_cmd.start_wave_sequence()
@@ -457,7 +457,7 @@ def set_wave_sequence(awg_sa_cmd):
 
     # 波形シーケンスの作成
     wave_sequence_0 = (awgsa.WaveSequence(DAC_FREQ)
-        .add_step(step_id = 0, wave = wave_0, interval = wave_0.get_duration() + 2000))
+        .add_step(step_id = 0, wave = wave_0, post_blank = 2000))
     
     # AWG に波形シーケンスをセットする
     awg_sa_cmd.set_wave_sequence(awgsa.AwgId.AWG_0, wave_sequence_0)
@@ -541,7 +541,7 @@ def main():
         # スペクトラム出力
         awg_id_to_spectrum = {awgsa.AwgId.AWG_0 : spectrum_0}
         output_spectrum_data(awg_id_to_spectrum, num_frames, fft_size)
-        
+
     print("Done.")
     return
 

@@ -17,13 +17,16 @@ from . import capturesequence
 from .capturesequence import *
 
 from . import captureconfig
-from . captureconfig import *
+from .captureconfig import *
 
 from . import digitaloutputvector
-from . digitaloutputvector import *
+from .digitaloutputvector import *
 
 from . import digitaloutputsequence
-from . digitaloutputsequence import *
+from .digitaloutputsequence import *
 
 from . import awgsaerror
-from . awgsaerror import *
+from .awgsaerror import *
+
+from . import flattenedwaveformsequence
+from .flattenedwaveformsequence import *
