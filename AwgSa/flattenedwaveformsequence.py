@@ -161,17 +161,20 @@ class FlattenedWaveformSequence(object):
         self.__step_id_to_interval = copy.copy(step_id_to_interval)
 
 
-    def get_waveforms_by_step_id(self):
+    def get_samples_by_step_id(self):
         """
-        ステップ ID をキーとして FlattenedWaveform オブジェクトを保持する dict を返す.
+        ステップ ID をキーとしてサンプル値の配列を保持する dict を返す.
         
         Returns
         -------
         dict
             key : ステップ ID 
-            value : FlattenedWaveform オブジェクト
+            value : サンプル値の配列
         """
-        return copy.copy(self.__step_id_to_waveform)
+        step_id_to_samples = {}
+        for step_id, waveform in self.__step_id_to_waveform.items():
+            step_id_to_samples[step_id] = waveform.get_samples()
+        return step_id_to_samples
 
 
     def save_as_img(self, filepath):
@@ -281,17 +284,36 @@ class FlattenedIQWaveformSequence(object):
         self.__step_id_to_interval = copy.copy(step_id_to_interval)
 
 
-    def get_waveforms_by_step_id(self):
+    def get_i_samples_by_step_id(self):
         """
-        ステップ ID をキーとして FlattenedIQWaveform オブジェクトを保持する dict を返す.
+        ステップ ID をキーとして I データのサンプル値の配列を保持する dict を返す.
         
         Returns
         -------
         dict
             key : ステップ ID 
-            value : FlattenedIQWaveform オブジェクト
+            value : I データのサンプル値の配列
         """
-        return copy.copy(self.__step_id_to_iq_waveform)
+        step_id_to_i_samples = {}
+        for step_id, waveform in self.__step_id_to_iq_waveform.items():
+            step_id_to_i_samples[step_id] = waveform.get_i_samples()
+        return step_id_to_i_samples
+
+
+    def get_q_samples_by_step_id(self):
+        """
+        ステップ ID をキーとして Q データのサンプル値の配列を保持する dict を返す.
+        
+        Returns
+        -------
+        dict
+            key : ステップ ID 
+            value : Q データのサンプル値の配列
+        """
+        step_id_to_q_samples = {}
+        for step_id, waveform in self.__step_id_to_iq_waveform.items():
+            step_id_to_q_samples[step_id] = waveform.get_q_samples()
+        return step_id_to_q_samples
 
 
     def save_as_img(self, filepath, iq_separation = True):

@@ -125,11 +125,9 @@ class WaveSequence(object):
         return len(self.__step_id_to_wave)
 
 
-    def get_step_duration(self, step_id):
+    def get_step_interval(self, step_id):
         """
         引数で指定したステップの開始から次のステップの開始までの時間 (単位:ns) を返す.
-        ステップの波形の出力時間より interval が長い場合, interval が返る.
-        そうでない場合, 波形の出力時間が返る.
 
         Parameters
         ----------
@@ -157,7 +155,7 @@ class WaveSequence(object):
         """    
         duration = 0.0
         for key in self.__step_id_to_wave.keys():
-            duration += self.get_step_duration(key)
+            duration += self.get_step_interval(key)
 
         return duration
 
