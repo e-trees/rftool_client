@@ -625,8 +625,8 @@ def main():
         output_spectrum_data(awg_id_to_spectrum, num_frames, fft_size)
 
         # 送信波形をグラフ化
-        wave_seq_0.get_waveform_sequence().save_as_img(PLOT_DIR + "waveform/seq_0_waveform.png")
-        rft.awg_sa_cmd.get_waveform_sequence(awgsa.AwgId.AWG_0).save_as_img(PLOT_DIR + "waveform/output_seq_0_waveform.png")
+        wave_seq_0.get_waveform_sequence().save_as_img(PLOT_DIR + "waveform/img_seq_0_waveform.png")
+        rft.awg_sa_cmd.get_waveform_sequence(awgsa.AwgId.AWG_0).save_as_img(PLOT_DIR + "waveform/real_seq_0_waveform.png")
 
     print("Done.")
     return

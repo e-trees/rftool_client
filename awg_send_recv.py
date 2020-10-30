@@ -430,10 +430,10 @@ def main():
             (awgsa.AwgId.AWG_1, 0, r_sample_2))
 
         # 送信波形をグラフ化
-        wave_seq_0.get_waveform_sequence().save_as_img(PLOT_DIR + "waveform/seq_0_waveform.png")
-        wave_seq_1.get_waveform_sequence().save_as_img(PLOT_DIR + "waveform/seq_1_waveform.png")
-        rft.awg_sa_cmd.get_waveform_sequence(awgsa.AwgId.AWG_0).save_as_img(PLOT_DIR + "waveform/output_seq_0_waveform.png")
-        rft.awg_sa_cmd.get_waveform_sequence(awgsa.AwgId.AWG_1).save_as_img(PLOT_DIR + "waveform/output_seq_1_waveform.png")
+        wave_seq_0.get_waveform_sequence().save_as_img(PLOT_DIR + "waveform/img_seq_0_waveform.png")
+        wave_seq_1.get_waveform_sequence().save_as_img(PLOT_DIR + "waveform/img_seq_1_waveform.png")
+        rft.awg_sa_cmd.get_waveform_sequence(awgsa.AwgId.AWG_0).save_as_img(PLOT_DIR + "waveform/real_seq_0_waveform.png")
+        rft.awg_sa_cmd.get_waveform_sequence(awgsa.AwgId.AWG_1).save_as_img(PLOT_DIR + "waveform/real_seq_1_waveform.png")
 
     print("Done.")
     return
