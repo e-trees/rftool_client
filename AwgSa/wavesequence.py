@@ -34,7 +34,7 @@ class WaveSequence(object):
         self.__sampling_rate = sampling_rate
         self.__is_iq_data = 1 if is_iq_data else 0
         self.__step_id_to_wave = {}
-        self.__step_id_to_interval = {}
+        self.__step_id_to_post_blank = {}
         return
 
 
@@ -71,7 +71,7 @@ class WaveSequence(object):
         if 1.0e+10 < interval:
             raise ValueError("The time from the start to the end of the step is too long.")
 
-        self.__step_id_to_interval[step_id] = interval
+        self.__step_id_to_post_blank[step_id] = post_blank
         return self
 
 
@@ -112,10 +112,9 @@ class WaveSequence(object):
         data += self.num_wave_steps().to_bytes(4, 'little')
         wave_list = sorted(self.__step_id_to_wave.items())
         for step_id, wave in wave_list:
-            interval = self.__step_id_to_interval[step_id]
-            interval = max(interval, wave.get_duration(), 0.0)
+            post_blank = self.__step_id_to_post_blank[step_id]
             data += step_id.to_bytes(4, 'little')
-            data += struct.pack("<d", interval)
+            data += struct.pack("<d", post_blank)
             data += wave.serialize()
 
         return data
@@ -141,8 +140,8 @@ class WaveSequence(object):
         """
         if not step_id in self.__step_id_to_wave:
             raise ValueError("invalid step_id " + str(step_id))
-        
-        return max(self.__step_id_to_wave[step_id].get_duration(), self.__step_id_to_interval[step_id])
+            
+        return self.__step_id_to_wave[step_id].get_duration() + self.__step_id_to_post_blank[step_id]
 
 
     def get_whole_duration(self):
@@ -192,9 +191,13 @@ class WaveSequence(object):
         -------
         FlattenedWaveformSequence
         """
+        step_id_to_interval = {}
+        for step_id in __step_id_to_wave.keys():
+            step_id_to_interval[step_id] = self.get_step_interval(step_id)
+
         if self.__is_iq_data == 1:
             return FlattenedIQWaveformSequence.build_from_wave_obj(
-                self.__step_id_to_wave, self.__step_id_to_interval, self.__sampling_rate)
+                self.__step_id_to_wave, step_id_to_interval, self.__sampling_rate)
         else:
             return FlattenedWaveformSequence.build_from_wave_obj(
-                self.__step_id_to_wave, self.__step_id_to_interval, self.__sampling_rate)
+                self.__step_id_to_wave, step_id_to_interval, self.__sampling_rate)

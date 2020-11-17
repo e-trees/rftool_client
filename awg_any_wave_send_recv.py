@@ -80,7 +80,7 @@ def add_fft_annotate(plot, freq_res, threshold, bin_offset, spectrum):
 
 
 # sampling_rate Msps
-def plot_graph_fft(real, imaginary, sampling_rate, plot_range, label_threshold, color, title, filename):
+def plot_graph_fft(real, imaginary, sampling_rate, plot_range, color, title, filename):
     
     freq_res = sampling_rate / len(real)
     begin = int(plot_range[0] * len(real))
@@ -99,6 +99,7 @@ def plot_graph_fft(real, imaginary, sampling_rate, plot_range, label_threshold, 
     ax1.grid(which="minor", alpha=0.2)
     ax1.set_ylabel("Real part")
     part_of_real = real[begin : end]
+    label_threshold = max(abs(part_of_real)) / 3.0
     add_fft_annotate(ax1, freq_res, label_threshold, begin, part_of_real)
     ax1.plot(bin_no, part_of_real, linewidth=0.8, color=color)
 
@@ -109,6 +110,7 @@ def plot_graph_fft(real, imaginary, sampling_rate, plot_range, label_threshold, 
     ax2.set_xlabel("Frequency [MHz]")
     ax2.set_ylabel("Imaginary part")
     part_of_imaginary = imaginary[begin : end]
+    label_threshold = max(abs(part_of_imaginary)) / 3.0
     add_fft_annotate(ax2, freq_res, label_threshold, begin, part_of_imaginary)
     ax2.plot(bin_no, part_of_imaginary, linewidth=0.8, color=color)
     plt.savefig(filename)
@@ -116,7 +118,7 @@ def plot_graph_fft(real, imaginary, sampling_rate, plot_range, label_threshold, 
     return
 
 
-def plot_graph_fft_abs(spectrum, sampling_rate, plot_range, label_threshold, color, title, filename):
+def plot_graph_fft_abs(spectrum, sampling_rate, plot_range, color, title, filename):
     """
     spectrum : list of int
         プロットするスペクトラム
@@ -124,8 +126,6 @@ def plot_graph_fft_abs(spectrum, sampling_rate, plot_range, label_threshold, col
         FFT をかけた波形データのサンプリングレート
     plot_range : (float, float)
         プロットする範囲 (各要素は 0~1.0)
-    label_threshold : float
-        ラベルをつける spectrum の閾値
     color : str
         グラフの色 (matplot の CN 記法)
     title : str
@@ -151,6 +151,7 @@ def plot_graph_fft_abs(spectrum, sampling_rate, plot_range, label_threshold, col
     ax.grid(which="minor", alpha=0.2)
     ax.set_ylabel("Power")
     ax.set_xlabel("Frequency [MHz]")
+    label_threshold = max(abs(part_of_spectrum)) / 3.0
     add_fft_annotate(ax, freq_res, label_threshold, begin, part_of_spectrum)
     ax.plot(bin_no, part_of_spectrum, linewidth=0.8, color=color)
     plt.savefig(filename)
@@ -393,8 +394,6 @@ def output_wave_graphs(*id_and_data_list):
 
 def output_fft_graphs(fft_size, *id_and_data_list):
 
-    LABEL_THRESHOLD = 2.5e6
-    LABEL_THRESHOLD_ABS = 5e6
     os.makedirs(PLOT_DIR, exist_ok = True)
     color = 0
     for id_and_data in id_and_data_list:
@@ -412,7 +411,6 @@ def output_fft_graphs(fft_size, *id_and_data_list):
                 imaginary[j * fft_size : (j + 1) * fft_size],
                 ADC_FREQ,
                 (0.0, 0.5),
-                LABEL_THRESHOLD,
                 "C{}".format(color),
                 "AWG_{} step_{} frame_{} FFT".format(awg_id, step_id, j),
                 out_dir + "AWG_{}_step_{}_frame_{}_FFT.png".format(awg_id, step_id, j))
@@ -421,7 +419,6 @@ def output_fft_graphs(fft_size, *id_and_data_list):
                 absolute[j * fft_size : (j + 1) * fft_size],
                 ADC_FREQ,
                 (0.0, 0.5),
-                LABEL_THRESHOLD_ABS,
                 "C{}".format(color),
                 "AWG_{} step_{} frame_{} FFT".format(awg_id, step_id, j),
                 out_dir + "AWG_{}_step_{}_frame_{}_FFT_abs.png".format(awg_id, step_id, j))
@@ -456,25 +453,6 @@ def output_spectrum_data(awg_id_to_spectrum, num_frames, fft_size):
         output_fft_graphs(
             fft_size,
             (awg_id, 0, num_frames, real, imaginary, absolute))
-
-
-def calc_duration(num_samples, sampling_rate):
-    """
-    波形のサンプル数とサンプリングレートから波形の出力時間を計算する.
-    
-    Parameters
-    ----------
-    num_samples : int
-        出力波形のサンプル数
-        
-    sampling_rate : float
-        サンプリングレート (単位: Msps)
-    
-    Returns
-    -------
-    出力時間 (単位:ns)
-    """
-    return 1000.0 * sampling_rate / num_samples
 
 
 def create_wave():
