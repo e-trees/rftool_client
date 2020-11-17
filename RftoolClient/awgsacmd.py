@@ -26,8 +26,25 @@ class AwgSaCommand(object):
         self.__splitargs = cmdutil.CmdUtil.splitargs
         self.__split_response = cmdutil.CmdUtil.split_response
         self.__logger.debug("RftoolCommand __init__")
+        self.__awg_to_adc_tile = {
+            AwgId.AWG_0 : 0,
+            AwgId.AWG_1 : 0,
+            AwgId.AWG_2 : 1,
+            AwgId.AWG_3 : 1,
+            AwgId.AWG_4 : 2,
+            AwgId.AWG_5 : 2,
+            AwgId.AWG_6 : 3,
+            AwgId.AWG_7 : 3 }
+        self.__awg_to_dac_tile = {
+            AwgId.AWG_0 : 1,
+            AwgId.AWG_1 : 1,
+            AwgId.AWG_2 : 1,
+            AwgId.AWG_3 : 1,
+            AwgId.AWG_4 : 0,
+            AwgId.AWG_5 : 0,
+            AwgId.AWG_6 : 0,
+            AwgId.AWG_7 : 0 }
         return
-
 
     def set_wave_sequence(self, awg_id, wave_sequence, *, num_repeats = 1):
         """
@@ -472,3 +489,21 @@ class AwgSaCommand(object):
             raise rfterr.RftoolExecuteCommandError(res)
         self.__logger.debug(res)
         return WaveSequenceParams.build_from_bytes(seq_params_bytes)
+
+
+    def get_adc_tile_id_by_awg_id(self, awg_id):
+        """
+        AWG に対応する ADC のタイル ID を取得する
+        """
+        if (not AwgId.has_value(awg_id)):
+           raise ValueError("invalid awg_id  " + str(awg_id))
+        return self.__awg_to_adc_tile[awg_id]
+
+
+    def get_dac_tile_id_by_awg_id(self, awg_id):
+        """
+        AWG に対応する DAC のタイル ID を取得する
+        """
+        if (not AwgId.has_value(awg_id)):
+           raise ValueError("invalid awg_id  " + str(awg_id))
+        return self.__awg_to_dac_tile[awg_id]
