@@ -260,7 +260,7 @@ def output_graphs(*id_and_data_list):
             samples, 
             "C{}".format(color), 
             "AWG_{} step_{} captured waveform {} samples, {} Msps".format(awg_id, step_id, len(samples), ADC_FREQ),
-            PLOT_DIR + "AWG_{} step_{} captured.png".format(awg_id, step_id))
+            PLOT_DIR + "AWG_{}_step_{}_captured.png".format(awg_id, step_id))
         color += 1
 
 
