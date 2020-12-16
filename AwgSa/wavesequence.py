@@ -69,7 +69,7 @@ class WaveSequence(object):
         self.__step_id_to_wave[step_id] = copy.deepcopy(wave)
         interval = float(wave.get_duration() + post_blank)
         if 1.0e+10 < interval:
-            raise ValueError("The time from the start to the end of the step is too long.")
+            raise ValueError("The time from the start to the end of the step {} is too long.".format(step_id))
 
         self.__step_id_to_post_blank[step_id] = post_blank
         return self
@@ -192,7 +192,7 @@ class WaveSequence(object):
         FlattenedWaveformSequence
         """
         step_id_to_interval = {}
-        for step_id in __step_id_to_wave.keys():
+        for step_id in self.__step_id_to_wave.keys():
             step_id_to_interval[step_id] = self.get_step_interval(step_id)
 
         if self.__is_iq_data == 1:

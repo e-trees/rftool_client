@@ -72,11 +72,16 @@ def plot_graph(freq, sample, color, title, filename):
 
 
 def add_fft_annotate(plot, freq_res, threshold, bin_offset, spectrum):
+
+    num_annotations = 0
     for i in range(len(spectrum)):
         if abs(spectrum[i]) >= threshold:
             freq = "f=" + "{:.2f}".format((i + bin_offset) * freq_res)
             bin_no = "bin=" + str(i + bin_offset)
             plot.annotate(freq + "\n" + bin_no, (i * freq_res, spectrum[i]), size=6)
+            num_annotations += 1
+        if num_annotations > 50:
+            break
 
 
 # sampling_rate Msps

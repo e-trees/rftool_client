@@ -46,7 +46,6 @@ class RftoolInterface(object):
             self._logger.error("received string: {}".format(res))
             raise
         res = res.decode()
-
         return res
 
     def put(self, command):
