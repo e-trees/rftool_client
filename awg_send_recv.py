@@ -392,7 +392,7 @@ def main():
         setup_dac(rft.command)
         setup_adc(rft.command)
 
-        # 初期化    
+        # 初期化
         rft.awg_sa_cmd.initialize_awg_sa()
         # AWG 有効化
         rft.awg_sa_cmd.enable_awg(awgsa.AwgId.AWG_0, awgsa.AwgId.AWG_1)

@@ -54,20 +54,20 @@ DUC_DDC_FACTOR = 1
 # ADC or DAC
 ADC = 0
 DAC = 1
-DAC_MIXER_FREQ = 100 #MHz
+DAC_MIXER_FREQ = 350 #MHz
 ADC_MIXER_FREQ = 50  #MHz
 
 awg_list = [awgsa.AwgId.AWG_0, awgsa.AwgId.AWG_1, awgsa.AwgId.AWG_2, awgsa.AwgId.AWG_3, 
             awgsa.AwgId.AWG_4, awgsa.AwgId.AWG_5, awgsa.AwgId.AWG_6, awgsa.AwgId.AWG_7]
 
-awg_to_freq = { awgsa.AwgId.AWG_0 : 300,
-                awgsa.AwgId.AWG_1 : 300,
-                awgsa.AwgId.AWG_2 : 300,
-                awgsa.AwgId.AWG_3 : 300,
-                awgsa.AwgId.AWG_4 : 300,
-                awgsa.AwgId.AWG_5 : 300,
-                awgsa.AwgId.AWG_6 : 300,
-                awgsa.AwgId.AWG_7 : 300} #MHz
+awg_to_freq = { awgsa.AwgId.AWG_0 : 10,
+                awgsa.AwgId.AWG_1 : 15,
+                awgsa.AwgId.AWG_2 : 20,
+                awgsa.AwgId.AWG_3 : 25,
+                awgsa.AwgId.AWG_4 : 30,
+                awgsa.AwgId.AWG_5 : 35,
+                awgsa.AwgId.AWG_6 : 40,
+                awgsa.AwgId.AWG_7 : 45} #MHz
 
 def calculate_min_max(sample, chunks):
     sample_rs = np.reshape(sample, (-1, chunks))
@@ -89,12 +89,16 @@ def plot_graph(freq, sample, color, title, filename):
 
 
 def add_fft_annotate(plot, freq_res, threshold, bin_offset, spectrum):
+
+    num_annotations = 0
     for i in range(len(spectrum)):
         if abs(spectrum[i]) >= threshold:
             freq = "f=" + "{:.2f}".format((i + bin_offset) * freq_res)
             bin_no = "bin=" + str(i + bin_offset)
             plot.annotate(freq + "\n" + bin_no, (i * freq_res, spectrum[i]), size=6)
-
+            num_annotations += 1
+        if num_annotations > 50:
+            break
 
 # sampling_rate Msps
 def plot_graph_fft(real, imaginary, sampling_rate, plot_range, color, title, filename):
@@ -413,13 +417,13 @@ def output_fft_graphs(fft_size, *id_and_data_list):
         color += 1
 
 
-def output_capture_data(awg_id_to_iq_data, awg_id_to_wave_seq, num_frames, sample_offset, fft_size):
+def output_capture_data(awg_id_to_iq_data, num_frames, sample_offset, fft_size):
     """
     波形データ出力
     """
     for awg_id in awg_id_to_iq_data:
         step_id = 0
-        length = int(8 * ADC_FREQ / awg_to_freq[awg_id])
+        length = int(ADC_FREQ / awg_to_freq[awg_id])
         iq_samples = ndarrayutil.NdarrayUtil.bytes_to_real_32(awg_id_to_iq_data[awg_id])
         i_samples = iq_samples[0 : len(iq_samples) : 2]
         q_samples = iq_samples[1 : len(iq_samples) : 2]
@@ -428,7 +432,7 @@ def output_capture_data(awg_id_to_iq_data, awg_id_to_wave_seq, num_frames, sampl
             (awg_id, step_id, num_frames, q_samples, sample_offset, length, fft_size, "Q"))
 
 
-def output_spectrum_data(awg_id_to_spectrum, num_frames, fft_size):
+def output_spectrum_data(awg_id_to_spectrum, num_frames, step_id, fft_size):
     """
     スペクトラムデータ出力
     """
@@ -442,8 +446,8 @@ def output_spectrum_data(awg_id_to_spectrum, num_frames, fft_size):
         q_abs       = np.sqrt(q_real * q_real + q_imaginary * q_imaginary)
         output_fft_graphs(
             fft_size,
-            (awg_id, 0, num_frames, i_real, i_imaginary, i_abs, "I"),
-            (awg_id, 0, num_frames, q_real, q_imaginary, q_abs, "Q"))
+            (awg_id, step_id, num_frames, i_real, i_imaginary, i_abs, "I"),
+            (awg_id, step_id, num_frames, q_real, q_imaginary, q_abs, "Q"))
 
 
 def calibrate_adc(awg_sa_cmd):
@@ -582,7 +586,7 @@ def main():
         num_frames = 1
         start_sample_idx = 16 # FFT 開始サンプルのインデックス
         fft_size = rft.awg_sa_cmd.get_fft_size()
-        output_capture_data(awg_id_to_wave_data, awg_id_to_wave_sequence, num_frames, start_sample_idx, fft_size)
+        output_capture_data(awg_id_to_wave_data, num_frames, start_sample_idx, fft_size)
         
         # スペクトラム取得
         awg_id_to_spectrum = {}
@@ -592,7 +596,7 @@ def main():
                 start_sample_idx = start_sample_idx, num_frames = num_frames, is_iq_data = True)
 
         # スペクトラム出力
-        output_spectrum_data(awg_id_to_spectrum, num_frames, fft_size)
+        output_spectrum_data(awg_id_to_spectrum, num_frames, 0, fft_size)
 
     print("Done.")
     return

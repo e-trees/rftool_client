@@ -2,7 +2,7 @@
 # coding: utf-8
 
 from RftoolClient import cmdutil, rfterr
-import logging
+import logging, struct
 from AwgSa import WaveSequence
 from AwgSa import AwgId
 from AwgSa import AwgSaCmdResult
@@ -507,3 +507,19 @@ class AwgSaCommand(object):
         if (not AwgId.has_value(awg_id)):
            raise ValueError("invalid awg_id  " + str(awg_id))
         return self.__awg_to_dac_tile[awg_id]
+
+
+    def sync_dac_tiles(self):
+        """
+        全ての DAC タイルを同期させる.
+        """
+        command = self.__joinargs("SyncMultiTiles", [1])
+        self.__rft_ctrl_if.put(command)
+
+
+    def sync_adc_tiles(self):
+        """
+        全ての ADC タイルを同期させる.
+        """
+        command = self.__joinargs("SyncMultiTiles", [0])
+        self.__rft_ctrl_if.put(command)

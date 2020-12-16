@@ -87,6 +87,14 @@ def set_awg_capture_params(param_sel):
             2 : 1044.48, # awg 4, awg 5
             3 : 1597.44  # awg 6, awg 7
         }
+    elif param_sel == 4:
+        awg_list = [awgsa.AwgId.AWG_2, awgsa.AwgId.AWG_4]
+        tile_to_sampling_rate = {
+            0 : 1904.64, # awg 0, awg 1
+            1 : 1904.64, # awg 2, awg 3
+            2 : 1904.64, # awg 4, awg 5
+            3 : 1904.64  # awg 6, awg 7
+        }
 
     base_cycle = 256000
     freq = 6.4 #MHz
@@ -442,6 +450,7 @@ def main():
         nu = ndarrayutil.NdarrayUtil
         for awg_id in awg_list:
             r_data_0 = rft.awg_sa_cmd.read_capture_data(awg_id, step_id = 0)
+            
             r_data_1 = rft.awg_sa_cmd.read_capture_data(awg_id, step_id = 1)
             r_sample_0 = nu.bytes_to_real_32(r_data_0)
             r_sample_1 = nu.bytes_to_real_32(r_data_1)
@@ -449,6 +458,8 @@ def main():
                 rft.awg_sa_cmd,
                 (awg_id, 0, r_sample_0),
                 (awg_id, 1, r_sample_1))
+            print("r_sample_0  "  + str(len(r_sample_0)))
+            print("r_sample_1  "  + str(len(r_sample_1)))
         """
 
         # 送信波形をグラフ化
