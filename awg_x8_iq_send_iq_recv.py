@@ -36,18 +36,33 @@ try:
 finally:
     import matplotlib.pyplot as plt
 
+try:
+    is_private_capture_ram = (sys.argv[1] == "prv_cap_ram")
+except Exception:
+    is_private_capture_ram = False
+
 # Parameters
 ZCU111_IP_ADDR = "192.168.1.3"
-PLOT_DIR = "plot_awg_x8_iq_send_iq_recv/"
 
 # Log level
 LOG_LEVEL = logging.INFO
 
 # Constants
-BITSTREAM = 7  # AWG SA
+if is_private_capture_ram:
+    BITSTREAM = 9  # AWG SA BRAM CAPTURE
+    PLOT_DIR = "plot_awg_x8_iq_send_iq_recv_prv_cap_ram/"
+    DAC_FREQ = 6554.0
+    ADC_FREQ = 2334.72
+    CAPTURE_DELAY = 250
+else:
+    BITSTREAM = 7  # AWG SA
+    PLOT_DIR = "plot_awg_x8_iq_send_iq_recv/"
+    DAC_FREQ = 6554.0
+    ADC_FREQ = 1843.2
+    CAPTURE_DELAY = 250
+
+# Constants
 BITSTREAM_LOAD_TIMEOUT = 10
-DAC_FREQ = 6553.6
-ADC_FREQ = 1843.2
 TRIG_BUSY_TIMEOUT = 60
 DUC_DDC_FACTOR = 1
 
@@ -61,13 +76,14 @@ awg_list = [awgsa.AwgId.AWG_0, awgsa.AwgId.AWG_1, awgsa.AwgId.AWG_2, awgsa.AwgId
             awgsa.AwgId.AWG_4, awgsa.AwgId.AWG_5, awgsa.AwgId.AWG_6, awgsa.AwgId.AWG_7]
 
 awg_to_freq = { awgsa.AwgId.AWG_0 : 10,
-                awgsa.AwgId.AWG_1 : 15,
-                awgsa.AwgId.AWG_2 : 20,
-                awgsa.AwgId.AWG_3 : 25,
-                awgsa.AwgId.AWG_4 : 30,
-                awgsa.AwgId.AWG_5 : 35,
-                awgsa.AwgId.AWG_6 : 40,
-                awgsa.AwgId.AWG_7 : 45} #MHz
+                awgsa.AwgId.AWG_1 : 20,
+                awgsa.AwgId.AWG_2 : 30,
+                awgsa.AwgId.AWG_3 : 40,
+                awgsa.AwgId.AWG_4 : 50,
+                awgsa.AwgId.AWG_5 : 60,
+                awgsa.AwgId.AWG_6 : 70,
+                awgsa.AwgId.AWG_7 : 80} #MHz
+
 
 def calculate_min_max(sample, chunks):
     sample_rs = np.reshape(sample, (-1, chunks))
@@ -322,13 +338,19 @@ def set_dac_sampling_rate(rftcmd, dac_sampling_rate):
     return
 
 
-def wait_for_sequence_to_finish(awg_sa_cmd, awg_id):
+def wait_for_sequence_to_finish(awg_sa_cmd, *awg_id_list):
     """
     波形シーケンスの出力とキャプチャが終了するまで待つ
     """
     for i in range(TRIG_BUSY_TIMEOUT):
-        awg_stat = awg_sa_cmd.is_wave_sequence_complete(awg_id)
-        if (awg_stat == awgsa.AwgSaCmdResult.WAVE_SEQUENCE_COMPLETE):
+        all_finished = True
+        for awg_id in awg_id_list:
+            awg_stat = awg_sa_cmd.is_wave_sequence_complete(awg_id)
+            if awg_stat != awgsa.AwgSaCmdResult.WAVE_SEQUENCE_COMPLETE:
+                all_finished = False
+                break
+
+        if all_finished:
             return
         time.sleep(1.)
         
@@ -342,7 +364,7 @@ def check_skipped_step(awg_sa_cmd):
     キャプチャが出来なかった場合, そのキャプチャはスキップされる.
     """
     for awg_id in awg_list:
-        if awg_sa_cmd.is_capture_step_skipped(awg_id, step_id=0):
+        if awg_sa_cmd.is_capture_step_skipped(awg_id, step_id = 0):
             print("The Step id 0 in AWG {} has been skipped!!".format(awg_id))
 
 
@@ -353,7 +375,7 @@ def check_capture_data_fifo_oevrflow(awg_sa_cmd):
     波形データを格納する FIFO のオーバーフローが発生する.
     """
     for awg_id in awg_list:
-        if awg_sa_cmd.is_capture_data_fifo_overflowed(awg_id, step_id=0):
+        if awg_sa_cmd.is_capture_data_fifo_overflowed(awg_id, step_id = 0):
             print("The ADC data FIFO in AWG {} has overflowed at step id 0!!".format(awg_id))
 
 
@@ -421,9 +443,9 @@ def output_capture_data(awg_id_to_iq_data, num_frames, sample_offset, fft_size):
     """
     波形データ出力
     """
+    length = int(ADC_FREQ / min(awg_to_freq.values()))
     for awg_id in awg_id_to_iq_data:
         step_id = 0
-        length = int(ADC_FREQ / awg_to_freq[awg_id])
         iq_samples = ndarrayutil.NdarrayUtil.bytes_to_real_32(awg_id_to_iq_data[awg_id])
         i_samples = iq_samples[0 : len(iq_samples) : 2]
         q_samples = iq_samples[1 : len(iq_samples) : 2]
@@ -454,23 +476,20 @@ def calibrate_adc(awg_sa_cmd):
     """
     ADC をキャリブレーションする
     """
-    calib_wave = awgsa.AwgWave(
-        wave_type = awgsa.AwgWave.SINE,
-        frequency = 800.0,
-        phase = 0,
-        amplitude = 30000,
-        num_cycles = 1000000)
-
-    calib_wave_sequence = (awgsa.WaveSequence(DAC_FREQ)
-        .add_step(step_id = 0, wave = calib_wave, post_blank = 0))
-
     # AWG に波形シーケンスをセットする
     for awg_id in awg_list:
+        calib_wave = awgsa.AwgWave(
+            wave_type = awgsa.AwgWave.SINE,
+            frequency = awg_to_freq[awg_id],
+            phase = 0,
+            amplitude = 30000,
+            num_cycles = int(awg_to_freq[awg_id] * 1e4)) #10ms
+        calib_wave_sequence = (awgsa.WaveSequence(DAC_FREQ)
+            .add_step(step_id = 0, wave = calib_wave, post_blank = 0))
         awg_sa_cmd.set_wave_sequence(awg_id, calib_wave_sequence, num_repeats = 1)
 
     awg_sa_cmd.start_wave_sequence()
-    for awg_id in awg_list:
-        wait_for_sequence_to_finish(awg_sa_cmd, awg_id)
+    wait_for_sequence_to_finish(awg_sa_cmd, *awg_list)
 
 
 def set_wave_sequence(awg_sa_cmd):
@@ -481,19 +500,20 @@ def set_wave_sequence(awg_sa_cmd):
 
     for awg_id in awg_list:
         # 波形の定義
+        num_cycles = int(5.0 * awg_to_freq[awg_id]) # 5.0[us]
         i_wave = awgsa.AwgWave(
             wave_type = awgsa.AwgWave.SINE,
             frequency = awg_to_freq[awg_id],
             phase = 90, # cos
             amplitude = 15000,
-            num_cycles = 18000)
+            num_cycles = num_cycles)
 
         q_wave = awgsa.AwgWave(
             wave_type = awgsa.AwgWave.SINE,
             frequency = awg_to_freq[awg_id],
             phase = 0,
             amplitude = 15000,
-            num_cycles = 18000)
+            num_cycles = num_cycles)
 
         iq_wave = awgsa.AwgIQWave(i_wave, q_wave)
 
@@ -520,7 +540,7 @@ def set_capture_sequence(awg_sa_cmd, awg_id_to_wave_sequence):
         # delay が波形ステップの開始から終了までの時間を超えないように注意.
         capture = awgsa.AwgCapture(
             time = wave_sequence.get_wave(step_id = 0).get_duration() + 35,
-            delay = 250,
+            delay = CAPTURE_DELAY,
             do_accumulation = False)
 
         # キャプチャシーケンスの定義
@@ -532,6 +552,25 @@ def set_capture_sequence(awg_sa_cmd, awg_id_to_wave_sequence):
 
     # AWG に キャプチャシーケンスを設定する
     awg_sa_cmd.set_capture_config(capture_config)
+
+
+def start_awg_and_capture(awg_sa_cmd):
+    """
+    波形の出力とキャプチャを開始する
+    """
+    if is_private_capture_ram:
+        # 全チャネル同時に波形出力とキャプチャを行う
+        print("start all AWGs")
+        awg_sa_cmd.start_wave_sequence()
+        wait_for_sequence_to_finish(awg_sa_cmd, *awg_list)
+    else:
+        # 1 チャネルずつ波形出力とキャプチャを行う
+        for awg_id in awg_list:
+            print("start AWG {}".format(awg_id))
+            awg_sa_cmd.disable_awg(*awg_list)
+            awg_sa_cmd.enable_awg(awg_id)
+            awg_sa_cmd.start_wave_sequence()
+            wait_for_sequence_to_finish(awg_sa_cmd, awg_id)
 
 
 def main():
@@ -558,17 +597,8 @@ def main():
         awg_id_to_wave_sequence = set_wave_sequence(rft.awg_sa_cmd)
         # キャプチャシーケンス設定
         set_capture_sequence(rft.awg_sa_cmd, awg_id_to_wave_sequence)
-        
         # 波形出力 & キャプチャスタート
-        # 1 チャネルずつ波形出力とキャプチャを行う
-        for awg_id in awg_list:
-            print("awg {} start".format(awg_id))
-            rft.awg_sa_cmd.disable_awg(*awg_list)
-            rft.awg_sa_cmd.enable_awg(awg_id)
-            rft.awg_sa_cmd.start_wave_sequence()
-            # 終了待ち
-            wait_for_sequence_to_finish(rft.awg_sa_cmd, awg_id)
-
+        start_awg_and_capture(rft.awg_sa_cmd)
         # エラーチェック
         check_skipped_step(rft.awg_sa_cmd)
         check_capture_data_fifo_oevrflow(rft.awg_sa_cmd)
@@ -584,7 +614,7 @@ def main():
 
         # キャプチャデータ出力
         num_frames = 1
-        start_sample_idx = 16 # FFT 開始サンプルのインデックス
+        start_sample_idx = 1024 # FFT 開始サンプルのインデックス
         fft_size = rft.awg_sa_cmd.get_fft_size()
         output_capture_data(awg_id_to_wave_data, num_frames, start_sample_idx, fft_size)
         
@@ -597,6 +627,11 @@ def main():
 
         # スペクトラム出力
         output_spectrum_data(awg_id_to_spectrum, num_frames, 0, fft_size)
+
+        # 送信波形をグラフ化
+        for awg_id in awg_list:
+           rft.awg_sa_cmd.get_waveform_sequence(awg_id).save_as_img(PLOT_DIR + "waveform/awg_{}_waveform.png".format(awg_id))
+
 
     print("Done.")
     return

@@ -20,18 +20,32 @@ try:
 finally:
     import matplotlib.pyplot as plt
 
+try:
+    is_private_capture_ram = (sys.argv[1] == "prv_cap_ram")
+except Exception:
+    is_private_capture_ram = False
+
 # Parameters
 ZCU111_IP_ADDR = "192.168.1.3"
-PLOT_DIR = "plot_awg_accum_send_recv/"
 
 # Log level
 LOG_LEVEL = logging.INFO
 
 # Constants
-BITSTREAM = 7  # AWG SA
+if is_private_capture_ram:
+    BITSTREAM = 9  # AWG SA BRAM CAPTURE
+    PLOT_DIR = "plot_awg_accum_send_recv_prv_cap_ram/"
+    DAC_FREQ = 6554.0
+    ADC_FREQ = 4096.0
+    CAPTURE_DELAY = 130
+else:
+    BITSTREAM = 7  # AWG SA
+    PLOT_DIR = "plot_awg_accum_send_recv/"
+    DAC_FREQ = 6554.0
+    ADC_FREQ = 3686.4
+    CAPTURE_DELAY = 140
+
 BITSTREAM_LOAD_TIMEOUT = 10
-DAC_FREQ = 4096.0
-ADC_FREQ = 2048.0
 TRIG_BUSY_TIMEOUT = 60
 DUC_DDC_FACTOR = 1
 
@@ -249,7 +263,7 @@ def output_graphs(*id_and_data_list):
         awg_id = id_and_data[0]
         step_id = id_and_data[1]
         samples = id_and_data[2]
-        plot_len = min(len(samples), 1000)
+        plot_len = min(len(samples), 2000)
         plot_graph(
             ADC_FREQ, 
             samples[0 : plot_len], 
@@ -318,12 +332,12 @@ def set_capture_sequence(awg_sa_cmd, seq):
     # delay が波形ステップの開始から終了までの時間を超えないように注意.
     capture_0 = awgsa.AwgCapture(
         time = seq.get_wave(step_id = 0).get_duration() + 40,
-        delay = 225,
+        delay = CAPTURE_DELAY,
         do_accumulation = True)
 
     capture_1 = awgsa.AwgCapture(
         time = seq.get_wave(step_id = 1).get_duration() + 40,
-        delay = 225,
+        delay = CAPTURE_DELAY,
         do_accumulation = True)
 
     # キャプチャシーケンスの定義
