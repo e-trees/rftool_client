@@ -328,7 +328,7 @@ def set_capture_sequence(awg_sa_cmd, seq):
     """
     キャプチャシーケンスを AWG にセットする
     """
-    # キャプチャ時間は, キャプチャする波形の長さ + 20 ns とする.
+    # キャプチャ時間は, キャプチャする波形の長さ + 40 ns とする.
     # delay が波形ステップの開始から終了までの時間を超えないように注意.
     capture_0 = awgsa.AwgCapture(
         time = seq.get_wave(step_id = 0).get_duration() + 40,
@@ -345,11 +345,11 @@ def set_capture_sequence(awg_sa_cmd, seq):
         .add_step(step_id = 0, capture = capture_0)
         .add_step(step_id = 1, capture = capture_1))
 
-    # キャプチャシーケンスと AWG を対応付ける
+    # キャプチャシーケンスとキャプチャモジュールを対応付ける
     capture_config = (awgsa.CaptureConfig()
         .add_capture_sequence(awgsa.AwgId.AWG_0, capture_sequence_0))
 
-    # AWG に キャプチャシーケンスを設定する
+    # キャプチャモジュールにキャプチャシーケンスを設定する
     awg_sa_cmd.set_capture_config(capture_config)
 
 

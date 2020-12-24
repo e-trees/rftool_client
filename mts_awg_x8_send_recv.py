@@ -442,10 +442,10 @@ def set_capture_sequence(awg_sa_cmd, awg_id_to_wave_sequence):
             .add_step(step_id = 0, capture = capture_0)
             .add_step(step_id = 1, capture = capture_1))
         
-        # キャプチャシーケンスと AWG を対応付ける
+        # キャプチャシーケンスとキャプチャモジュールを対応付ける
         capture_config.add_capture_sequence(awg_id, capture_sequence)
 
-    # AWG に キャプチャシーケンスを設定する
+    # キャプチャモジュールにキャプチャシーケンスを設定する
     awg_sa_cmd.set_capture_config(capture_config)
 
 

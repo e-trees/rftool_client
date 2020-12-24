@@ -478,11 +478,11 @@ def set_capture_sequence(awg_sa_cmd, seq_0):
     capture_sequence_0 = (awgsa.CaptureSequence(ADC_FREQ, is_iq_data = True)
         .add_step(step_id = 0, capture = capture_0))
 
-    # キャプチャシーケンスと AWG を対応付ける
+    # キャプチャシーケンスとキャプチャモジュールを対応付ける
     capture_config = (awgsa.CaptureConfig()
         .add_capture_sequence(awgsa.AwgId.AWG_0, capture_sequence_0))
 
-    # AWG に キャプチャシーケンスを設定する
+    # キャプチャモジュールにキャプチャシーケンスを設定する
     awg_sa_cmd.set_capture_config(capture_config)
 
 
