@@ -50,6 +50,8 @@ HPF内蔵ポート(AWG2とAWG3のDAC/ADCポート)のキャプチャ波形のス
 python awg_x8_send_recv.py prv_cap_ram
 ```
 
+8つの AWG に対応するキャプチャ波形とスペクトルのグラフが，カレントディレクトリの下の `plot_awg_x8_send_recv_prv_cap_ram` ディレクトリ以下に8枚ずつ作成されます．
+
 LPF内蔵ポート(AWG0とAWG1のDAC/ADCポート)のキャプチャの波形例
 ![LPF内蔵ポートのキャプチャの波形例](images/awg-x8-send-recv-bram-result-1.png)
 
