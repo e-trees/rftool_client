@@ -13,13 +13,71 @@ AWGから波形を出力するには，以下の3つの手順を実行します�
 波形の定義には `awgsa` パッケージの `AwgWave`クラスを利用します．
 このクラスのコンストラクタで，各波形のパラメタ(周波数，位相，出力サイクル数など)を設定し出力波形を定義します．
 
-```API使用例
+### API使用例
 
+10MHzの正弦波を4周期分出力する場合
+
+```
 wave_0 = awgsa.AwgWave(
     wave_type = awgsa.AwgWave.SINE,
 	frequency = 10.0,
 	phase = 0,
 	amplitude = 30000,
 	num_cyles = 4)
+```
+
+8MHzのノコギリ波を3周期分出力する場合
 
 ```
+wave_1 = awgsa.AwgWave(
+    wave_type = awgsa.AwgWave.SAWTOOTH,
+	frequency = 8.0,
+	phase = 0,
+	amplitude = 30000,
+	num_cyles = 3,
+	crest_pos = 1.0)
+```
+
+## 波形の定義 - 任意波形出力機能の利用
+
+任意波形出力機能は，ユーザが独自に定義した波形を出力する機能です．
+出力値は Python スクリプトで作成します．(要 NumPy)
+AWG の組み込みの波形を AwgWave クラスで定義するのに対し，任意波形は以下の様に AwgAnyWave クラスを用いて定義します．
+
+```
+wave_0 = awgsa.AwgAnyWave(samples = samples, num_cyles = 10)
+```
+
+`samples`は出力値の配列です．`dtype` が `numpy.int16` の `numpy.ndarray` 型の値を設定します．`num_cyclles`は`samples`で指定したデータを繰り返し出力する回数です．
+
+## 波形シーケンスの定義
+
+波形シーケンスの定義には，`awgsa` パッケージの `WaveSequence` クラスとそのメソッド `add_step` を使用します．
+この API により `AwgWave` で定義した波形にステップ ID を割り当て、シーケンス内の出力順序と出力間隔を決定します。
+
+たとえば，次のように波形シーケンスを定義します．
+
+```
+wave_sequence_0 = (awgsa.WaveSequence(DAC_FREQ)
+    .add_step(step_id = 0, wave = wave_0, post_blank = 2000)
+    .add_step(step_id = 1, wave = wave_1, post_blank = 1500))
+```
+
+定義される波形シーケンスは次の通りです．
+
+![定義される波形シーケンスの例](docs/images/awg-defined-wave-sequence-example.png)
+
+## 波形シーケンスのAWGへの登録
+
+波形シーケンスのAWGへの登録には，`RftoolClient` パッケージの `AwgSaCommand` クラスとそのメソッド `set_wave_sequence` を使用します．この API で波形シーケンスとそれを出力する AWG の対応付けが行われます．
+
+たとえば，次のようにAPIを利用します．
+
+```
+awg_sa_cmd.set_wave_sequence(
+    awg_id = awgsa.AwgId.AWG_0, # AWG_0〜AWG_7まで設定可能
+	wave_sequence = wave_sequence_0,
+	num_repeats = 10)
+```
+
+![AWGに定義される出力波形](docs/images/awg-set-wave-sequence-example.png)
