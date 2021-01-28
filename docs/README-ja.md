@@ -19,3 +19,17 @@ ZCU111を利用して任意の波形出力とその応答波形のキャプチ�
 
 - [出力波形設定手順](awg-ja.md) 
 - [キャプチャ設定手順](capture-ja.md) 
+
+## サンプルプログラム
+
+- [8つのAWGから10サイクルの正弦波を出力しキャプチャする(DRAMを利用)](awg-x8-send_recv-ja.md)
+- [8つのAWGからI/Q変調した波形を出力しADCでI/Qミキサをかけてキャプチャ(DRAMを利用)](awg-x8-with-iq-dram-ja.md)
+- [8つのAWGから特定の周波数の波形を出力しキャプチャする(BRAMを利用)](awg-x8-bram-ja.md)
+- [8つのAWGからI/Q変調した波形を出力しADCでIQミキサをかけてキャプチャ(BRAMを利用)](awg-x8-with-iq-bram-ja.md)
+
+### サンプルプログラムの実行に必要な環境
+
+- ZCU111およびe-trees.Japan製ZCU111ファームウェア
+- Python 3.7.5
+- NumPy, matplotlib，など
+
