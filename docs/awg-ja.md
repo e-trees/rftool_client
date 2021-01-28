@@ -65,7 +65,7 @@ wave_sequence_0 = (awgsa.WaveSequence(DAC_FREQ)
 
 定義される波形シーケンスは次の通りです．
 
-![定義される波形シーケンスの例](docs/images/awg-defined-wave-sequence-example.png)
+![定義される波形シーケンスの例](images/awg-defined-wave-sequence-example.png)
 
 ## 波形シーケンスのAWGへの登録
 
@@ -80,4 +80,4 @@ awg_sa_cmd.set_wave_sequence(
 	num_repeats = 10)
 ```
 
-![AWGに定義される出力波形](docs/images/awg-set-wave-sequence-example.png)
+![AWGに定義される出力波形](images/awg-set-wave-sequence-example.png)
