@@ -1,1 +1,1 @@
-# A Guide of Python API for e-trees' cusomized rftool-client
+# A Guide of Python API for e-trees' customized rftool-client
