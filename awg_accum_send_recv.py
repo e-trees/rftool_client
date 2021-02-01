@@ -400,6 +400,10 @@ def main(cycle_multiplier):
         output_graphs(
             (awgsa.AwgId.AWG_0, 0, r_sample_0),
             (awgsa.AwgId.AWG_0, 1, r_sample_1))
+
+        # 送信波形をグラフ化
+        rft.awg_sa_cmd.get_waveform_sequence(awgsa.AwgId.AWG_0).save_as_img(PLOT_DIR + "waveform/awg_{}_waveform.png".format(awgsa.AwgId.AWG_0))
+
     print("Done.")
     return
 

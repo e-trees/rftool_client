@@ -25,7 +25,7 @@ finally:
 
 # Parameters
 ZCU111_IP_ADDR = "192.168.1.3"
-PLOT_DIR = "plot_mts_accum_send_recv/"
+PLOT_DIR = "plot_mts_accum_send_recv_prv_cap_ram/"
 
 # Log level
 LOG_LEVEL = logging.INFO
@@ -41,6 +41,7 @@ ADC_FREQ = 3932.16
 # ADC or DAC
 ADC = 0
 DAC = 1
+
 
 awg_list = [awgsa.AwgId.AWG_0, awgsa.AwgId.AWG_1]
 
@@ -400,10 +401,10 @@ def set_wave_sequence(awg_sa_cmd):
             crest_pos = 1.0)
 
         # 波形シーケンスの定義
-        # 波形ステップの開始から終了までの期間は, キャプチャの終了処理にかかるオーバーヘッドを考慮し, 波形出力期間 + 1300 ns を設定する.
+        # 波形ステップの開始から終了までの期間は, キャプチャの終了処理にかかるオーバーヘッドを考慮し, 波形出力期間 + 2000 ns を設定する.
         wave_sequence = (awgsa.WaveSequence(DAC_FREQ)
-            .add_step(step_id = 0, wave = wave_0, post_blank = 1300)
-            .add_step(step_id = 1, wave = wave_1, post_blank = 1300))
+            .add_step(step_id = 0, wave = wave_0, post_blank = 2000)
+            .add_step(step_id = 1, wave = wave_1, post_blank = 2000))
 
         # AWG に波形シーケンスをセットする
         awg_sa_cmd.set_wave_sequence(awg_id = awg_id, wave_sequence = wave_sequence, num_repeats = 1000)
