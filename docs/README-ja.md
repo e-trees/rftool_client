@@ -27,6 +27,7 @@ ZCU111を利用して任意の波形出力とその応答波形のキャプチ�
 - [8つのAWGから10サイクルの正弦波を出力しキャプチャする(DRAM/BRAM利用)](awg-x8-send-recv-ja.md)
 - [8つのAWGからI/Q変調した波形を出力しADCでI/Qミキサをかけてキャプチャ(DRAM/BRAM利用)](awg-x8-iq-send-iq-recv-ja.md)
 - [ディジタル出力の利用](awg-digital-output-ja.md)
+- [キャプチャを連続で行う](../examples/continuous_send_recv/README.md)
 
 ### サンプルプログラムの実行に必要な環境
 

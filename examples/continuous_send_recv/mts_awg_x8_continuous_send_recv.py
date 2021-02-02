@@ -6,13 +6,12 @@ AWG x8 サンプルプログラム
 各 AWG から特定の周波数の正弦波を出力してキャプチャする.
 """
 
-from RftoolClient import client, rfterr, wavegen, ndarrayutil
-import AwgSa as awgsa
 import os
 import sys
 import time
 import logging
 import numpy as np
+import pathlib
 from scipy import fftpack
 try:
     import matplotlib
@@ -20,6 +19,11 @@ try:
     matplotlib.rcParams["agg.path.chunksize"] = 20000
 finally:
     import matplotlib.pyplot as plt
+
+lib_path = str(pathlib.Path(__file__).resolve().parents[2])
+sys.path.append(lib_path)
+from RftoolClient import client, rfterr, wavegen, ndarrayutil
+import AwgSa as awgsa
 
 # Parameters
 ZCU111_IP_ADDR = "192.168.1.3"
@@ -31,7 +35,7 @@ BITSTREAM = 8  # MTS AWG SA
 PLOT_DIR = "plot_mts_awg_x8_continuous_send_recv_prv_cap_ram/"
 DAC_FREQ = 3932.16
 ADC_FREQ = 3932.16
-CAPTURE_DELAY = 193
+CAPTURE_DELAY = 193 # ns
 
 BITSTREAM_LOAD_TIMEOUT = 10
 TRIG_BUSY_TIMEOUT = 60
