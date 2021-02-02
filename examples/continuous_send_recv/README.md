@@ -1,9 +1,10 @@
 # 8つのAWGから異なる周波数の正弦波を連続で出力しキャプチャする
+
 通常，波形データのキャプチャには後処理が存在するため，連続でキャプチャを実行することはできませんが，
 「BRAM キャプチャ版 Non-MTS AWG SA」 と 「MTS AWG SA」 の 2 つのデザインでは，
-サンプリングレートやキャプチャ時間などの条件によっては，連続キャプチャが可能です[^1]．
-
-[^1]: 設定した波形ステップやキャプチャステップのパラメータで正常にキャプチャが行えるかどうかは，添付のエクセルファイル ([capture_params_checker.xlsx](./capture_params_checker.xlsx)) を参照してください．
+サンプリングレートやキャプチャ時間などの条件によっては，連続キャプチャが可能です．
+設定した波形ステップやキャプチャステップのパラメータで正常にキャプチャが行えるかどうかは，
+添付のエクセルファイル ([capture_params_checker.xlsx](./capture_params_checker.xlsx)) を参照してください．
 
 本サンプル ([awg_x8_continuous_send_recv.py](./awg_x8_continuous_send_recv.py) と [mts_awg_x8_continuous_send_recv.py](./mts_awg_x8_continuous_send_recv.py)) は，
 連続する 2 つの波形ステップで異なる周波数の正弦波を出力し，それを各ステップごとにキャプチャするものです.
