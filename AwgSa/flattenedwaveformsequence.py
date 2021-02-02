@@ -76,9 +76,9 @@ def get_interval_from_wave_ram(wave_ram_data, step_idx):
     offset = step_idx * WaveStepParamsLayout.WAVE_STEP_PARAMS_WORD_SIZE + WaveStepParamsLayout.INTERVAL_OFFSET
     clk_count = wave_ram_data[offset : offset + WaveStepParamsLayout.INTERVAL_SIZE]
     clk_count = int.from_bytes(clk_count, 'little') # 波形ステップのインターバルとして HW 内部でカウントする値
-    # 波形 RAM には, AWG スタートにかかるオーバヘッドを引いて -1 したカウント値が格納されているので,
-    # 実際のインターバルは +1 してから算出する.
-    interval = 1000 * (clk_count + 1) / AWG_CLK_FREQ
+    # 波形 RAM には, AWG スタートにかかるオーバヘッドを引いて -2 したカウント値が格納されているので,
+    # 実際のインターバルは +2 してから算出する.
+    interval = 1000 * (clk_count + 2) / AWG_CLK_FREQ
     return interval
     
 
@@ -106,10 +106,8 @@ class FlattenedWaveformSequence(object):
             step_id_to_waveform[step_id] = waveform
             duration = 1000.0 * waveform.get_num_samples() / wave_seq_params.sampling_rate
             interval = get_interval_from_wave_ram(wave_ram_data, step_idx)
-            if abs(interval - duration) < (1000.0 / AWG_CLK_FREQ):
-                tmp = max(interval, duration)
-                duration = tmp
-                interval = tmp
+            if interval < duration:
+                interval = duration
             step_id_to_duration[step_id] = duration
             step_id_to_interval[step_id] = interval
 
@@ -229,10 +227,8 @@ class FlattenedIQWaveformSequence(object):
             # よって, サンプル数から出力期間を求める際は, サンプル数を 2 倍する
             duration = 2 * 1000.0 * waveform.get_num_samples() / wave_seq_params.sampling_rate
             interval = get_interval_from_wave_ram(wave_ram_data, step_idx)
-            if abs(interval - duration) < (1000.0 / AWG_CLK_FREQ):
-                tmp = max(interval, duration)
-                duration = tmp
-                interval = tmp
+            if interval < duration:
+                interval = duration
             step_id_to_duration[step_id] = duration
             step_id_to_interval[step_id] = interval
 

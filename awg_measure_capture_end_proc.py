@@ -46,6 +46,7 @@ awg_list = None
 tile_to_sampling_rate = None  # Msps
 awg_to_freq = None
 awg_to_num_cycles = None
+do_accumulation = None
 
 
 def set_awg_capture_params(param_sel):
@@ -54,9 +55,11 @@ def set_awg_capture_params(param_sel):
     global tile_to_sampling_rate
     global awg_to_freq
     global awg_to_num_cycles
+    global do_accumulation
 
     if param_sel == 0:
         awg_list = [awgsa.AwgId.AWG_0, awgsa.AwgId.AWG_2]
+        do_accumulation = False
         tile_to_sampling_rate = {
             0 : 1228.8, # awg 0, awg 1
             1 : 2457.6, # awg 2, awg 3
@@ -65,6 +68,7 @@ def set_awg_capture_params(param_sel):
         }
     elif param_sel == 1:
         awg_list = [awgsa.AwgId.AWG_1, awgsa.AwgId.AWG_4]
+        do_accumulation = False
         tile_to_sampling_rate = {
             0 : 1228.8, # awg 0, awg 1
             1 : 1228.8, # awg 2, awg 3
@@ -73,6 +77,7 @@ def set_awg_capture_params(param_sel):
         }
     elif param_sel == 2:
         awg_list = [awgsa.AwgId.AWG_0, awgsa.AwgId.AWG_1, awgsa.AwgId.AWG_2]
+        do_accumulation = False
         tile_to_sampling_rate = {
             0 : 1044.48, # awg 0, awg 1
             1 : 1597.44, # awg 2, awg 3
@@ -81,6 +86,7 @@ def set_awg_capture_params(param_sel):
         }
     elif param_sel == 3:
         awg_list = [awgsa.AwgId.AWG_3, awgsa.AwgId.AWG_4, awgsa.AwgId.AWG_7]
+        do_accumulation = False
         tile_to_sampling_rate = {
             0 : 1044.48, # awg 0, awg 1
             1 : 1044.48, # awg 2, awg 3
@@ -89,11 +95,39 @@ def set_awg_capture_params(param_sel):
         }
     elif param_sel == 4:
         awg_list = [awgsa.AwgId.AWG_2, awgsa.AwgId.AWG_4]
+        do_accumulation = False
         tile_to_sampling_rate = {
             0 : 1904.64, # awg 0, awg 1
             1 : 1904.64, # awg 2, awg 3
             2 : 1904.64, # awg 4, awg 5
             3 : 1904.64  # awg 6, awg 7
+        }
+    elif param_sel == 5:
+        awg_list = [awgsa.AwgId.AWG_2]
+        do_accumulation = False
+        tile_to_sampling_rate = {
+            0 : 1228.8,  # awg 0, awg 1
+            1 : 3747.84, # awg 2, awg 3
+            2 : 1228.8,  # awg 4, awg 5
+            3 : 1228.8   # awg 6, awg 7
+        }
+    elif param_sel == 6:
+        awg_list = [awgsa.AwgId.AWG_2, awgsa.AwgId.AWG_0]
+        do_accumulation = False
+        tile_to_sampling_rate = {
+            0 : 2703.36, # awg 0, awg 1
+            1 : 1044.48, # awg 2, awg 3
+            2 : 2703.36, # awg 4, awg 5
+            3 : 2703.36  # awg 6, awg 7
+        }
+    elif param_sel == 7:
+        awg_list = [awgsa.AwgId.AWG_2]
+        do_accumulation = True
+        tile_to_sampling_rate = {
+            0 : 1000.00, # awg 0, awg 1
+            1 : 2088.96, # awg 2, awg 3
+            2 : 1000.00, # awg 4, awg 5
+            3 : 1000.00  # awg 6, awg 7
         }
 
     base_cycle = 256000
@@ -369,7 +403,7 @@ def set_wave_sequence(awg_sa_cmd):
             .add_step(step_id = 1, wave = wave_1, post_blank = POST_BLANK))
 
         # AWG に波形シーケンスをセットする
-        awg_sa_cmd.set_wave_sequence(awg_id = awg_id, wave_sequence = wave_sequence, num_repeats = 100)
+        awg_sa_cmd.set_wave_sequence(awg_id = awg_id, wave_sequence = wave_sequence, num_repeats = 10)
         awg_to_wave_sequence[awg_id] = wave_sequence
 
     return awg_to_wave_sequence
@@ -385,12 +419,12 @@ def set_capture_sequence(awg_sa_cmd, awg_to_wave_sequence):
         capture_0 = awgsa.AwgCapture(
             time = wave_sequence.get_wave(step_id = 0).get_duration(),
             delay = 0,
-            do_accumulation = False)
+            do_accumulation = do_accumulation)
 
         capture_1 = awgsa.AwgCapture(
             time = wave_sequence.get_wave(step_id = 1).get_duration(),
             delay = 0,
-            do_accumulation = False)
+            do_accumulation = do_accumulation)
 
         # キャプチャシーケンスの定義
         tile = awg_sa_cmd.get_adc_tile_id_by_awg_id(awg_id)

@@ -25,7 +25,7 @@ finally:
 
 # Parameters
 ZCU111_IP_ADDR = "192.168.1.3"
-PLOT_DIR = "plot_mts_awg_x8_send_recv/"
+PLOT_DIR = "plot_mts_awg_x8_send_recv_prv_cap_ram/"
 
 # Log level
 LOG_LEVEL = logging.INFO
@@ -49,12 +49,11 @@ awg_to_freq = { awgsa.AwgId.AWG_0 : 10,
                 awgsa.AwgId.AWG_1 : 20,
                 awgsa.AwgId.AWG_2 : 786.43,
                 awgsa.AwgId.AWG_3 : 655.36,
-                awgsa.AwgId.AWG_4 : 561.74,
+                awgsa.AwgId.AWG_4 : 561.73,
                 awgsa.AwgId.AWG_5 : 491.52,
-                awgsa.AwgId.AWG_6 : 436.91,
-                awgsa.AwgId.AWG_7 : 393.22,
+                awgsa.AwgId.AWG_6 : 436.90,
+                awgsa.AwgId.AWG_7 : 393.21,
             } #MHz
-
 
 def calculate_min_max(sample, chunks):
     sample_rs = np.reshape(sample, (-1, chunks))
@@ -407,10 +406,10 @@ def set_wave_sequence(awg_sa_cmd):
             num_cycles = int(2.5 * awg_to_freq[awg_id])) #2.5us
 
         # 波形シーケンスの定義
-        # 波形ステップの開始から終了までの期間は, キャプチャの終了処理にかかるオーバーヘッドを考慮し, 波形出力期間 + 1300 ns を設定する.
+        # 波形ステップの開始から終了までの期間は, キャプチャの終了処理にかかるオーバーヘッドを考慮し, 波形出力期間 + 2000 ns を設定する.
         wave_sequence = (awgsa.WaveSequence(DAC_FREQ)
-            .add_step(step_id = 0, wave = wave_0, post_blank = 1300)
-            .add_step(step_id = 1, wave = wave_1, post_blank = 1300))
+            .add_step(step_id = 0, wave = wave_0, post_blank = 2000)
+            .add_step(step_id = 1, wave = wave_1, post_blank = 2000))
 
         # AWG に波形シーケンスをセットする
         awg_sa_cmd.set_wave_sequence(awg_id = awg_id, wave_sequence = wave_sequence, num_repeats = 1)
