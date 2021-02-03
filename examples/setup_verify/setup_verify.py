@@ -5,12 +5,15 @@
 rftoolクライアント サンプルプログラム: 疎通確認プログラム
 """
 
-
-from RftoolClient import client, rfterr
 import sys
 import time
 import socket
 import logging
+import pathlib
+
+lib_path = str(pathlib.Path(__file__).resolve().parents[2])
+sys.path.append(lib_path)
+from RftoolClient import client, rfterr
 
 # Parameters
 ZCU111_IP_ADDR = "192.168.1.3"
