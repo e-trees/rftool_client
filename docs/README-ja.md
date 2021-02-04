@@ -30,6 +30,7 @@ ZCU111を利用して任意の波形出力とその応答波形のキャプチ�
 - [ディジタル出力の利用](awg-digital-output-ja.md)
 - [キャプチャを連続で行う](../examples/continuous_send_recv/README.md)
 - [DRAM を使った波形データの送信](../examples/dram_send_2ch_250ms/README.md)
+- [DAC の最大サンプリングレートでの波形データの送信](../examples/bram_send_max_sampling_rate/README.md)
 - [BRAM を使った波形データの送受信](../examples/bram_send_recv/README.md)
 
 ### サンプルプログラムの実行に必要な環境

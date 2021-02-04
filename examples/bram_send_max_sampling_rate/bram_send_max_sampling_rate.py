@@ -17,12 +17,12 @@ rftoolクライアントサンプルプログラム:
     全チャンネル
 """
 
-
-from RftoolClient import client, rfterr, wavegen, ndarrayutil
+import sys
 import os
 import time
 import logging
 import numpy as np
+import pathlib
 from scipy import fftpack
 try:
     import matplotlib
@@ -31,12 +31,15 @@ try:
 finally:
     import matplotlib.pyplot as plt
 
+lib_path = str(pathlib.Path(__file__).resolve().parents[2])
+sys.path.append(lib_path)
+from RftoolClient import client, rfterr, wavegen, ndarrayutil
 
 ## Variables
 ZCU111_IP_ADDR = "192.168.1.3"
 DAC_SAMPLES = 32768  # DAC num of samples
 PLOT_DIVIDES = 512
-CROP_PLOT = [0, 128]  # crop samples for plot
+CROP_PLOT = [0, 4096]  # crop samples for plot
 FFT_SIZE = 1024
 PLOT_DIR = "plot_bram_send_max_sampling_rate/"
 
