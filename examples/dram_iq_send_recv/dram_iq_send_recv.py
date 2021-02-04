@@ -19,12 +19,12 @@ rftoolクライアント サンプルプログラム:
     ADC224_T0_CH1 (Tile 0 Block 1)
 """
 
-
-from RftoolClient import client, rfterr, wavegen, ndarrayutil
+import sys
 import os
 import time
 import logging
 import numpy as np
+import pathlib
 from scipy import fftpack
 try:
     import matplotlib
@@ -32,6 +32,10 @@ try:
     matplotlib.rcParams["agg.path.chunksize"] = 20000
 finally:
     import matplotlib.pyplot as plt
+
+lib_path = str(pathlib.Path(__file__).resolve().parents[2])
+sys.path.append(lib_path)
+from RftoolClient import client, rfterr, wavegen, ndarrayutil
 
 # Parameters
 ZCU111_IP_ADDR = "192.168.1.3"
@@ -122,7 +126,7 @@ def plot_graph_fft(freq, sample, color, title, filename):
     fft_data_q = np.zeros(int(FFT_SIZE/2))
     for i in range(int(len(sample)/FFT_SIZE)):
         fft_cur = abs(
-            fftpack.fft(sample[FFT_SIZE*i:FFT_SIZE*(i+1)].real))[0:int(FFT_SIZE/2)]
+            fftpack.fft(sample[FFT_SIZE*i:FFT_SIZE*(i+1)].imag))[0:int(FFT_SIZE/2)]
         fft_data_q = np.max([fft_data_q, fft_cur], axis=0)
 
     fig = plt.figure(figsize=(8, 6), dpi=300)
