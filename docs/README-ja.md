@@ -32,6 +32,7 @@ ZCU111を利用して任意の波形出力とその応答波形のキャプチ�
 - [DRAM を使った波形データの送信](../examples/dram_send_2ch_250ms/README.md)
 - [DAC の最大サンプリングレートでの波形データの送信](../examples/bram_send_max_sampling_rate/README.md)
 - [BRAM を使った波形データの送受信](../examples/bram_send_recv/README.md)
+- [BRAM を使った波形データの積算](../examples/bram_accum_send_recv/README.md)
 - [DRAM を使った波形データの送受信](../examples/dram_send_recv_2ch_250ms/README.md)
 - [DRAM を使った IQ データの送受信](../examples/dram_iq_send_recv/README.md)
 
