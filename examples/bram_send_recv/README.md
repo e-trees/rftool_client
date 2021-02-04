@@ -7,7 +7,7 @@ DAC から出力する波形データと ADC で取得した波形データは�
 
 次のようにADCとDACを接続します．
 
-![セットアップ](./../../docs/images/dac_adc_setup.png)
+![セットアップ](./../../docs/images/dac_adc_setup-1.png)
 
 差動入出力を接続する際は，付属の BPF を取り付けた SMA ケーブルで接続します．
 
@@ -24,7 +24,7 @@ python bram_send_recv.py
 - bram_send_crop.png (送信波形の先頭 128 サンプル)
 - bram_send_fft.png (送信波形の周波数スペクトル)
 
-受信信号の波形およびスペクトルは，各 ADC チャネルごとに以下のファイル名で保存されます．
+受信信号の波形およびスペクトルは，ADC チャネルごとに以下のファイル名で保存されます．
 \* には，その波形をキャプチャした ADC のチャネル番号 (0 ～ 7) が入ります．
 - bram_recv_*.png (受信波形全体)
 - bram_recv_*_crop.png (受信波形の先頭 128 サンプル)
@@ -39,11 +39,11 @@ python bram_send_recv.py
 送信波形の周波数スペクトル　　　　
 ![送信波形の周波数スペクトル](images/bram_send_fft.png)
 
-チャネル 0 の受信波形全体　　　　　　
+ADC チャネル 0 の受信波形全体　　　　　　
 ![受信波形全体](images/bram_recv_0.png)
 
-チャネル 0 の受信波形の先頭 128 サンプル
+ADC チャネル 0 の受信波形の先頭 128 サンプル
 ![受信波形の先頭 128 サンプル](images/bram_recv_0_crop.png)
 
-チャネル 0 の受信波形の周波数スペクトル
+ADC チャネル 0 の受信波形の周波数スペクトル
 ![受信波形の周波数スペクトル](images/bram_recv_0_fft.png)
