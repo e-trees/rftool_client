@@ -29,6 +29,7 @@ ZCU111を利用して任意の波形出力とその応答波形のキャプチ�
 - [8つのAWGからI/Q変調した波形を出力しADCでI/Qミキサをかけてキャプチャ(DRAM/BRAM利用)](awg-x8-iq-send-iq-recv-ja.md)
 - [ディジタル出力の利用](awg-digital-output-ja.md)
 - [キャプチャを連続で行う](../examples/continuous_send_recv/README.md)
+- [DRAM を使った波形データの送信](../examples/dram_send_2ch_250ms/README.md)
 - [BRAM を使った波形データの送受信](../examples/bram_send_recv/README.md)
 
 ### サンプルプログラムの実行に必要な環境
