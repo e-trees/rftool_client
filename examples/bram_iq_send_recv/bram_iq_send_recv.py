@@ -43,7 +43,7 @@ DAC_SAMPLES = 16384  # DAC num of samples
 ADC_SAMPLES = 16384  # ADC num of samples
 CROP_PLOT = [0, 1024]  # crop samples for plot
 FFT_SIZE = 1024
-PLOT_DIR = "plot_bram_accum_iq_send_recv/"
+PLOT_DIR = "plot_bram_iq_send_recv/"
 
 # Log level
 LOG_LEVEL = logging.INFO
@@ -380,12 +380,11 @@ def main():
         rft.command.SetTriggerInfo(DAC, 0xFF, DAC_SAMPLES, USE_REAL)
         rft.command.SetTriggerLatency(ADC, 45)
         rft.command.SetTriggerLatency(DAC, 0)
-        rft.command.SetTriggerCycle(1000, 1)
-        rft.command.SetAccumulateMode(1)  # enable accumulation
+        rft.command.SetTriggerCycle(1, 1)
+        rft.command.SetAccumulateMode(0)  # disable accumulation
 
         print("Start trigger.")
         rft.command.StartTrigger()
-
         wait_trig_done(rft.command)
 
         r_data = []

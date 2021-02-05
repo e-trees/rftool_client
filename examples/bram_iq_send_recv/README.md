@@ -1,6 +1,6 @@
 # BRAM を使った IQ データの受信
 
-[bram_accum_iq_send_recv.py](./bram_accum_iq_send_recv.py) は，DAC から正弦波を出力し，
+[bram_iq_send_recv.py](./bram_iq_send_recv.py) は，DAC から正弦波を出力し，
 ADC の IQ ミキサを有効にしてキャプチャするスクリプトです．
 一般的に，A [Hz] の正弦波に B [Hz] の IQミキサをかけたとき，ミキシング後の波形の周波数成分は，
 I データ，Q データ共に A±B [Hz] になります．
@@ -20,10 +20,10 @@ I データ，Q データ共に A±B [Hz] になります．
 以下のコマンドを実行します．
 
 ```
-python bram_accum_iq_send_recv.py
+python bram_iq_send_recv.py
 ```
 
-カレントディレクトリの下の `plot_bram_accum_iq_send_recv` ディレクトリの中に，送信波形のグラフおよびスペクトルが以下のファイル名で保存されます．
+カレントディレクトリの下の `plot_bram_iq_send_recv` ディレクトリの中に，送信波形のグラフおよびスペクトルが以下のファイル名で保存されます．
 
 - bram_send_crop.png (送信波形全体)
 - bram_send_crop.png (送信波形の先頭 1024 サンプル)
