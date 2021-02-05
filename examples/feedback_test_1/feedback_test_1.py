@@ -18,18 +18,22 @@ rftoolクライアント サンプルプログラム:
     ADC224_T0_CH1 (Tile 0 Block 1)
 """
 
-
-from RftoolClient import client, rfterr, wavegen, ndarrayutil
+import sys
 import os
 import time
 import logging
 import numpy as np
+import pathlib
 try:
     import matplotlib
     matplotlib.use("Agg")
     matplotlib.rcParams["agg.path.chunksize"] = 20000
 finally:
     import matplotlib.pyplot as plt
+
+lib_path = str(pathlib.Path(__file__).resolve().parents[2])
+sys.path.append(lib_path)
+from RftoolClient import client, rfterr, wavegen, ndarrayutil
 
 # Parameters
 ZCU111_IP_ADDR = "192.168.1.3"
