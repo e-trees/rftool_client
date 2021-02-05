@@ -18,13 +18,12 @@ rftoolクライアント サンプルプログラム:
     ADC224_T0_CH1 (Tile 0 Block 1)
 """
 
-
-from RftoolClient import client, rfterr, wavegen, ndarrayutil
 import os
 import sys
 import time
 import logging
 import numpy as np
+import pathlib
 try:
     import matplotlib
     matplotlib.use("Agg")
@@ -32,6 +31,9 @@ try:
 finally:
     import matplotlib.pyplot as plt
 
+lib_path = str(pathlib.Path(__file__).resolve().parents[2])
+sys.path.append(lib_path)
+from RftoolClient import client, rfterr, wavegen, ndarrayutil
 
 class SelfTestFault(Exception):
     pass

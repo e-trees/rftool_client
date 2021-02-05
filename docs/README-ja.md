@@ -36,6 +36,7 @@ ZCU111を利用して任意の波形出力とその応答波形のキャプチ�
 - [DRAM を使った波形データの送受信](../examples/dram_send_recv_2ch_250ms/README.md)
 - [DRAM を使った IQ データの送受信](../examples/dram_iq_send_recv/README.md)
 - [Feedback システムのテスト 1](../examples/feedback_test_1/README.md)
+- [Feedback システムのテスト 2](../examples/feedback_test_2/README.md)
 
 ### サンプルプログラムの実行に必要な環境
 
