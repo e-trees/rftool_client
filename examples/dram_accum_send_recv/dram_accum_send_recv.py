@@ -17,13 +17,12 @@ rftoolクライアント サンプルプログラム:
     ADC224_T0_CH0 (Tile 0 Block 0)
 """
 
-
-from RftoolClient import client, rfterr, wavegen, ndarrayutil
 import os
 import sys
 import time
 import logging
 import numpy as np
+import pathlib
 from scipy import fftpack
 try:
     import matplotlib
@@ -31,6 +30,10 @@ try:
     matplotlib.rcParams["agg.path.chunksize"] = 20000
 finally:
     import matplotlib.pyplot as plt
+
+lib_path = str(pathlib.Path(__file__).resolve().parents[2])
+sys.path.append(lib_path)
+from RftoolClient import client, rfterr, wavegen, ndarrayutil
 
 # Parameters
 ZCU111_IP_ADDR = "192.168.1.3"
@@ -50,7 +53,7 @@ BITSTREAM = 6  # DRAM ACCUM
 BITSTREAM_LOAD_TIMEOUT = 10
 DAC_FREQ = 1536.0
 ADC_FREQ = 1536.0
-TRIG_BUSY_TIMEOUT = 60
+TRIG_BUSY_TIMEOUT = 60 # sec
 DUC_DDC_FACTOR = 1
 CHUNK_SAMPLES = int(DAC_SAMPLES / DATA_DEVIDES)
 CHUNK_DAC_PLOT = int(DAC_SAMPLES / PLOT_DIVIDES)
