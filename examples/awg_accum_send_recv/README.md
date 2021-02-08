@@ -24,10 +24,10 @@ python awg_accum_send_recv.py
 キャプチャモジュール 0 がキャプチャした 2 つの波形のグラフが，カレントディレクトリの下の `plot_awg_accum_send_recv` ディレクトリ以下に作成されます．
 
 キャプチャモジュール 0 がキャプチャした波形 1
-![AWG 0 がキャプチャした波形 1](images/AWG_0_step_0_dram_captured.png)
+![キャプチャモジュール 0 がキャプチャした波形 1](images/AWG_0_step_0_dram_captured.png)
 
 キャプチャモジュール 0 がキャプチャした波形 2
-![AWG 0 がキャプチャした波形 2](images/AWG_0_step_1_dram_captured.png)
+![キャプチャモジュール 0 がキャプチャした波形 2](images/AWG_0_step_1_dram_captured.png)
 
 ### BRAM をキャプチャ RAM として 使う場合
 
@@ -40,7 +40,7 @@ python awg_accum_send_recv.py prv_cap_ram
 キャプチャモジュール 0 がキャプチャした 2 つの波形のグラフが，カレントディレクトリの下の `plot_awg_accum_send_recv_prv_cap_ram` ディレクトリ以下に作成されます．
 
 キャプチャモジュール 0 がキャプチャした波形 1
-![AWG 0 がキャプチャした波形 1](images/AWG_0_step_0_bram_captured.png)
+![キャプチャモジュール 0 がキャプチャした波形 1](images/AWG_0_step_0_bram_captured.png)
 
 キャプチャモジュール 0 がキャプチャした波形 2
-![AWG 0 がキャプチャした波形 2](images/AWG_0_step_1_bram_captured.png)
+![キャプチャモジュール 0 がキャプチャした波形 2](images/AWG_0_step_1_bram_captured.png)

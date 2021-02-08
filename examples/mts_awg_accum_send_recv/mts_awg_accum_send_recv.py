@@ -8,13 +8,12 @@ MTS 版 AWG 積算サンプルプログラム.
 キャプチャ RAM は キャプチャモジュールごとに個別に存在ものとする.
 """
 
-from RftoolClient import client, rfterr, wavegen, ndarrayutil
-import AwgSa as awgsa
 import os
 import sys
 import time
 import logging
 import numpy as np
+import pathlib
 from scipy import fftpack
 try:
     import matplotlib
@@ -22,6 +21,11 @@ try:
     matplotlib.rcParams["agg.path.chunksize"] = 20000
 finally:
     import matplotlib.pyplot as plt
+
+lib_path = str(pathlib.Path(__file__).resolve().parents[2])
+sys.path.append(lib_path)
+from RftoolClient import client, rfterr, wavegen, ndarrayutil
+import AwgSa as awgsa
 
 # Parameters
 ZCU111_IP_ADDR = "192.168.1.3"
@@ -48,8 +52,8 @@ awg_list = [awgsa.AwgId.AWG_0, awgsa.AwgId.AWG_1]
 awg_to_freq = { awgsa.AwgId.AWG_0 : 10,
                 awgsa.AwgId.AWG_1 : 20} #MHz
 
-awg_to_cycles = { awgsa.AwgId.AWG_0 : 10,
-                  awgsa.AwgId.AWG_1 : 5}
+awg_to_cycles = { awgsa.AwgId.AWG_0 : 7,
+                  awgsa.AwgId.AWG_1 : 4}
 
 def calculate_min_max(sample, chunks):
     sample_rs = np.reshape(sample, (-1, chunks))

@@ -25,10 +25,10 @@ python awg_send_recv.py
 キャプチャモジュール 0 がキャプチャした 2 つの波形のグラフと，キャプチャモジュール 1 がキャプチャした 1 つの波形のグラフが，カレントディレクトリの下の `plot_awg_send_recv` ディレクトリ以下に作成されます．
 
 キャプチャモジュール 0 がキャプチャした波形 1
-![AWG 0 がキャプチャした波形 1](images/AWG_0_step_0_captured.png)
+![キャプチャモジュール 0 がキャプチャした波形 1](images/AWG_0_step_0_captured.png)
 
 キャプチャモジュール 0 がキャプチャした波形 2
-![AWG 0 がキャプチャした波形 2](images/AWG_0_step_1_captured.png)
+![キャプチャモジュール 0 がキャプチャした波形 2](images/AWG_0_step_1_captured.png)
 
-AWG 1 がキャプチャした波形        
-![AWG 1 がキャプチャした波形](images/AWG_1_step_0_captured.png)
+キャプチャモジュール 1 がキャプチャした波形        
+![キャプチャモジュール 1 がキャプチャした波形](images/AWG_1_step_0_captured.png)
