@@ -5,13 +5,12 @@
 AWG サンプルプログラム:
 """
 
-from RftoolClient import client, rfterr, wavegen, ndarrayutil
-import AwgSa as awgsa
 import os
 import sys
 import time
 import logging
 import numpy as np
+import pathlib
 from scipy import fftpack
 try:
     import matplotlib
@@ -19,6 +18,11 @@ try:
     matplotlib.rcParams["agg.path.chunksize"] = 20000
 finally:
     import matplotlib.pyplot as plt
+
+lib_path = str(pathlib.Path(__file__).resolve().parents[2])
+sys.path.append(lib_path)
+from RftoolClient import client, rfterr, wavegen, ndarrayutil
+import AwgSa as awgsa
 
 # Parameters
 ZCU111_IP_ADDR = "192.168.1.3"
@@ -430,10 +434,12 @@ def main():
             (awgsa.AwgId.AWG_1, 0, r_sample_2))
 
         # 送信波形をグラフ化
-        wave_seq_0.get_waveform_sequence().save_as_img(PLOT_DIR + "waveform/img_seq_0_waveform.png")
-        wave_seq_1.get_waveform_sequence().save_as_img(PLOT_DIR + "waveform/img_seq_1_waveform.png")
-        rft.awg_sa_cmd.get_waveform_sequence(awgsa.AwgId.AWG_0).save_as_img(PLOT_DIR + "waveform/real_seq_0_waveform.png")
-        rft.awg_sa_cmd.get_waveform_sequence(awgsa.AwgId.AWG_1).save_as_img(PLOT_DIR + "waveform/real_seq_1_waveform.png")
+        # ユーザが指定したパラメータから算出される波形
+        wave_seq_0.get_waveform_sequence().save_as_img(PLOT_DIR + "waveform/user_def_seq_0_waveform.png")
+        wave_seq_1.get_waveform_sequence().save_as_img(PLOT_DIR + "waveform/user_def_seq_1_waveform.png")
+        # 実際に AWG から出力される波形
+        rft.awg_sa_cmd.get_waveform_sequence(awgsa.AwgId.AWG_0).save_as_img(PLOT_DIR + "waveform/actual_seq_0_waveform.png")
+        rft.awg_sa_cmd.get_waveform_sequence(awgsa.AwgId.AWG_1).save_as_img(PLOT_DIR + "waveform/actual_seq_1_waveform.png")
 
     print("Done.")
     return
