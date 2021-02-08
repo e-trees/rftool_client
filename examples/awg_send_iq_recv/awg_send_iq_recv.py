@@ -9,13 +9,12 @@ AWG から出力される波形の周波数を f0 [Hz], ミキサの周波数を
 ミキシング後の波形の周波数は, I, Q 共に (f0 + f1) と (f0 - f1) を含むので、ここにスペクトルのピークが出ているか確認する.
 """
 
-from RftoolClient import client, rfterr, wavegen, ndarrayutil
-import AwgSa as awgsa
 import os
 import sys
 import time
 import logging
 import numpy as np
+import pathlib
 from scipy import fftpack
 try:
     import matplotlib
@@ -23,6 +22,11 @@ try:
     matplotlib.rcParams["agg.path.chunksize"] = 20000
 finally:
     import matplotlib.pyplot as plt
+
+lib_path = str(pathlib.Path(__file__).resolve().parents[2])
+sys.path.append(lib_path)
+from RftoolClient import client, rfterr, wavegen, ndarrayutil
+import AwgSa as awgsa
 
 # Parameters
 ZCU111_IP_ADDR = "192.168.1.3"
@@ -542,6 +546,9 @@ def main():
         # スペクトラム出力
         awg_id_to_spectrum = {awgsa.AwgId.AWG_0 : spectrum_0}
         output_spectrum_data(awg_id_to_spectrum, num_frames, fft_size)
+
+        # 送信波形をグラフ化
+        rft.awg_sa_cmd.get_waveform_sequence(awgsa.AwgId.AWG_0).save_as_img(PLOT_DIR + "waveform/actual_seq_0_waveform.png")
 
     print("Done.")
     return

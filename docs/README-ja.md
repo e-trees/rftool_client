@@ -29,6 +29,7 @@ ZCU111を利用して任意の波形出力とその応答波形のキャプチ�
 - [AWG から出力した波形を積算しながらキャプチャする (Non-MTS 版)](../examples/awg_accum_send_recv/README.md)
 - [AWG から出力した波形を積算しながらキャプチャする (MTS 版)](../examples/mts_awg_accum_send_recv/README.md)
 - [AWG から IQ ミキシングした波形を出力する](../examples/awg_iq_send_recv/README.md)
+- [キャプチャモジュールで IQ ミキシングした波形をキャプチャする](../examples/awg_send_iq_recv/README.md)
 - [8つのAWGから10サイクルの正弦波を出力しキャプチャする(Non-MTS 版)](awg-x8-send-recv-ja.md)
 - [8つのAWGから10サイクルの正弦波を出力しキャプチャする (MTS 版)](../examples/mts_awg_x8_send_recv/README.md)
 - [8つのAWGからI/Q変調した波形を出力しADCでI/Qミキサをかけてキャプチャ(DRAM/BRAM利用)](awg-x8-iq-send-iq-recv-ja.md)
