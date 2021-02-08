@@ -24,10 +24,21 @@ ZCU111を利用して任意の波形出力とその応答波形のキャプチ�
 
 ## サンプルプログラム
 
+- [ホスト PC と ZCU 111 の接続を確認する](../examples/setup_verify/README.md)
 - [8つのAWGから10サイクルの正弦波を出力しキャプチャする(DRAM/BRAM利用)](awg-x8-send-recv-ja.md)
 - [8つのAWGからI/Q変調した波形を出力しADCでI/Qミキサをかけてキャプチャ(DRAM/BRAM利用)](awg-x8-iq-send-iq-recv-ja.md)
 - [ディジタル出力の利用](awg-digital-output-ja.md)
 - [キャプチャを連続で行う](../examples/continuous_send_recv/README.md)
+- [DRAM を使った波形データの送信](../examples/dram_send_2ch_250ms/README.md)
+- [DAC の最大サンプリングレートでの波形データの送信](../examples/bram_send_max_sampling_rate/README.md)
+- [BRAM を使った波形データの送受信](../examples/bram_send_recv/README.md)
+- [BRAM を使った IQ データの受信](../examples/bram_iq_send_recv/README.md)
+- [BRAM を使った波形データの積算](../examples/bram_accum_send_recv/README.md)
+- [DRAM を使った波形データの送受信](../examples/dram_send_recv_2ch_250ms/README.md)
+- [DRAM を使った IQ データの送受信](../examples/dram_iq_send_recv/README.md)
+- [DRAM を使った波形データの積算](../examples/dram_accum_send_recv/README.md)
+- [Feedback システムのテスト 1](../examples/feedback_test_1/README.md)
+- [Feedback システムのテスト 2](../examples/feedback_test_2/README.md)
 
 ### サンプルプログラムの実行に必要な環境
 
