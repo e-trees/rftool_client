@@ -9,7 +9,7 @@ AWG 0 の出力波形
 
 次のように ADC と DAC を接続します．
 
-![セットアップ](../../docs/images/awg_x1_setup.png)
+![セットアップ](../../docs/images/awg-x1-setup.png)
 
 ## 実行手順と結果
 

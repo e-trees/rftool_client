@@ -33,7 +33,7 @@ python awg_x8_continuous_send_recv.py
 ```
 
 カレントディレクトリの下の `plot_awg_x8_continuous_send_recv_prv_cap_ram` ディレクトリの中に，
-各 AWG ごとにキャプチャ波形とスペクトルのグラフが作成されます．
+AWG ごとにキャプチャ波形とスペクトルのグラフが作成されます．
 
 キャプチャモジュール 0 でキャプチャした波形ステップ 0 のグラフ
 ![キャプチャモジュール 0 でキャプチャしたステップ 0 の波形](images/AWG_0_step_0_captured.png)
@@ -56,7 +56,7 @@ python mts_awg_x8_continuous_send_recv.py
 ```
 
 カレントディレクトリの下の `plot_mts_awg_x8_continuous_send_recv_prv_cap_ram` ディレクトリの中に，
-各 AWG ごとにキャプチャ波形とスペクトルのグラフが作成されます．
+AWG ごとにキャプチャ波形とスペクトルのグラフが作成されます．
 
 キャプチャモジュール 4 でキャプチャした波形ステップ 0 のグラフ
 ![キャプチャモジュール 4 でキャプチャしたステップ 0 の波形](images/AWG_4_step_0_captured.png)

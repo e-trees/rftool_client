@@ -17,13 +17,12 @@
     この 3 箇所にキャプチャデータのスペクトルのピークが表れる.
 """
 
-from RftoolClient import client, rfterr, wavegen, ndarrayutil
-import AwgSa as awgsa
 import os
 import sys
 import time
 import logging
 import numpy as np
+import pathlib
 from scipy import fftpack
 try:
     import matplotlib
@@ -31,6 +30,11 @@ try:
     matplotlib.rcParams["agg.path.chunksize"] = 20000
 finally:
     import matplotlib.pyplot as plt
+
+lib_path = str(pathlib.Path(__file__).resolve().parents[2])
+sys.path.append(lib_path)
+from RftoolClient import client, rfterr, wavegen, ndarrayutil
+import AwgSa as awgsa
 
 # Parameters
 ZCU111_IP_ADDR = "192.168.1.3"
@@ -428,9 +432,10 @@ def output_fft_graphs(fft_size, *id_and_data_list):
                 "AWG_{} step_{} frame_{} FFT".format(awg_id, step_id, j),
                 out_dir + "AWG_{}_step_{}_frame_{}_FFT_abs.png".format(awg_id, step_id, j))
         color += 1
-    
 
-def output_capture_data(awg_id_to_wave_data, awg_id_to_wave_seq, num_frames, sample_offset, fft_size):
+
+def output_capture_data(
+    awg_id_to_wave_data, awg_id_to_wave_seq, awg_id_to_num_waves, num_frames, sample_offset, fft_size):
     """
     波形データ出力
     """
@@ -441,7 +446,7 @@ def output_capture_data(awg_id_to_wave_data, awg_id_to_wave_seq, num_frames, sam
             freq = min(wave.get_i_wave().get_frequency(), wave.get_q_wave().get_frequency())
         else:
             freq = wave.get_frequency()
-        length = int(2 * ADC_FREQ / freq)
+        length = int(awg_id_to_num_waves[awg_id] * ADC_FREQ / freq)
         wave_data = ndarrayutil.NdarrayUtil.bytes_to_real_32(awg_id_to_wave_data[awg_id])
         output_wave_graphs((awg_id, step_id, num_frames, wave_data, sample_offset, length, fft_size))
 
@@ -499,11 +504,11 @@ def set_wave_sequence(awg_sa_cmd):
     """
     # 波形の定義
     samples = create_wave()
-    wave_0 = awgsa.AwgAnyWave(samples = samples, num_cycles = 10)
+    wave_0 = awgsa.AwgAnyWave(samples = samples, num_cycles = 4)
 
     (i_samples, q_samples) = create_iq_wave()
-    i_wave = awgsa.AwgAnyWave(samples = i_samples, num_cycles = 1000)
-    q_wave = awgsa.AwgAnyWave(samples = q_samples, num_cycles = 1000)
+    i_wave = awgsa.AwgAnyWave(samples = i_samples, num_cycles = 360)
+    q_wave = awgsa.AwgAnyWave(samples = q_samples, num_cycles = 360)
     wave_1 = awgsa.AwgIQWave(i_wave, q_wave)
 
     # 波形シーケンスの定義
@@ -526,12 +531,12 @@ def set_capture_sequence(awg_sa_cmd, seq_0, seq_1):
     """
     capture_0 = awgsa.AwgCapture(
         time = seq_0.get_wave(step_id = 0).get_duration() + 20,
-        delay = 330,
+        delay = 130,
         do_accumulation = False)
 
     capture_1 = awgsa.AwgCapture(
         time = seq_1.get_wave(step_id = 0).get_duration() + 20,
-        delay = 330,
+        delay = 270,
         do_accumulation = False)
 
     # キャプチャシーケンスの定義
@@ -593,13 +598,14 @@ def main():
 
         # キャプチャデータ出力
         num_frames = 1
-        start_sample_idx = 16 # FFT 開始サンプルのインデックス
         fft_size = rft.awg_sa_cmd.get_fft_size()
         awg_id_to_wave_data = {awgsa.AwgId.AWG_0 : r_samples_0, awgsa.AwgId.AWG_1 : r_samples_1}
         awg_id_to_wave_seq = {awgsa.AwgId.AWG_0 : wave_seq_0, awgsa.AwgId.AWG_1 : wave_seq_1}
-        output_capture_data(awg_id_to_wave_data, awg_id_to_wave_seq, num_frames, start_sample_idx, fft_size)
+        awg_id_to_num_waves = {awgsa.AwgId.AWG_0 : 2.5, awgsa.AwgId.AWG_1 : 8}
+        output_capture_data(awg_id_to_wave_data, awg_id_to_wave_seq, awg_id_to_num_waves, num_frames, 0, fft_size)
 
         # スペクトラム取得
+        start_sample_idx = 32 # FFT 開始サンプルのインデックス
         spectrum_1 = rft.awg_sa_cmd.get_spectrum(
             awgsa.AwgId.AWG_1, step_id = 0, start_sample_idx = start_sample_idx, num_frames = num_frames)
 
@@ -608,8 +614,11 @@ def main():
         output_spectrum_data(awg_id_to_spectrum, num_frames, fft_size)
 
         # 送信波形をグラフ化
-        wave_seq_0.get_waveform_sequence().save_as_img(PLOT_DIR + "waveform/img_seq_0_waveform.png")
-        rft.awg_sa_cmd.get_waveform_sequence(awgsa.AwgId.AWG_0).save_as_img(PLOT_DIR + "waveform/real_seq_0_waveform.png")
+        wave_seq_0.get_waveform_sequence().save_as_img(PLOT_DIR + "waveform/user_def_seq_0_waveform.png")
+        rft.awg_sa_cmd.get_waveform_sequence(awgsa.AwgId.AWG_0).save_as_img(PLOT_DIR + "waveform/actual_seq_0_waveform.png")
+
+        wave_seq_1.get_waveform_sequence().save_as_img(PLOT_DIR + "waveform/user_def_seq_1_waveform.png")
+        rft.awg_sa_cmd.get_waveform_sequence(awgsa.AwgId.AWG_1).save_as_img(PLOT_DIR + "waveform/actual_seq_1_waveform.png")
 
     print("Done.")
     return
