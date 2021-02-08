@@ -5,13 +5,12 @@
 AWG サンプルプログラム:
 """
 
-from RftoolClient import client, rfterr, wavegen, ndarrayutil
-import AwgSa as awgsa
 import os
 import sys
 import time
 import logging
 import numpy as np
+import pathlib
 from scipy import fftpack
 try:
     import matplotlib
@@ -24,6 +23,11 @@ try:
     is_private_capture_ram = (sys.argv[1] == "prv_cap_ram")
 except Exception:
     is_private_capture_ram = False
+
+lib_path = str(pathlib.Path(__file__).resolve().parents[2])
+sys.path.append(lib_path)
+from RftoolClient import client, rfterr, wavegen, ndarrayutil
+import AwgSa as awgsa
 
 # Parameters
 ZCU111_IP_ADDR = "192.168.1.3"
@@ -320,7 +324,7 @@ def set_wave_sequence(awg_sa_cmd, cycle_multiplier):
         .add_step(step_id = 1, wave = wave_1, post_blank = 2000))
 
     # AWG に波形シーケンスをセットする
-    awg_sa_cmd.set_wave_sequence(awgsa.AwgId.AWG_0, wave_sequence_0, num_repeats = 100)
+    awg_sa_cmd.set_wave_sequence(awgsa.AwgId.AWG_0, wave_sequence_0, num_repeats = 1000)
     return wave_sequence_0
 
 
