@@ -14,7 +14,7 @@
 積算回数は 1 から 32768 までの整数を指定できます．
 
 ```
-python bram_accum_send_recv_pulse.py <積算回数>
+python bram_accum_send_recv_sine.py <積算回数>
 ```
 
 カレントディレクトリの下の `plot_bram_accum_send_recv_sine/<積算回数>` ディレクトリの中に，送信波形と受信波形のグラフが以下のファイル名で保存されます．

@@ -5,13 +5,12 @@
 AWG サンプルプログラム:
 """
 
-from RftoolClient import client, rfterr, wavegen, ndarrayutil
-import AwgSa as awgsa
 import os
 import sys
 import time
 import logging
 import numpy as np
+import pathlib
 from scipy import fftpack
 try:
     import matplotlib
@@ -19,6 +18,11 @@ try:
     matplotlib.rcParams["agg.path.chunksize"] = 20000
 finally:
     import matplotlib.pyplot as plt
+
+lib_path = str(pathlib.Path(__file__).resolve().parents[2])
+sys.path.append(lib_path)
+from RftoolClient import client, rfterr, wavegen, ndarrayutil
+import AwgSa as awgsa
 
 LOG_LEVEL = logging.INFO
 ZCU111_IP_ADDR = "192.168.1.3"
@@ -128,34 +132,34 @@ def main():
         # Real 波形出力
         # Python スクリプト内で計算したサンプル値を保持するオブジェクトを取得
         waveform_0 = wave_seq_0.get_waveform_sequence()
-        waveform_0.save_as_img(PLOT_DIR + "img_seq_0_waveform.png")
+        waveform_0.save_as_img(PLOT_DIR + "user_def_seq_0_waveform.png")
         step_id_to_samples = waveform_0.get_samples_by_step_id()
-        output_samples(PLOT_DIR + "img_seq_0_waveform.txt", step_id_to_samples)
+        output_samples(PLOT_DIR + "user_def_seq_0_waveform.txt", step_id_to_samples)
         
         # ハードウェア内部の RAM に格納されたサンプル値を保持するオブジェクトを取得
         waveform_0 = rft.awg_sa_cmd.get_waveform_sequence(awgsa.AwgId.AWG_0)
-        waveform_0.save_as_img(PLOT_DIR + "real_seq_0_waveform.png")
+        waveform_0.save_as_img(PLOT_DIR + "actual_seq_0_waveform.png")
         step_id_to_samples = waveform_0.get_samples_by_step_id()
-        output_samples(PLOT_DIR + "real_seq_0_waveform.txt", step_id_to_samples)
+        output_samples(PLOT_DIR + "actual_seq_0_waveform.txt", step_id_to_samples)
 
         # I/Q 波形出力
         # Python スクリプト内で計算したサンプル値を保持するオブジェクトを取得
         waveform_1 = wave_seq_1.get_waveform_sequence()
-        waveform_1.save_as_img(PLOT_DIR + "img_seq_1_waveform.png")
-        waveform_1.save_as_img(PLOT_DIR + "img_seq_1_waveform_merged.png", iq_separation = False)
+        waveform_1.save_as_img(PLOT_DIR + "user_def_seq_1_waveform.png")
+        waveform_1.save_as_img(PLOT_DIR + "user_def_seq_1_waveform_merged.png", iq_separation = False)
         step_id_to_i_samples = waveform_1.get_i_samples_by_step_id()
         step_id_to_q_samples = waveform_1.get_q_samples_by_step_id()
-        output_samples(PLOT_DIR + "img_seq_1_i_waveform.txt", step_id_to_i_samples)
-        output_samples(PLOT_DIR + "img_seq_1_q_waveform.txt", step_id_to_q_samples)
+        output_samples(PLOT_DIR + "user_def_seq_1_i_waveform.txt", step_id_to_i_samples)
+        output_samples(PLOT_DIR + "user_def_seq_1_q_waveform.txt", step_id_to_q_samples)
 
         # ハードウェア内部の RAM に格納されたサンプル値を保持するオブジェクトを取得
         waveform_1 = rft.awg_sa_cmd.get_waveform_sequence(awgsa.AwgId.AWG_1)
-        waveform_1.save_as_img(PLOT_DIR + "real_seq_1_waveform.png")
-        waveform_1.save_as_img(PLOT_DIR + "real_seq_1_waveform_merged.png", iq_separation = False)
+        waveform_1.save_as_img(PLOT_DIR + "actual_seq_1_waveform.png")
+        waveform_1.save_as_img(PLOT_DIR + "actual_seq_1_waveform_merged.png", iq_separation = False)
         step_id_to_i_samples = waveform_1.get_i_samples_by_step_id()
         step_id_to_q_samples = waveform_1.get_q_samples_by_step_id()
-        output_samples(PLOT_DIR + "real_seq_1_i_waveform.txt", step_id_to_i_samples)
-        output_samples(PLOT_DIR + "real_seq_1_q_waveform.txt", step_id_to_q_samples)
+        output_samples(PLOT_DIR + "actual_seq_1_i_waveform.txt", step_id_to_i_samples)
+        output_samples(PLOT_DIR + "actual_seq_1_q_waveform.txt", step_id_to_q_samples)
 
     print("Done.")
     return
