@@ -4,8 +4,7 @@
 
 ## セットアップ
 
-次のようにADCとDACを接続します．
-
+次のようにADCとDACを接続します．  
 ![セットアップ](./../../docs/images/dac_adc_setup-3.png)
 
 ## 実行手順と結果
@@ -21,26 +20,26 @@ adc_cap_dacsel_pattern_*.png の Expected と Actual の波形が一致してい
 - adc_cap_awg_pattern_*.png
 - adc_cap_dacsel_pattern_*.png
 
-adc_cap_awg_pattern_0.png　　　　　　　　　　
+adc_cap_awg_pattern_0.png  
 ![adc_cap_awg_pattern_0](images/adc_cap_awg_pattern_0.png)
 
-adc_cap_awg_pattern_1.png　　　　　　　　　　
+adc_cap_awg_pattern_1.png  
 ![adc_cap_awg_pattern_1](images/adc_cap_awg_pattern_1.png)
 
-adc_cap_awg_pattern_2.png　　　　　　　　　　
+adc_cap_awg_pattern_2.png  
 ![adc_cap_awg_pattern_2](images/adc_cap_awg_pattern_2.png)
 
-adc_cap_awg_pattern_3.png　　　　　　　　　　
+adc_cap_awg_pattern_3.png  
 ![adc_cap_awg_pattern_3](images/adc_cap_awg_pattern_3.png)
 
-adc_cap_dacsel_pattern_0.png           
+adc_cap_dacsel_pattern_0.png  
 ![adc_cap_dacsel_pattern_0](images/adc_cap_dacsel_pattern_0.png)
 
-adc_cap_dacsel_pattern_1.png           
+adc_cap_dacsel_pattern_1.png  
 ![adc_cap_dacsel_pattern_1](images/adc_cap_dacsel_pattern_1.png)
 
-adc_cap_dacsel_pattern_2.png           
+adc_cap_dacsel_pattern_2.png  
 ![adc_cap_dacsel_pattern_2](images/adc_cap_dacsel_pattern_2.png)
 
-adc_cap_dacsel_pattern3.png           
+adc_cap_dacsel_pattern3.png  
 ![adc_cap_dacsel_pattern_3](images/adc_cap_dacsel_pattern_3.png)

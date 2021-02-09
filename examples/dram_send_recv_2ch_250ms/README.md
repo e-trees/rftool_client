@@ -5,8 +5,7 @@ DAC から出力する波形データと ADC で取得した波形データは�
 
 ## セットアップ
 
-次のように ADC と DAC を接続します．
-
+次のように ADC と DAC を接続します．  
 ![セットアップ](./../../docs/images/dac_adc_setup-2.png)
 
 
@@ -31,20 +30,20 @@ python dram_send_recv_2ch_250ms.py
 - dram_recv_*_crop.png (受信波形の先頭 512 サンプル)
 - dram_recv_*_fft.png (受信波形の周波数スペクトル)
 
-DAC チャネル 6 の送信波形全体　　　　　　　　　　　
+DAC チャネル 6 の送信波形全体  
 ![送信波形全体](images/dram_send_0.png)
 
-DAC チャネル 6 の送信波形の先頭 512 サンプル　　　　　
+DAC チャネル 6 の送信波形の先頭 512 サンプル  
 ![送信波形の先頭 512 サンプル](images/dram_send_0_crop.png)
 
-DAC チャネル 6 の送信波形の周波数スペクトル　　　　
+DAC チャネル 6 の送信波形の周波数スペクトル  
 ![送信波形の周波数スペクトル](images/dram_send_0_fft.png)
 
-ADC チャネル 0 の受信波形全体　　　　　　
+ADC チャネル 0 の受信波形全体  
 ![受信波形全体](images/dram_recv_0.png)
 
-ADC チャネル 0 の受信波形の先頭 512 サンプル
+ADC チャネル 0 の受信波形の先頭 512 サンプル  
 ![受信波形の先頭 512 サンプル](images/dram_recv_0_crop.png)
 
-ADC チャネル 0 の受信波形の周波数スペクトル
+ADC チャネル 0 の受信波形の周波数スペクトル  
 ![受信波形の周波数スペクトル](images/dram_recv_0_fft.png)

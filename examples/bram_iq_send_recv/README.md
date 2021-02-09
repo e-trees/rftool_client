@@ -10,8 +10,7 @@ I データ，Q データ共に A±B [Hz] になります．
 
 ## セットアップ
 
-次のように ADC と DAC を接続します．
-
+次のように ADC と DAC を接続します．  
 ![セットアップ](./../../docs/images/dac_adc_setup-2.png)
 
 
@@ -35,14 +34,14 @@ python bram_iq_send_recv.py
 - bram_recv_*_crop.png (受信波形の先頭 1024 サンプル)
 - bram_recv_*_fft.png (受信波形の周波数スペクトル)
 
-送信波形の先頭 1024 サンプル　　　　　
+送信波形の先頭 1024 サンプル  
 ![送信波形の先頭 512 サンプル](images/bram_send_crop.png)
 
-送信波形の周波数スペクトル　　　　
+送信波形の周波数スペクトル  
 ![送信波形の周波数スペクトル](images/bram_send_fft.png)
 
-ADC チャネル 0 の受信波形の先頭 1024 サンプル
+ADC チャネル 0 の受信波形の先頭 1024 サンプル  
 ![受信波形の先頭 512 サンプル](images/bram_recv_0_crop.png)
 
-ADC チャネル 0 の受信波形の周波数スペクトル
+ADC チャネル 0 の受信波形の周波数スペクトル  
 ![受信波形の周波数スペクトル](images/bram_recv_0_fft.png)

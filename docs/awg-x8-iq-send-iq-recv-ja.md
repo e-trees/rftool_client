@@ -22,10 +22,10 @@ python awg_x8_iq_send_iq_recv.py
 
 カレントディレクトリの下の `plot_awg_x8_iq_send_iq_recv` ディレクトリの中に各 AWG ごとに I データと Q データのスペクトルのグラフが作成されます．スペクトルのピークが現れる位置は，同スクリプトのファイルコメントを参照してください．
 
-キャプチャモジュール1のIデータスペクトル
+キャプチャモジュール1のIデータスペクトル  
 ![キャプチャモジュール1のIデータスペクトル](images/awg-x8-iq-send-iq-recv-spectrum-i.png)
 
-キャプチャモジュール1のQデータスペクトル
+キャプチャモジュール1のQデータスペクトル  
 ![キャプチャモジュール1のQデータスペクトル](images/awg-x8-iq-send-iq-recv-spectrum-q.png)
 
 ## BRAM利用
@@ -38,9 +38,9 @@ python awg_x8_iq_send_iq_recv.py prv_cap_ram
 
 カレントディレクトリの下の `plot_awg_x8_iq_send_iq_recv_prv_cap_ram` ディレクトリの中に各 AWG ごとに I データと Q データのスペクトルのグラフが作成されます．スペクトルのピークが現れる位置は，同スクリプトのファイルコメントを参照してください．
 
-キャプチャモジュール1のIデータスペクトル
+キャプチャモジュール1のIデータスペクトル  
 ![キャプチャモジュール1のIデータスペクトル](images/awg-x8-iq-send-iq-recv-bram-spectrum-i.png)
 
-キャプチャモジュール1のQデータスペクトル
+キャプチャモジュール1のQデータスペクトル  
 ![キャプチャモジュール1のQデータスペクトル](images/awg-x8-iq-send-iq-recv-bram-spectrum-q.png)
 

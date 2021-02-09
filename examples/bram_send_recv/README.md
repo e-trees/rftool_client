@@ -5,8 +5,7 @@ DAC から出力する波形データと ADC で取得した波形データは�
 
 ## セットアップ
 
-次のようにADCとDACを接続します．
-
+次のようにADCとDACを接続します．  
 ![セットアップ](./../../docs/images/dac_adc_setup-1.png)
 
 差動入出力を接続する際は，付属の BPF を取り付けた SMA ケーブルで接続します．
@@ -30,20 +29,20 @@ python bram_send_recv.py
 - bram_recv_*_crop.png (受信波形の先頭 128 サンプル)
 - bram_recv_*_fft.png (受信波形の周波数スペクトル)
 
-送信波形全体　　　　　　　　　　　
+送信波形全体  
 ![送信波形全体](images/bram_send.png)
 
-送信波形の先頭 128 サンプル　　　　　
+送信波形の先頭 128 サンプル  
 ![送信波形の先頭 128 サンプル](images/bram_send_crop.png)
 
-送信波形の周波数スペクトル　　　　
+送信波形の周波数スペクトル  
 ![送信波形の周波数スペクトル](images/bram_send_fft.png)
 
-ADC チャネル 0 の受信波形全体　　　　　　
+ADC チャネル 0 の受信波形全体  
 ![受信波形全体](images/bram_recv_0.png)
 
-ADC チャネル 0 の受信波形の先頭 128 サンプル
+ADC チャネル 0 の受信波形の先頭 128 サンプル  
 ![受信波形の先頭 128 サンプル](images/bram_recv_0_crop.png)
 
-ADC チャネル 0 の受信波形の周波数スペクトル
+ADC チャネル 0 の受信波形の周波数スペクトル  
 ![受信波形の周波数スペクトル](images/bram_recv_0_fft.png)

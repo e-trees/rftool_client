@@ -17,8 +17,7 @@ API の使い方は，同スクリプトの line.140 付近を参照してくだ
 ## セットアップ
 
 以下の図のようにホスト PC と ZCU 111 をイーサネットケーブルで接続し IP アドレスを設定します．
-ZCU 111 の IP アドレスの初期設定は，192.168.1.3 となっています．
-
+ZCU 111 の IP アドレスの初期設定は，192.168.1.3 となっています．  
 ![ホスト PC と ZCU 111 の接続](../../docs/images/setup_verify-1.png)
 
 ## 実行手順と結果
@@ -33,15 +32,14 @@ python awg_waveseq_visualize.py
 - user_def_seq_*_waveform.png (ユーザが定義した波形)
 - actual_seq_*_waveform.png (実際に AWG が出力する波形)
 
-ユーザが定義した AWG 0 の波形　　　　    
+ユーザが定義した AWG 0 の波形  
 ![ユーザが定義した AWG 0 の波形](images/user_def_seq_0_waveform.png)
 
-実際に AWG 0 が出力する波形　　　　    
+実際に AWG 0 が出力する波形  
 ![実際に AWG 0 が出力する波形](images/actual_seq_0_waveform.png)
 
-ユーザが定義した AWG 1 の波形　　　　    　    
+ユーザが定義した AWG 1 の波形  
 ![ユーザが定義した AWG 1 の波形](images/user_def_seq_1_waveform.png)
 
-実際に AWG 1 が出力する波形　　　　    
+実際に AWG 1 が出力する波形  
 ![実際に AWG 1 が出力する波形](images/actual_seq_1_waveform.png)
-
