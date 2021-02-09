@@ -41,6 +41,7 @@ ZCU111を利用して任意の波形出力とその応答波形のキャプチ�
 - [BRAM を使った波形データの送受信](../examples/bram_send_recv/README.md)
 - [BRAM を使った IQ データの受信](../examples/bram_iq_send_recv/README.md)
 - [BRAM を使った波形データの積算 (振幅が変化する正弦波)](../examples/bram_accum_send_recv/README.md)
+- [BRAM を使った波形データの積算 (正弦波)](../examples/bram_accum_send_recv_sine/README.md)
 - [BRAM を使った波形データの積算 (単発パルス)](../examples/bram_accum_send_recv_pulse/README.md)
 - [DRAM を使った波形データの送受信](../examples/dram_send_recv_2ch_250ms/README.md)
 - [DRAM を使った IQ データの送受信](../examples/dram_iq_send_recv/README.md)
