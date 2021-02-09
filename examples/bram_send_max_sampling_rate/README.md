@@ -6,6 +6,7 @@
 ## セットアップ
 
 次のように DAC とオシロスコープを接続します．  
+
 ![セットアップ](./../../docs/images/dac-oscilloscope-connection.png)
 
 ## 実行手順と結果

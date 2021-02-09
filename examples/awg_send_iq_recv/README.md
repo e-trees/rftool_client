@@ -9,6 +9,7 @@ AWG 0 の IQ データ
 ## セットアップ
 
 次のように ADC と DAC を接続します．  
+
 ![セットアップ](../../docs/images/awg-x1-setup.png)
 
 ## 実行手順と結果

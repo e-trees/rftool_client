@@ -19,6 +19,7 @@
 ## セットアップ
 
 次のようにADCとDACを接続します．  
+
 ![セットアップ](./../../docs/images/awg-x8-send-recv-setup.png)
 
 差動入出力を接続する際は，付属の BPF を取り付けた SMA ケーブルで接続します．
