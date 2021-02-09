@@ -18,13 +18,12 @@ ADC積算のCDCの影響をテストするためのプログラム
     ADC224_T0_CH1 (Tile 0 Block 1)
 """
 
-
-from RftoolClient import client, rfterr, wavegen, ndarrayutil
 import os
 import sys
 import time
 import logging
 import numpy as np
+import pathlib
 from scipy import fftpack
 from scipy.signal import find_peaks
 try:
@@ -34,6 +33,9 @@ try:
 finally:
     import matplotlib.pyplot as plt
 
+lib_path = str(pathlib.Path(__file__).resolve().parents[2])
+sys.path.append(lib_path)
+from RftoolClient import client, rfterr, wavegen, ndarrayutil
 
 ## Variables
 ZCU111_IP_ADDR = "192.168.1.3"
@@ -211,7 +213,7 @@ def main(num_trig):
 
     # w_data = wgen.pulsewave()
     w_sample = np.zeros(DAC_SAMPLES).astype('<i2')
-    w_sample[0:8] = -0x7FFF
+    w_sample[8:16] = -0x7FFF
     w_data = nu.real_to_bytes(w_sample)
 
     w_size = len(w_data)  # for 16bit signed integer
@@ -323,17 +325,17 @@ def main(num_trig):
     #     PLOT_DIR + str(num_trig) + "/bram_send.png"
     # )
     #
-    # print("- crop DAC")
-    # plot_graph_crop(
-    #     DAC_FREQ,
-    #     w_sample,
-    #     "C0",
-    #     "DAC waveform {} samples{}, {} Msps".format(
-    #         DAC_SAMPLES,
-    #         " (crop {}-{})".format(CROP_PLOT[0], CROP_PLOT[1]),
-    #         DAC_FREQ),
-    #     PLOT_DIR + str(num_trig) + "/bram_send_crop.png"
-    # )
+    print("- crop DAC")
+    plot_graph_crop(
+        DAC_FREQ,
+        w_sample,
+        "C0",
+        "DAC waveform {} samples{}, {} Msps".format(
+            DAC_SAMPLES,
+            " (crop {}-{})".format(CROP_PLOT[0], CROP_PLOT[1]),
+            DAC_FREQ),
+        PLOT_DIR + str(num_trig) + "/bram_send_crop.png"
+    )
     #
     # print("- FFT DAC")
     # plot_graph_fft(
