@@ -2,8 +2,7 @@
 # coding: utf-8
 
 """
-rftoolクライアントサンプルプログラム:
-    BRAM 32Kサンプル DAC出力 / ADC積算 動作テスト 2.048 GSPS
+ADC積算のCDCの影響をテストするためのプログラム
 
 <使用ライブラリ>
     numpy
@@ -19,14 +18,14 @@ rftoolクライアントサンプルプログラム:
     ADC224_T0_CH1 (Tile 0 Block 1)
 """
 
-
-from RftoolClient import client, rfterr, wavegen, ndarrayutil
 import os
 import sys
 import time
 import logging
 import numpy as np
+import pathlib
 from scipy import fftpack
+from scipy.signal import find_peaks
 try:
     import matplotlib
     matplotlib.use("Agg")
@@ -34,6 +33,9 @@ try:
 finally:
     import matplotlib.pyplot as plt
 
+lib_path = str(pathlib.Path(__file__).resolve().parents[2])
+sys.path.append(lib_path)
+from RftoolClient import client, rfterr, wavegen, ndarrayutil
 
 ## Variables
 ZCU111_IP_ADDR = "192.168.1.3"
@@ -43,7 +45,7 @@ DUC_DDC_FACTOR = 1  # ADC decimation / DAC interpolation factor (1, 2, 4, 8)
 PLOT_DIVIDES = 128
 CROP_PLOT = [0, 128]  # crop samples for plot
 FFT_SIZE = 8192
-PLOT_DIR = "plot_bram_accum_send_recv_sine/"
+PLOT_DIR = "plot_bram_accum_send_recv_pulse/"
 
 # Log level
 LOG_LEVEL = logging.INFO
@@ -53,7 +55,7 @@ BITSTREAM = 3  # BRAM 8ch ADC / 8ch DAC 32K samples with accumualtion
 BITSTREAM_LOAD_TIMEOUT = 10
 DAC_FREQ = 2048.0
 ADC_FREQ = 2048.0
-TRIG_BUSY_TIMEOUT = 5
+TRIG_BUSY_TIMEOUT = 100
 CHUNK_DAC_PLOT = int(DAC_SAMPLES / PLOT_DIVIDES)
 CHUNK_ADC_PLOT = int(ADC_SAMPLES / PLOT_DIVIDES)
 
@@ -81,16 +83,24 @@ def plot_graph_entire(freq, sample, color, title, filename):
 
 
 def plot_graph_crop(freq, sample, color, title, filename):
-    max_abs_amp = np.max(np.abs(sample))
+    sample_crop = sample[CROP_PLOT[0]:CROP_PLOT[1]]
+    peaks, _ = find_peaks(sample_crop, width=7)
+    sum_peaks = np.sum([sample_crop[peaks]])
+    perc = 100. * np.array([sample_crop[peaks]]) / sum_peaks
+
     len_crop = CROP_PLOT[1] - CROP_PLOT[0]
     time = np.linspace(
         CROP_PLOT[0] / freq, CROP_PLOT[1] / freq, len_crop, endpoint=False) * 1000.
     fig = plt.figure(figsize=(8, 6), dpi=300)
     plt.xlabel("Time [ns]")
     plt.title(title)
-    plt.plot(time, sample[CROP_PLOT[0]:CROP_PLOT[1]],
+    plt.plot(time, sample_crop,
         linewidth=0.8, color=color)
-    plt.text(0, max_abs_amp, "max amplitude: {}".format(max_abs_amp), fontsize=12)
+
+    i = 0
+    for p in peaks:
+        plt.text(time[p], sample_crop[p], "{}\n{:.1f}%".format(sample_crop[p], perc[0][i]), horizontalalignment='center', verticalalignment='center', fontsize=10)
+        i = i + 1
     plt.savefig(filename)
     plt.close()
     return
@@ -192,9 +202,19 @@ def main(num_trig):
 
     print("Generate waveform data.")
     wgen.set_parameter(num_sample=DAC_SAMPLES, dac_freq=DAC_FREQ,
-                       carrier_freq=64., amplitude=-30000.0)
+                       carrier_freq=20., amplitude=30000.0)
+    # sin_wave = nu.bytes_to_real(wgen.sinwave())
+    #
+    # amplitude = np.linspace(-1., 1., DAC_SAMPLES, endpoint=False)
+    #
+    # w_data = (sin_wave * amplitude).reshape(1, -1)[0].astype("<i2").tobytes()
 
-    w_data = wgen.sinwave()
+    # del sin_wave, amplitude
+
+    # w_data = wgen.pulsewave()
+    w_sample = np.zeros(DAC_SAMPLES).astype('<i2')
+    w_sample[8:16] = -0x7FFF
+    w_data = nu.real_to_bytes(w_sample)
 
     w_size = len(w_data)  # for 16bit signed integer
     r_size = ADC_SAMPLES * 4  # for 32bit signed integer
@@ -248,7 +268,7 @@ def main(num_trig):
         print("Setting trigger information.")
         rft.command.SetTriggerInfo(0, 0xFF, ADC_SAMPLES, 0)
         rft.command.SetTriggerInfo(1, 0xFF, DAC_SAMPLES, 0)
-        rft.command.SetTriggerLatency(0, 97)
+        rft.command.SetTriggerLatency(0, 90)
         rft.command.SetTriggerLatency(1, 0)
         rft.command.SetTriggerCycle(32768, 1)  # trigger 32768 times
         rft.command.SetAccumulateMode(0)  # disable accumulation
@@ -258,16 +278,16 @@ def main(num_trig):
 
         wait_trig_done(rft.command)
 
+        print("Setting trigger information.")
+        rft.command.SetTriggerCycle(num_trig, 100000)
+        rft.command.SetAccumulateMode(1)  # enable accumulation
+
         print("Clear BlockRAM.")
         rft.command.ClearBRAM()
 
         for ch in [6, 7]:
             print("Send waveform data to DAC Ch.{} BlockRAM".format(ch))
             rft.if_data.WriteDataToMemory(1, ch, w_size, w_data)
-
-        print("Setting trigger information.")
-        rft.command.SetTriggerCycle(num_trig, 1)
-        rft.command.SetAccumulateMode(1)  # enable accumulation
 
         print("Start trigger.")
         rft.command.StartTrigger()  # for ADC accumualtion
@@ -305,17 +325,17 @@ def main(num_trig):
     #     PLOT_DIR + str(num_trig) + "/bram_send.png"
     # )
     #
-    # print("- crop DAC")
-    # plot_graph_crop(
-    #     DAC_FREQ,
-    #     w_sample,
-    #     "C0",
-    #     "DAC waveform {} samples{}, {} Msps".format(
-    #         DAC_SAMPLES,
-    #         " (crop {}-{})".format(CROP_PLOT[0], CROP_PLOT[1]),
-    #         DAC_FREQ),
-    #     PLOT_DIR + str(num_trig) + "/bram_send_crop.png"
-    # )
+    print("- crop DAC")
+    plot_graph_crop(
+        DAC_FREQ,
+        w_sample,
+        "C0",
+        "DAC waveform {} samples{}, {} Msps".format(
+            DAC_SAMPLES,
+            " (crop {}-{})".format(CROP_PLOT[0], CROP_PLOT[1]),
+            DAC_FREQ),
+        PLOT_DIR + str(num_trig) + "/bram_send_crop.png"
+    )
     #
     # print("- FFT DAC")
     # plot_graph_fft(

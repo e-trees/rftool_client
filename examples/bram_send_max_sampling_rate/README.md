@@ -5,7 +5,7 @@
 
 ## セットアップ
 
-次のように DAC とオシロスコープを接続します．
+次のように DAC とオシロスコープを接続します．  
 
 ![セットアップ](./../../docs/images/dac-oscilloscope-connection.png)
 
@@ -22,18 +22,18 @@ python bram_send_max_sampling_rate.py
 - dram_send_crop.png (送信波形の先頭 4096 サンプル)
 - dram_send_fft.png (送信波形の周波数スペクトル)
 
-送信波形全体　　　　
+送信波形全体  
 ![送信波形全体](images/bram_send.png)
 
-送信波形の先頭 4096 サンプル
+送信波形の先頭 4096 サンプル  
 ![送信波形の先頭 4096 サンプル](images/bram_send_crop.png)
 
-送信波形の周波数スペクトル
+送信波形の周波数スペクトル  
 ![送信波形の周波数スペクトル](images/bram_send_fft.png)
 
 オシロスコープで観測される波形を以下に示します．
 黄色のグラフが DAC チャネル 6 に対応しており，水色のグラフが DAC チャネル 7 に対応しています．
 上の送信波形と比べ，変位が反転していますが，これは ZCU111 付属のバラン内部の回路の構成によるものです．
 
-オシロスコープ観測波形 (全体)        
+オシロスコープ観測波形 (全体)  
 ![オシロスコープ観測波形 (全体)](images/bram_send_max_sampling_rate-1.jpg)

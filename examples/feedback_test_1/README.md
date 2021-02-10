@@ -6,7 +6,7 @@
 
 ## セットアップ
 
-次のようにADCとDACを接続します．
+次のようにADCとDACを接続します．  
 
 ![セットアップ](./../../docs/images/dac_adc_setup-3.png)
 
@@ -23,11 +23,11 @@ python feedback_test_1.py
 - bram_recv_0.png (ADC チャネル 0 キャプチャ波形)
 - bram_recv_1.png (ADC チャネル 1 キャプチャ波形)
 
-DAC チャネル 6, 7 送信波形           
+DAC チャネル 6, 7 送信波形  
 ![DAC チャネル 6, 7 送信波形](images/bram_send.png)
 
-ADC チャネル 0 キャプチャ波形　　　　　
+ADC チャネル 0 キャプチャ波形  
 ![ADC チャネル 0 キャプチャ波形](images/bram_recv_0.png)
 
-ADC チャネル 1 キャプチャ波形 　　　　
+ADC チャネル 1 キャプチャ波形  
 ![ADC チャネル 1 キャプチャ波形](images/bram_recv_1.png)

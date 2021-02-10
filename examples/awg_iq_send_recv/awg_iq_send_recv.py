@@ -25,13 +25,12 @@ I/Q データを DAC でミキシングし, ADC で Real データとしてキ�
     よって, DAC から出力される波形の周波数は, f2 + f3 となり, ここにキャプチャデータのスペクトルのピークが表れる.
 """
 
-from RftoolClient import client, rfterr, wavegen, ndarrayutil
-import AwgSa as awgsa
 import os
 import sys
 import time
 import logging
 import numpy as np
+import pathlib
 from scipy import fftpack
 try:
     import matplotlib
@@ -39,6 +38,11 @@ try:
     matplotlib.rcParams["agg.path.chunksize"] = 20000
 finally:
     import matplotlib.pyplot as plt
+
+lib_path = str(pathlib.Path(__file__).resolve().parents[2])
+sys.path.append(lib_path)
+from RftoolClient import client, rfterr, wavegen, ndarrayutil
+import AwgSa as awgsa
 
 # Parameters
 ZCU111_IP_ADDR = "192.168.1.3"
@@ -602,6 +606,10 @@ def main():
         # スペクトラム出力
         awg_id_to_spectrum = {awgsa.AwgId.AWG_0 : spectrum_0, awgsa.AwgId.AWG_1 : spectrum_1}
         output_spectrum_data(awg_id_to_spectrum, num_frames, fft_size)
+
+        # 送信波形をグラフ化
+        rft.awg_sa_cmd.get_waveform_sequence(awgsa.AwgId.AWG_0).save_as_img(PLOT_DIR + "waveform/actual_seq_0_waveform.png")
+        rft.awg_sa_cmd.get_waveform_sequence(awgsa.AwgId.AWG_1).save_as_img(PLOT_DIR + "waveform/actual_seq_1_waveform.png")
 
     print("Done.")
     return
