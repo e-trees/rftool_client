@@ -1,6 +1,6 @@
 # 8つのAWGからI/Q変調した波形を出力しADCでI/Qミキサをかけてキャプチャ
 
-[awg_x8_iq_send_iq_recv.py](../awg_x8_iq_send_iq_recv.py) は，8つの AWG からI/Q変調した波形を出力し，それをADCでI/Qミキサをかけてキャプチャするものです．結果はキャプチャした波形のスペクトルをIとQに分けて出力します．
+[awg_x8_iq_send_iq_recv.py](./awg_x8_iq_send_iq_recv.py) は，8つの AWG からI/Q変調した波形を出力し，それをADCでI/Qミキサをかけてキャプチャするものです．結果はキャプチャした波形のスペクトルをIとQに分けて出力します．
 
 ![AWG0の被変調波](images/awg-x8-iq-send-iq-recv-example.png)
 
@@ -8,7 +8,7 @@
 
 ADCとDACを以下のように接続します．
 
-![セットアップ](images/awg-x8-iq-send-iq-recv-setup.png)
+![セットアップ](../../docs/images/awg-x8-iq-send-iq-recv-setup.png)
 
 差動入出力を接続する際は，付属の BPF を取り付けた SMA ケーブルで接続します．
 
@@ -43,4 +43,3 @@ python awg_x8_iq_send_iq_recv.py prv_cap_ram
 
 キャプチャモジュール1のQデータスペクトル  
 ![キャプチャモジュール1のQデータスペクトル](images/awg-x8-iq-send-iq-recv-bram-spectrum-q.png)
-
