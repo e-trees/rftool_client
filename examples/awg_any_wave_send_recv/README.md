@@ -1,6 +1,6 @@
 # 任意のサンプル値を持つ波形を出力する
 
-[awg_any_wave_send_recv.py](../awg_any_wave_send_recv.py) は，Python スクリプト内でサンプル値を定義した波形を
+[awg_any_wave_send_recv.py](./awg_any_wave_send_recv.py) は，Python スクリプト内でサンプル値を定義した波形を
 AWG 0 と AWG 1 から出力し，キャプチャするスクリプトです．
 AWG 0 は, 周波数と振幅が異なる 4 つの正弦波を 1 周期ずつ繰り返し出力します．
 AWG 1 は，60 [MHz] の正弦波 である I データと，固定値の Q データに 50 [MHz] の IQ ミキサをかけて出力します．

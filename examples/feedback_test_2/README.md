@@ -6,7 +6,7 @@
 
 次のようにADCとDACを接続します．  
 
-![セットアップ](./../../docs/images/dac_adc_setup-3.png)
+![セットアップ](../../docs/images/dac_adc_setup-3.png)
 
 ## 実行手順と結果
 

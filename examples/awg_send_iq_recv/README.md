@@ -1,6 +1,6 @@
 # キャプチャモジュールで IQ ミキシングした波形をキャプチャする
 
-[awg_send_iq_recv.py](../awg_send_iq_recv.py) は，AWG 0 から 80 [MHz] の正弦波を出力し，
+[awg_send_iq_recv.py](./awg_send_iq_recv.py) は，AWG 0 から 80 [MHz] の正弦波を出力し，
 キャプチャモジュール 0 で 50 [MHz] の IQ ミキサをかけてキャプチャするスクリプトです．
 
 AWG 0 の IQ データ  
