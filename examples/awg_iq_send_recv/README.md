@@ -1,6 +1,6 @@
 # AWG から IQ ミキシングした波形を出力する
 
-[awg_iq_send_recv.py](../awg_iq_send_recv.py) は，IQ ミキシングしたデータをAWG 0 と AWG 1 から出力し，Real データとしてキャプチャするスクリプトです．
+[awg_iq_send_recv.py](./awg_iq_send_recv.py) は，IQ ミキシングしたデータをAWG 0 と AWG 1 から出力し，Real データとしてキャプチャするスクリプトです．
 AWG 0 は，120 [MHz] の正弦波 である I データと，固定値の Q データに 40 [MHz] の IQ ミキサをかけて出力します．
 AWG 1 は，50 [MHz] の余弦波 である I データと，50 [MHz] の正弦波に 25 [MHz] の IQ ミキサをかけて出力します．
 
