@@ -16,8 +16,6 @@ rftoolクライアント サンプルプログラム:
     DAC229_T1_CH3 (Tile 1 Block 3)
 """
 
-
-from RftoolClient import client, rfterr, wavegen, ndarrayutil
 import sys
 import os
 import time
@@ -25,6 +23,7 @@ import threading
 import logging
 import labrad
 import numpy as np
+import pathlib
 from scipy import fftpack
 try:
     import matplotlib
@@ -32,6 +31,10 @@ try:
     matplotlib.rcParams["agg.path.chunksize"] = 20000
 finally:
     import matplotlib.pyplot as plt
+
+lib_path = str(pathlib.Path(__file__).resolve().parents[2])
+sys.path.append(lib_path)
+from RftoolClient import client, rfterr, wavegen, ndarrayutil
 
 # Parameters
 LABRAD_HOST = "localhost"
