@@ -52,12 +52,14 @@ ZCU111を利用して任意の波形出力とその応答波形のキャプチ�
 
 ## LabRAD を使ったサンプルプログラム
 
-- [LabRAD サーバを起動する](../examples/rftool_labrad_server/README.md)
-- [ホスト PC と ZCU 111 の接続を確認する](../examples/setup_verify_labrad/README.md)
+- [【LabRAD】LabRAD サーバを起動する](../examples/rftool_labrad_server/README.md)
+- [【LabRAD】ホスト PC と ZCU 111 の接続を確認する](../examples/setup_verify_labrad/README.md)
+- [【LabRAD】BRAM を使った波形データの積算 (振幅が変化する正弦波)](../examples/bram_accum_send_recv_labrad/README.md)
+- [【LabRAD】Feedback システムのテスト 1](../examples/feedback_test_1_labrad/README.md)
+- [【LabRAD】Feedback システムのテスト 2](../examples/feedback_test_2_labrad/README.md)
 
 ### サンプルプログラムの実行に必要な環境
 
 - ZCU111およびe-trees.Japan製ZCU111ファームウェア
 - Python 3.7.5
 - NumPy, matplotlib，など
-
