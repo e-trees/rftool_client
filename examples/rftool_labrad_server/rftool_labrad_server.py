@@ -1,12 +1,16 @@
 #!/usr/bin/env python3
 # coding: utf-8
 
+import sys
 import time
 import logging
+import pathlib
 from labrad.server import LabradServer, setting
 from twisted.internet.defer import inlineCallbacks
-from RftoolClient import client, rfterr
 
+lib_path = str(pathlib.Path(__file__).resolve().parents[2])
+sys.path.append(lib_path)
+from RftoolClient import client, rfterr
 
 ZCU111_IP_ADDR = "192.168.1.3"
 LOG_LEVEL = logging.DEBUG
