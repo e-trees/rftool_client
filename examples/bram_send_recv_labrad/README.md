@@ -18,7 +18,7 @@ LabRAD サーバの起動後，以下のコマンドを実行します．実行�
 LabRAD サーバの起動方法は，[LabRAD サーバを起動する](../rftool_labrad_server/README.md) を参照してください．
 
 ```
-python bram_send_recv.py
+python bram_send_recv_labrad.py
 ```
 
 カレントディレクトリの下の `plot_bram_send_recv` ディレクトリの中に，送信波形のグラフおよびスペクトルが以下のファイル名で保存されます．
