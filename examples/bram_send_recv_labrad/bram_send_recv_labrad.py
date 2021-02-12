@@ -18,13 +18,13 @@ rftoolクライアントサンプルプログラム:
     全チャンネル
 """
 
-
-from RftoolClient import client, rfterr, wavegen, ndarrayutil
+import sys
 import os
 import time
 import logging
 import labrad
 import numpy as np
+import pathlib
 from scipy import fftpack
 try:
     import matplotlib
@@ -33,6 +33,9 @@ try:
 finally:
     import matplotlib.pyplot as plt
 
+lib_path = str(pathlib.Path(__file__).resolve().parents[2])
+sys.path.append(lib_path)
+from RftoolClient import client, rfterr, wavegen, ndarrayutil
 
 ## Variables
 LABRAD_HOST = "localhost"
@@ -370,8 +373,8 @@ def main():
             "bram_recv_{}_fft.png".format(ch)
         )
 
-        print("Done.")
-        return
+    print("Done.")
+    return
 
 
 if __name__ == "__main__":
