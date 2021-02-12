@@ -1,6 +1,6 @@
 # Feedback システムのテスト 1
 
-[feedback_test_1.py](./feedback_test_1.py) は，ADC がキャプチャした波形に応じて，DAC が出力する波形が変わるシステム (Feedback システム) のテストを行うスクリプトです．
+[feedback_test_1_labrad.py](./feedback_test_1_labrad.py) は，ADC がキャプチャした波形に応じて，DAC が出力する波形が変わるシステム (Feedback システム) のテストを行うスクリプトです．
 本サンプルでは，まず，DAC チャネル 7 が波形を送信し，ADC チャネル 0 がキャプチャします．
 次に，DAC チャネル 6 が波形を送信し，ADC チャネル 1 がキャプチャします．
 
@@ -12,10 +12,12 @@
 
 ## 実行手順と結果
 
-以下のコマンドを実行します．
+LabRAD サーバの起動後，以下のコマンドを実行します．実行後，`username` と `LabRAD password` の入力を求められますが，どち
+らも何も入力せずに Enter を押します．
+LabRAD サーバの起動方法は，[LabRAD サーバを起動する](../rftool_labrad_server/README.md) を参照してください．
 
 ```
-python feedback_test_1.py
+python feedback_test_1_labrad.py
 ```
 
 カレントディレクトリの下の `plot_feedback_test_1` ディレクトリの中に，以下のファイルが保存されればテスト成功です．

@@ -2,8 +2,8 @@
 # coding: utf-8
 
 """
-rftoolクライアント サンプルプログラム:
-    DRAM 512Mサンプル 2ch DAC 動作テスト 2.048 GSPS (LabRADサーバ接続)
+rftoolクライアントサンプルプログラム:
+    BRAM 32Kサンプル 8ch DAC/8ch ADC 動作テスト 2.048 GSPS (LabRADサーバ接続)
 
 <使用ライブラリ>
     numpy
@@ -12,19 +12,19 @@ rftoolクライアント サンプルプログラム:
     pylabrad
 
 <使用DACアナログ出力>
-    DAC229_T1_CH2 (Tile 1 Block 2)
-    DAC229_T1_CH3 (Tile 1 Block 3)
+    全チャンネル
+
+<使用ADCアナログ入力>
+    全チャンネル
 """
 
-
-from RftoolClient import client, rfterr, wavegen, ndarrayutil
 import sys
 import os
 import time
-import threading
 import logging
 import labrad
 import numpy as np
+import pathlib
 from scipy import fftpack
 try:
     import matplotlib
@@ -33,25 +33,30 @@ try:
 finally:
     import matplotlib.pyplot as plt
 
-# Parameters
+lib_path = str(pathlib.Path(__file__).resolve().parents[2])
+sys.path.append(lib_path)
+from RftoolClient import client, rfterr, wavegen, ndarrayutil
+
+## Variables
 LABRAD_HOST = "localhost"
-DAC_SAMPLES = 512 * 1024 * 1024
-DATA_DEVIDES = 2 * 1024
-PLOT_DIVIDES = 2 * 1024
-CROP_PLOT = [0, 512]
-FFT_SIZE = 32768
-PLOT_DIR = "plot_dram_send_2ch_250ms/"
+DAC_SAMPLES = 32768  # DAC num of samples
+ADC_SAMPLES = 32768  # ADC num of samples
+PLOT_DIVIDES = 512
+CROP_PLOT = [0, 128]  # crop samples for plot
+FFT_SIZE = 1024
+PLOT_DIR = "plot_bram_send_recv/"
 
 # Constants
-BITSTREAM = 2  # DRAM 2ch ADC / 2ch DAC 512M samples
+BITSTREAM = 3  # BRAM 8ch ADC / 8ch DAC 32K samples with accumualtion
 BITSTREAM_LOAD_TIMEOUT = 10
 DAC_FREQ = 2048.0
+ADC_FREQ = 2048.0
 DUC_DDC_FACTOR = 1
-CHUNK_SAMPLES = int(DAC_SAMPLES / DATA_DEVIDES)
+TRIG_BUSY_TIMEOUT = 5
 CHUNK_DAC_PLOT = int(DAC_SAMPLES / PLOT_DIVIDES)
+CHUNK_ADC_PLOT = int(ADC_SAMPLES / PLOT_DIVIDES)
 LOG_LEVEL = logging.INFO
 BLOCK_SIZE = 64 * 1024
-is_keypressed = False
 
 
 def calculate_min_max(sample, chunks):
@@ -63,10 +68,10 @@ def calculate_min_max(sample, chunks):
 
 def plot_graph_entire(freq, sample, color, title, filename):
     time = np.linspace(
-        0., len(sample) / freq, PLOT_DIVIDES, endpoint=False) / 1000.
+        0., len(sample) / freq, PLOT_DIVIDES, endpoint=False)
     sample_min, sample_max = calculate_min_max(sample, CHUNK_DAC_PLOT)
     fig = plt.figure(figsize=(8, 6), dpi=300)
-    plt.xlabel("Time [ms]")
+    plt.xlabel("Time [us]")
     plt.title(title)
     plt.plot(time, sample_min, linewidth=0.8, color=color)
     plt.plot(time, sample_max, linewidth=0.8, color=color)
@@ -79,9 +84,9 @@ def plot_graph_entire(freq, sample, color, title, filename):
 def plot_graph_crop(freq, sample, color, title, filename):
     len_crop = CROP_PLOT[1] - CROP_PLOT[0]
     time = np.linspace(
-        CROP_PLOT[0] / freq, CROP_PLOT[1] / freq, len_crop, endpoint=False)
+        CROP_PLOT[0] / freq, CROP_PLOT[1] / freq, len_crop, endpoint=False) * 1000.
     fig = plt.figure(figsize=(8, 6), dpi=300)
-    plt.xlabel("Time [us]")
+    plt.xlabel("Time [ns]")
     plt.title(title)
     plt.plot(time, sample[CROP_PLOT[0]:CROP_PLOT[1]],
         linewidth=0.8, color=color)
@@ -110,6 +115,16 @@ def plot_graph_fft(freq, sample, color, title, filename):
     plt.plot(fft_freq, fft_data, linewidth=0.8, color=color)
     plt.savefig(PLOT_DIR + filename)
     plt.close()
+    return
+
+
+def wait_trig_done(rft):
+    for i in range(TRIG_BUSY_TIMEOUT):
+        if rft.gettriggerstatus() == 0:
+            break
+        time.sleep(1.)
+    else:
+        raise("Trigger busy timed out.")
     return
 
 
@@ -170,13 +185,6 @@ def check_intr_flags(rft, type, ch):
     return
 
 
-def keypress_mon():
-    global is_keypressed
-    sys.stdin.readline()
-    is_keypressed = True
-    return
-
-
 def writedatatomemory_w(rft, type, ch, size, data):
     pos = 0
     rft.writedatatomemory_setsize(size)
@@ -209,71 +217,43 @@ def main():
     cxn = labrad.connect(LABRAD_HOST)
     rft = cxn.zcu111_rftool_labrad_server
 
+    wgen = wavegen.WaveGen(logger=logger)
     nu = ndarrayutil.NdarrayUtil
 
-    print("Generating waveform data.")
-    r_cycles = np.round(CHUNK_SAMPLES * 20.0 / DAC_FREQ)  # aprox. 20 MHz
-    sin_wave = np.array([np.sin(2. * np.pi * np.linspace(
-        0., r_cycles, CHUNK_SAMPLES, endpoint=False))])
+    print("Generate waveform data.")
+    wgen.set_parameter(num_sample=DAC_SAMPLES, dac_freq=DAC_FREQ,
+                       carrier_freq=300., amplitude=30000.0)
+    sin_wave = nu.bytes_to_real(wgen.sinwave())
 
-    amplitude = np.linspace(
-        -30000, 30000, DATA_DEVIDES, endpoint=False, dtype="int16")
+    amplitude = np.linspace(-1., 1., DAC_SAMPLES, endpoint=False)
 
-    w_data_0 = np.multiply(
-        sin_wave, np.array([amplitude]).T).reshape(1, -1)[0].astype("<i2").tobytes()
+    w_data = (sin_wave * amplitude).reshape(1, -1)[0].astype("<i2").tobytes()
 
-    w_data_1 = np.multiply(
-        sin_wave, np.array([-amplitude]).T).reshape(1, -1)[0].astype("<i2").tobytes()
+    del sin_wave, amplitude
 
-    del r_cycles, sin_wave, amplitude
-
-    w_size = len(w_data_0)
-
-    print("Processing sample data.")
-    print("- DAC sample data")
-    w_sample = [nu.bytes_to_real(w_data_0), nu.bytes_to_real(w_data_1)]
-
-    print("Generating graph image.")
-    os.makedirs(PLOT_DIR, exist_ok=True)
-
-    for ch in range(2):
-        print("- entire DAC Tile 1 Block {}".format(ch + 2))
-        plot_graph_entire(
-            DAC_FREQ,
-            w_sample[ch],
-            "C{}".format(ch),
-            "DAC waveform {} samples, {} Msps".format(DAC_SAMPLES, DAC_FREQ),
-            "dram_send_{}.png".format(ch)
-        )
-
-        print("- crop DAC Tile 1 Block {}".format(ch + 2))
-        plot_graph_crop(
-            DAC_FREQ,
-            w_sample[ch],
-            "C{}".format(ch),
-            "DAC waveform {} samples{}, {} Msps".format(
-                DAC_SAMPLES,
-                " (crop {}-{})".format(CROP_PLOT[0], CROP_PLOT[1]),
-                DAC_FREQ),
-            "dram_send_{}_crop.png".format(ch)
-        )
-
-        print("- FFT DAC Tile 1 Block {}".format(ch + 2))
-        plot_graph_fft(
-            DAC_FREQ,
-            w_sample[ch],
-            "C{}".format(ch),
-            "DAC FFT (size:{} peak-holded), {} samples, {} Msps".format(
-                FFT_SIZE, DAC_SAMPLES, DAC_FREQ),
-            "dram_send_{}_fft.png".format(ch)
-        )
-
-    del w_sample
+    w_size = len(w_data)  # for 16bit signed integer
+    r_size = ADC_SAMPLES * 4  # for 32bit signed integer
 
     rft.termmode(0)
 
     print("Configure Bitstream.")
     config_bitstream(rft, BITSTREAM)
+
+    print("Setup ADC.")
+    for tile in [0, 1, 2, 3]:
+        for block in [0, 1]:
+            rft.setmixersettings(0, tile, block, 0.0, 0.0,
+                2, 2, 0, 3, 0)
+            rft.resetncophase(0, tile, block)
+            rft.updateevent(0, tile, block, 1)
+        rft.setupfifo(0, tile, 0)
+        for block in [0, 1]:
+            rft.setdither(tile, block, 1 if ADC_FREQ > 3000. else 0)
+            rft.setdecimationfactor(tile, block, DUC_DDC_FACTOR)
+        rft.setfabclkoutdiv(0, tile, 2 + int(np.log2(DUC_DDC_FACTOR)))
+        for block in [0, 1]:
+            rft.intrclr(0, tile, block, -1)
+        rft.setupfifo(0, tile, 1)
 
     print("Setup DAC.")
     for tile in [0, 1]:
@@ -290,27 +270,108 @@ def main():
             rft.intrclr(1, tile, block, -1)
         rft.setupfifo(1, tile, 1)
 
-    print("Send waveform data to DAC Ch.{} DynamicRAM".format(6))
-    writedatatomemory_w(rft, 1, 6, w_size, w_data_0)
-    print("Send waveform data to DAC Ch.{} DynamicRAM".format(7))
-    writedatatomemory_w(rft, 1, 7, w_size, w_data_1)
+    print("Clear BlockRAM.")
+    rft.clearbram()
+
+    for ch in range(8):
+        print("Send waveform data to DAC Ch.{} BlockRAM".format(ch))
+        writedatatomemory_w(rft, 1, ch, w_size, w_data)
 
     print("Setting trigger information.")
-    rft.settriggerinfo(1, 0xC0, DAC_SAMPLES, 0)
-    rft.settriggerinfo(0, 0x00, 0, 0)
+    rft.settriggerinfo(0, 0xFF, ADC_SAMPLES, 0)
+    rft.settriggerinfo(1, 0xFF, DAC_SAMPLES, 0)
+    rft.settriggerlatency(0, 98)
     rft.settriggerlatency(1, 0)
+    rft.settriggercycle(32768, 1)  # trigger 32768 times
+    rft.setaccumulatemode(0)  # disable accumulation
 
-    kpmon_thread = threading.Thread(target=keypress_mon)
-    kpmon_thread.start()
+    print("Start trigger.")
+    rft.starttrigger()
 
-    print("\r\n --- Press Enter to stop triggering --- \r\n")
-    while not is_keypressed:
-        rft.starttrigger()
-        time.sleep(1.)
+    wait_trig_done(rft)
+
+    r_data = []
+    for ch in range(8):
+        print("Receive waveform data from ADC Ch.{} BlockRAM".format(ch))
+        r_data.append(readdatafrommemory_w(rft, 0, ch, r_size))
 
     print("Check interrupt flags.")
+    for ch in range(8):  # ADC
+        check_intr_flags(rft, 0, ch)
     for ch in range(8):  # DAC
         check_intr_flags(rft, 1, ch)
+
+    print("Processing sample data.")
+    print("- DAC sample data")
+    w_sample = nu.bytes_to_real(w_data)
+    del w_data
+    print("- ADC sample data")
+    r_sample = np.array([nu.bytes_to_real_32(rd) for rd in r_data])
+    del r_data
+
+    print("Generating graph image.")
+    os.makedirs(PLOT_DIR, exist_ok=True)
+
+    print("- entire DAC")
+    plot_graph_entire(
+        DAC_FREQ,
+        w_sample,
+        "C0",
+        "DAC waveform {} samples, {} Msps".format(DAC_SAMPLES, DAC_FREQ),
+        "bram_send.png"
+    )
+
+    print("- crop DAC")
+    plot_graph_crop(
+        DAC_FREQ,
+        w_sample,
+        "C0",
+        "DAC waveform {} samples{}, {} Msps".format(
+            DAC_SAMPLES,
+            " (crop {}-{})".format(CROP_PLOT[0], CROP_PLOT[1]),
+            DAC_FREQ),
+        "bram_send_crop.png"
+    )
+
+    print("- FFT DAC")
+    plot_graph_fft(
+        DAC_FREQ,
+        w_sample,
+        "C0",
+        "DAC FFT, {} samples, {} Msps".format(DAC_SAMPLES, DAC_FREQ),
+        "bram_send_fft.png"
+    )
+
+    for ch in range(8):
+        print("- entire ADC Ch.{}".format(ch))
+        plot_graph_entire(
+            ADC_FREQ,
+            r_sample[ch],
+            "C{}".format(ch + 1),
+            "ADC waveform {} samples, {} Msps".format(ADC_SAMPLES, ADC_FREQ),
+            "bram_recv_{}.png".format(ch)
+        )
+
+        print("- crop ADC Ch.{}".format(ch))
+        plot_graph_crop(
+            ADC_FREQ,
+            r_sample[ch],
+            "C{}".format(ch + 1),
+            "ADC waveform {} samples{}, {} Msps".format(
+                ADC_SAMPLES,
+                " (crop {}-{})".format(CROP_PLOT[0], CROP_PLOT[1]),
+                ADC_FREQ),
+            "bram_recv_{}_crop.png".format(ch)
+        )
+
+        print("- FFT ADC Ch.{}".format(ch))
+        plot_graph_fft(
+            ADC_FREQ,
+            r_sample[ch],
+            "C{}".format(ch + 1),
+            "ADC FFT {} samples, {} Msps".format(ADC_SAMPLES, ADC_FREQ),
+            "bram_recv_{}_fft.png".format(ch)
+        )
 
     print("Done.")
     return

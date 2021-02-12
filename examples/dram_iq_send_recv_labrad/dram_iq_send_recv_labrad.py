@@ -2,8 +2,8 @@
 # coding: utf-8
 
 """
-rftoolクライアントサンプルプログラム:
-    BRAM 32Kサンプル 8ch DAC/8ch ADC 動作テスト 2.048 GSPS (LabRADサーバ接続)
+rftoolクライアント サンプルプログラム:
+    DRAM 2ch DAC/2ch ADC 動作テスト 2.048 GSPS I/Q変復調モード (LabRADサーバ接続)
 
 <使用ライブラリ>
     numpy
@@ -12,19 +12,21 @@ rftoolクライアントサンプルプログラム:
     pylabrad
 
 <使用DACアナログ出力>
-    全チャンネル
+    DAC229_T1_CH2 (Tile 1 Block 2)
+    DAC229_T1_CH3 (Tile 1 Block 3)
 
 <使用ADCアナログ入力>
-    全チャンネル
+    ADC224_T0_CH0 (Tile 0 Block 0)
+    ADC224_T0_CH1 (Tile 0 Block 1)
 """
 
-
-from RftoolClient import client, rfterr, wavegen, ndarrayutil
+import sys
 import os
 import time
 import logging
 import labrad
 import numpy as np
+import pathlib
 from scipy import fftpack
 try:
     import matplotlib
@@ -33,23 +35,31 @@ try:
 finally:
     import matplotlib.pyplot as plt
 
+lib_path = str(pathlib.Path(__file__).resolve().parents[2])
+sys.path.append(lib_path)
+from RftoolClient import client, rfterr, wavegen, ndarrayutil
 
-## Variables
+# Parameters
 LABRAD_HOST = "localhost"
-DAC_SAMPLES = 32768  # DAC num of samples
-ADC_SAMPLES = 32768  # ADC num of samples
-PLOT_DIVIDES = 512
-CROP_PLOT = [0, 128]  # crop samples for plot
-FFT_SIZE = 1024
-PLOT_DIR = "plot_bram_send_recv/"
+DAC_SAMPLES = 32 * 1024 * 1024
+ADC_SAMPLES = 32 * 1024 * 1024
+NCO_FREQ = 512.0  # Mixer NCO frequency [MHz]
+NCO_PHASE = 0.0  # Mixer NCO phase [deg]
+DATA_DEVIDES = 2 * 1024
+PLOT_DIVIDES = 2 * 1024
+CROP_PLOT = [0, 512]
+FFT_SIZE = 32768
+PLOT_DIR = "plot_dram_iq_send_recv/"
 
 # Constants
-BITSTREAM = 3  # BRAM 8ch ADC / 8ch DAC 32K samples with accumualtion
+BITSTREAM = 2  # DRAM 2ch ADC / 2ch DAC 512M samples
 BITSTREAM_LOAD_TIMEOUT = 10
 DAC_FREQ = 2048.0
 ADC_FREQ = 2048.0
-DUC_DDC_FACTOR = 1
-TRIG_BUSY_TIMEOUT = 5
+DUC_DDC_FACTOR = 2  # ADC decimation / DAC interpolation factor
+EFF_DAC_FREQ = DAC_FREQ / DUC_DDC_FACTOR
+EFF_ADC_FREQ = ADC_FREQ / DUC_DDC_FACTOR
+CHUNK_SAMPLES = int(DAC_SAMPLES / DATA_DEVIDES)
 CHUNK_DAC_PLOT = int(DAC_SAMPLES / PLOT_DIVIDES)
 CHUNK_ADC_PLOT = int(ADC_SAMPLES / PLOT_DIVIDES)
 LOG_LEVEL = logging.INFO
@@ -65,14 +75,22 @@ def calculate_min_max(sample, chunks):
 
 def plot_graph_entire(freq, sample, color, title, filename):
     time = np.linspace(
-        0., len(sample) / freq, PLOT_DIVIDES, endpoint=False)
-    sample_min, sample_max = calculate_min_max(sample, CHUNK_DAC_PLOT)
+        0., len(sample) / freq, PLOT_DIVIDES, endpoint=False) / 1000.
+    sample_min_i, sample_max_i = calculate_min_max(sample.real, CHUNK_DAC_PLOT)
+    sample_min_q, sample_max_q = calculate_min_max(sample.imag, CHUNK_DAC_PLOT)
     fig = plt.figure(figsize=(8, 6), dpi=300)
-    plt.xlabel("Time [us]")
+    ax1 = fig.add_subplot(2, 1, 1)
     plt.title(title)
-    plt.plot(time, sample_min, linewidth=0.8, color=color)
-    plt.plot(time, sample_max, linewidth=0.8, color=color)
-    plt.fill_between(time, sample_min, sample_max, alpha=0.5, color=color)
+    ax1.set_ylabel("Real part")
+    ax1.plot(time, sample_min_i, linewidth=0.8, color=color)
+    ax1.plot(time, sample_max_i, linewidth=0.8, color=color)
+    ax1.fill_between(time, sample_min_i, sample_max_i, alpha=0.5, color=color)
+    ax2 = fig.add_subplot(2, 1, 2)
+    ax2.set_xlabel("Time [ms]")
+    ax2.set_ylabel("Imaginary part")
+    ax2.plot(time, sample_min_q, linewidth=0.8, color=color)
+    ax2.plot(time, sample_max_q, linewidth=0.8, color=color)
+    ax2.fill_between(time, sample_min_q, sample_max_q, alpha=0.5, color=color)
     plt.savefig(PLOT_DIR + filename)
     plt.close()
     return
@@ -81,47 +99,58 @@ def plot_graph_entire(freq, sample, color, title, filename):
 def plot_graph_crop(freq, sample, color, title, filename):
     len_crop = CROP_PLOT[1] - CROP_PLOT[0]
     time = np.linspace(
-        CROP_PLOT[0] / freq, CROP_PLOT[1] / freq, len_crop, endpoint=False) * 1000.
+        CROP_PLOT[0] / freq, CROP_PLOT[1] / freq, len_crop, endpoint=False)
     fig = plt.figure(figsize=(8, 6), dpi=300)
-    plt.xlabel("Time [ns]")
+    ax1 = fig.add_subplot(2, 1, 1)
     plt.title(title)
-    plt.plot(time, sample[CROP_PLOT[0]:CROP_PLOT[1]],
+    ax1.set_ylabel("Real part")
+    ax1.plot(time, sample[CROP_PLOT[0]:CROP_PLOT[1]].real,
+        linewidth=0.8, color=color)
+    ax2 = fig.add_subplot(2, 1, 2)
+    ax2.set_xlabel("Time [ms]")
+    ax2.set_ylabel("Imaginary part")
+    ax2.plot(time, sample[CROP_PLOT[0]:CROP_PLOT[1]].imag,
         linewidth=0.8, color=color)
     plt.savefig(PLOT_DIR + filename)
     plt.close()
+    return
     return
 
 
 def plot_graph_fft(freq, sample, color, title, filename):
     fft_freq = np.fft.fftfreq(FFT_SIZE, d=1./(freq*1.e6))[0:int(FFT_SIZE/2)]
-    fft_data = np.zeros(int(FFT_SIZE/2))
+    fft_data_i = np.zeros(int(FFT_SIZE/2))
     for i in range(int(len(sample)/FFT_SIZE)):
         fft_cur = abs(
-            fftpack.fft(sample[FFT_SIZE*i:FFT_SIZE*(i+1)]))[0:int(FFT_SIZE/2)]
-        fft_data = np.max([fft_data, fft_cur], axis=0)
+            fftpack.fft(sample[FFT_SIZE*i:FFT_SIZE*(i+1)].real))[0:int(FFT_SIZE/2)]
+        fft_data_i = np.max([fft_data_i, fft_cur], axis=0)
+    fft_data_q = np.zeros(int(FFT_SIZE/2))
+    for i in range(int(len(sample)/FFT_SIZE)):
+        fft_cur = abs(
+            fftpack.fft(sample[FFT_SIZE*i:FFT_SIZE*(i+1)].real))[0:int(FFT_SIZE/2)]
+        fft_data_q = np.max([fft_data_q, fft_cur], axis=0)
 
     fig = plt.figure(figsize=(8, 6), dpi=300)
-    ax = plt.gca()
-    plt.grid(which="both")
-    ax.set_yscale("log")
-    ax.set_xscale("log")
-    ax.grid(which="major", alpha=0.5)
-    ax.grid(which="minor", alpha=0.2)
-    plt.xlabel("Frequency [Hz]")
+    ax1 = fig.add_subplot(2, 1, 1)
     plt.title(title)
-    plt.plot(fft_freq, fft_data, linewidth=0.8, color=color)
+    ax1.set_yscale("log")
+    ax1.set_xscale("log")
+    ax1.grid(which="both")
+    ax1.grid(which="major", alpha=0.5)
+    ax1.grid(which="minor", alpha=0.2)
+    ax1.set_ylabel("Real part")
+    ax1.plot(fft_freq, fft_data_i, linewidth=0.8, color=color)
+    ax2 = fig.add_subplot(2, 1, 2)
+    ax2.set_yscale("log")
+    ax2.set_xscale("log")
+    ax2.grid(which="both")
+    ax2.grid(which="major", alpha=0.5)
+    ax2.grid(which="minor", alpha=0.2)
+    ax2.set_xlabel("Frequency [Hz]")
+    ax2.set_ylabel("Imaginary part")
+    ax2.plot(fft_freq, fft_data_q, linewidth=0.8, color=color)
     plt.savefig(PLOT_DIR + filename)
     plt.close()
-    return
-
-
-def wait_trig_done(rft):
-    for i in range(TRIG_BUSY_TIMEOUT):
-        if rft.gettriggerstatus() == 0:
-            break
-        time.sleep(1.)
-    else:
-        raise("Trigger busy timed out.")
     return
 
 
@@ -214,22 +243,23 @@ def main():
     cxn = labrad.connect(LABRAD_HOST)
     rft = cxn.zcu111_rftool_labrad_server
 
-    wgen = wavegen.WaveGen(logger=logger)
     nu = ndarrayutil.NdarrayUtil
 
-    print("Generate waveform data.")
-    wgen.set_parameter(num_sample=DAC_SAMPLES, dac_freq=DAC_FREQ,
-                       carrier_freq=300., amplitude=30000.0)
-    sin_wave = nu.bytes_to_real(wgen.sinwave())
+    print("Generating waveform data.")
+    r_cycles = np.round(CHUNK_SAMPLES * 20.0 / EFF_DAC_FREQ)  # aprox. 20 MHz
+    omega = 2. * np.pi * np.linspace(0., r_cycles, CHUNK_SAMPLES, endpoint=False)
+    amplitude = np.linspace(-20000., 20000., DATA_DEVIDES, endpoint=False)
+    sin_wave = np.sin(omega)
+    cos_wave = np.cos(omega)
+    interleaved_wave = np.array([sin_wave, cos_wave]).T.reshape(1, -1)
 
-    amplitude = np.linspace(-1., 1., DAC_SAMPLES, endpoint=False)
+    w_data = np.multiply(
+        interleaved_wave, np.array([amplitude]).T).reshape(1, -1)[0].astype("<i2").tobytes()
 
-    w_data = (sin_wave * amplitude).reshape(1, -1)[0].astype("<i2").tobytes()
+    del r_cycles, sin_wave, cos_wave, amplitude, interleaved_wave
 
-    del sin_wave, amplitude
-
-    w_size = len(w_data)  # for 16bit signed integer
-    r_size = ADC_SAMPLES * 4  # for 32bit signed integer
+    w_size = len(w_data)
+    r_size = ADC_SAMPLES * 4
 
     rft.termmode(0)
 
@@ -239,7 +269,7 @@ def main():
     print("Setup ADC.")
     for tile in [0, 1, 2, 3]:
         for block in [0, 1]:
-            rft.setmixersettings(0, tile, block, 0.0, 0.0,
+            rft.setmixersettings(0, tile, block, NCO_FREQ, NCO_PHASE,
                 2, 2, 0, 3, 0)
             rft.resetncophase(0, tile, block)
             rft.updateevent(0, tile, block, 1)
@@ -255,42 +285,35 @@ def main():
     print("Setup DAC.")
     for tile in [0, 1]:
         for block in [0, 1, 2, 3]:
-            rft.setmixersettings(1, tile, block, 0.0, 0.0,
-                2, 1, 16, 4, 0)
+            rft.setmixersettings(1, tile, block, NCO_FREQ, NCO_PHASE,
+                2, 2, 0, 2, 0)
             rft.resetncophase(1, tile, block)
             rft.updateevent(1, tile, block, 1)
         rft.setupfifo(1, tile, 0)
         for block in [0, 1, 2, 3]:
             rft.setinterpolationfactor(tile, block, DUC_DDC_FACTOR)
-        rft.setfabclkoutdiv(1, tile, 2 + int(np.log2(DUC_DDC_FACTOR)))
+        rft.setfabclkoutdiv(1, tile, 1 + int(np.log2(DUC_DDC_FACTOR)))
         for block in [0, 1, 2, 3]:
             rft.intrclr(1, tile, block, -1)
         rft.setupfifo(1, tile, 1)
 
-    print("Clear BlockRAM.")
-    rft.clearbram()
-
-    for ch in range(8):
-        print("Send waveform data to DAC Ch.{} BlockRAM".format(ch))
+    for ch in [6, 7]:
+        print("Send waveform data to DAC Ch.{} DynamicRAM".format(ch))
         writedatatomemory_w(rft, 1, ch, w_size, w_data)
 
     print("Setting trigger information.")
-    rft.settriggerinfo(0, 0xFF, ADC_SAMPLES, 0)
-    rft.settriggerinfo(1, 0xFF, DAC_SAMPLES, 0)
-    rft.settriggerlatency(0, 98)
+    rft.settriggerinfo(1, 0xC0, DAC_SAMPLES, 1)
+    rft.settriggerinfo(0, 0x03, ADC_SAMPLES, 1)
     rft.settriggerlatency(1, 0)
-    rft.settriggercycle(32768, 1)  # trigger 32768 times
-    rft.setaccumulatemode(0)  # disable accumulation
+    rft.settriggerlatency(0, 40)
 
     print("Start trigger.")
     rft.starttrigger()
 
-    wait_trig_done(rft)
-
-    r_data = []
-    for ch in range(8):
-        print("Receive waveform data from ADC Ch.{} BlockRAM".format(ch))
-        r_data.append(readdatafrommemory_w(rft, 0, ch, r_size))
+    print("Receive waveform data from ADC Ch.{} BlockRAM".format(0))
+    r_data_0 = readdatafrommemory_w(rft, 0, 0, r_size)
+    print("Receive waveform data from ADC Ch.{} BlockRAM".format(1))
+    r_data_1 = readdatafrommemory_w(rft, 0, 1, r_size)
 
     print("Check interrupt flags.")
     for ch in range(8):  # ADC
@@ -300,78 +323,80 @@ def main():
 
     print("Processing sample data.")
     print("- DAC sample data")
-    w_sample = nu.bytes_to_real(w_data)
+    w_sample = nu.bytes_to_complex(w_data)
     del w_data
     print("- ADC sample data")
-    r_sample = np.array([nu.bytes_to_real_32(rd) for rd in r_data])
-    del r_data
+    r_sample = [nu.bytes_to_complex(r_data_0), nu.bytes_to_complex(r_data_1)]
+    del r_data_0, r_data_1
 
     print("Generating graph image.")
     os.makedirs(PLOT_DIR, exist_ok=True)
 
     print("- entire DAC")
     plot_graph_entire(
-        DAC_FREQ,
+        EFF_DAC_FREQ,
         w_sample,
         "C0",
         "DAC waveform {} samples, {} Msps".format(DAC_SAMPLES, DAC_FREQ),
-        "bram_send.png"
+        "dram_iq_send.png"
     )
 
     print("- crop DAC")
     plot_graph_crop(
-        DAC_FREQ,
+        EFF_DAC_FREQ,
         w_sample,
         "C0",
         "DAC waveform {} samples{}, {} Msps".format(
             DAC_SAMPLES,
             " (crop {}-{})".format(CROP_PLOT[0], CROP_PLOT[1]),
             DAC_FREQ),
-        "bram_send_crop.png"
+        "dram_iq_send_crop.png"
     )
 
     print("- FFT DAC")
     plot_graph_fft(
-        DAC_FREQ,
+        EFF_DAC_FREQ,
         w_sample,
         "C0",
-        "DAC FFT, {} samples, {} Msps".format(DAC_SAMPLES, DAC_FREQ),
-        "bram_send_fft.png"
+        "DAC FFT (size:{} peak-holded), {} samples, {} Msps({}x DUC)".format(
+            FFT_SIZE, DAC_SAMPLES, DAC_FREQ, DUC_DDC_FACTOR),
+        "dram_iq_send_fft.png"
     )
 
-    for ch in range(8):
+    for ch in range(2):
         print("- entire ADC Ch.{}".format(ch))
         plot_graph_entire(
-            ADC_FREQ,
+            EFF_ADC_FREQ,
             r_sample[ch],
             "C{}".format(ch + 1),
-            "ADC waveform {} samples, {} Msps".format(ADC_SAMPLES, ADC_FREQ),
-            "bram_recv_{}.png".format(ch)
+            "ADC waveform {} samples, {} Msps({}x DDC)".format(ADC_SAMPLES, ADC_FREQ, DUC_DDC_FACTOR),
+            "dram_iq_recv_{}.png".format(ch)
         )
 
         print("- crop ADC Ch.{}".format(ch))
         plot_graph_crop(
-            ADC_FREQ,
+            EFF_ADC_FREQ,
             r_sample[ch],
             "C{}".format(ch + 1),
-            "ADC waveform {} samples{}, {} Msps".format(
+            "ADC waveform {} samples{}, {} Msps({}x DDC)".format(
                 ADC_SAMPLES,
                 " (crop {}-{})".format(CROP_PLOT[0], CROP_PLOT[1]),
-                ADC_FREQ),
-            "bram_recv_{}_crop.png".format(ch)
+                ADC_FREQ, DUC_DDC_FACTOR),
+            "dram_iq_recv_{}_crop.png".format(ch)
         )
 
         print("- FFT ADC Ch.{}".format(ch))
         plot_graph_fft(
-            ADC_FREQ,
+            EFF_ADC_FREQ,
             r_sample[ch],
             "C{}".format(ch + 1),
-            "ADC FFT {} samples, {} Msps".format(ADC_SAMPLES, ADC_FREQ),
-            "bram_recv_{}_fft.png".format(ch)
+            "ADC FFT (size:{} peak-holded), {} samples, {} Msps({}x DDC)".format(
+                FFT_SIZE, ADC_SAMPLES, ADC_FREQ, DUC_DDC_FACTOR),
+            "dram_iq_recv_{}_fft.png".format(ch)
         )
 
-        print("Done.")
-        return
+    print("Done.")
+    return
 
 
 if __name__ == "__main__":
