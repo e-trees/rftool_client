@@ -50,6 +50,11 @@ ZCU111を利用して任意の波形出力とその応答波形のキャプチ�
 - [Feedback システムのテスト 1](../examples/feedback_test_1/README.md)
 - [Feedback システムのテスト 2](../examples/feedback_test_2/README.md)
 
+## LabRAD を使ったサンプルプログラム
+
+- [LabRAD サーバを起動する](../examples/rftool_labrad_server/README.md)
+- [ホスト PC と ZCU 111 の接続を確認する](../examples/setup_verify_labrad/README.md)
+
 ### サンプルプログラムの実行に必要な環境
 
 - ZCU111およびe-trees.Japan製ZCU111ファームウェア

@@ -8,13 +8,16 @@ rftoolクライアント サンプルプログラム: 疎通確認プログラ�
     pylabrad
 """
 
-
-from RftoolClient import client, rfterr
 import sys
 import time
 import socket
 import logging
 import labrad
+import pathlib
+
+lib_path = str(pathlib.Path(__file__).resolve().parents[2])
+sys.path.append(lib_path)
+from RftoolClient import client, rfterr
 
 # Parameters
 LABRAD_HOST = "localhost"

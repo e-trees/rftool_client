@@ -1,7 +1,7 @@
 # LabRAD サーバを起動する
 
 [rftool_labrad_server.py](./rftool_labrad_server.py) は，LabRAD サーバーを起動するスクリプトです．
-本スクリプトは，LabRAD を使ったテストスクリプトを実行する前に実行する必要があります．
+LabRAD サーバは，LabRAD を使ったサンプルスクリプトの実行前に起動しておく必要があります．
 
 ## 実行手順
 
