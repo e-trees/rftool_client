@@ -53,7 +53,7 @@ class WaveGen(object):
                       num_sample=None, dac_freq=None, carrier_freq=None, sweep_end_freq=None,
                       amplitude=None, pulse_dutyratio=None, impulse_delta=None):
 
-        if num_sample == None:
+        if num_sample is None:
             pass
         elif not isinstance(num_sample, int):
             raise ValueError("num_sample must be integer")
@@ -63,31 +63,31 @@ class WaveGen(object):
             raise ValueError("num_sample must be multiples of 32")
         self.num_sample = num_sample or self.num_sample
 
-        if dac_freq == None:
+        if dac_freq is None:
             pass
         elif dac_freq <= 0.:
             raise ValueError("dac_freq must be greater than 0.0")
         self.dac_freq = float(dac_freq or self.dac_freq)
 
-        if carrier_freq == None:
+        if carrier_freq is None:
             pass
         elif carrier_freq <= 0.:
             raise ValueError("carrier_freq must be greater than 0.0")
         self.carrier_freq = float(carrier_freq or self.carrier_freq)
 
-        if sweep_end_freq == None:
+        if sweep_end_freq is None:
             pass
         elif sweep_end_freq <= 0.:
             raise ValueError("sweep_end_freq must be greater than 0.0")
         self.sweep_end_freq = float(sweep_end_freq or self.sweep_end_freq)
 
-        if pulse_dutyratio == None:
+        if pulse_dutyratio is None:
             pass
         elif pulse_dutyratio > 1. or pulse_dutyratio < 0.:
             raise ValueError("pulse_dutyratio must be range of 0.0 - 1.0")
         self.pulse_dutyratio = float(pulse_dutyratio or self.pulse_dutyratio)
 
-        if impulse_delta == None:
+        if impulse_delta is None:
             pass
         elif not isinstance(impulse_delta, int):
             raise ValueError("impulse_delta must be integer")

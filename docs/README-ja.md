@@ -21,6 +21,7 @@ ZCU111を利用して任意の波形出力とその応答波形のキャプチ�
 - [キャプチャ設定手順](capture-ja.md) 
 - [ディジタル出力設定手順](digital-ja.md) 
 - [波形シーケンス可視化機能](wave-sequence-vis-ja.md) 
+- [外部トリガ機能](external-trigger-ja.md)
 
 ## サンプルプログラム
 
@@ -36,7 +37,8 @@ ZCU111を利用して任意の波形出力とその応答波形のキャプチ�
 - [任意のサンプル値を持つ波形を出力する](../examples/awg_any_wave_send_recv/README.md)
 - [AWG から送信する波形データの可視化](../examples/awg_waveseq_visualize/README.md)
 - [ディジタル出力の利用](../examples/awg_digital_output/README.md)
-- [キャプチャを連続で行う](../examples/continuous_send_recv/README.md)
+- [キャプチャを連続で行う](../examples/awg_x8_continuous_send_recv/README.md)
+- [外部トリガで AWG を起動する](../examples/awg_x8_external_trigger/README.md)
 - [DAC の最大サンプリングレートでの波形データの送信](../examples/bram_send_max_sampling_rate/README.md)
 - [BRAM を使った波形データの送受信](../examples/bram_send_recv/README.md)
 - [BRAM を使った IQ データの受信](../examples/bram_iq_send_recv/README.md)
