@@ -11,6 +11,8 @@ from AwgSa import DigitalOutputSequence
 from AwgSa import WaveSequenceParams
 from AwgSa import FlattenedWaveformSequence
 from AwgSa import FlattenedIQWaveformSequence
+from AwgSa import ExternalTriggerId
+from AwgSa import TriggerMode
 
 class AwgSaCommand(object):
     """AWG SA 制御用のコマンドを定義するクラス"""
@@ -45,6 +47,19 @@ class AwgSaCommand(object):
             AwgId.AWG_6 : 0,
             AwgId.AWG_7 : 0 }
         return
+
+
+    def get_fpga_design_version(self):
+        """
+        現在 FPGA にコンフィギュレーションされているデザインのバージョンを調べる
+
+        Returns
+        -------
+        version : string
+            バージョン情報を示す文字列.  ('デザイナID':作成年月日-'デザインID')
+        """
+        return self.__rft_ctrl_if.put("GetFpgaDesignVersion")
+
 
     def set_wave_sequence(self, awg_id, wave_sequence, *, num_repeats = 1):
         """
@@ -239,7 +254,7 @@ class AwgSaCommand(object):
         
         Returns
         -------
-        flag : int
+        flag : bool
             True -> スキップされた
             False -> スキップされていない (正常)
         """
@@ -267,7 +282,7 @@ class AwgSaCommand(object):
         
         Returns
         -------
-        flag : int
+        flag : bool
             True -> 範囲オーバーした
             False -> 範囲オーバーしていない (正常)
         """
@@ -523,3 +538,195 @@ class AwgSaCommand(object):
         """
         command = self.__joinargs("SyncMultiTiles", [0])
         self.__rft_ctrl_if.put(command)
+
+
+    def external_trigger_on(self, *ext_trig_id_list):
+        """
+        引数で指定した外部トリガモジュールを起動する.
+        起動したトリガモジュールは, トリガ条件を満たし次第トリガを発行する.
+
+        Parameters
+        ----------
+        *ext_trig_id_list : ExternalTriggerId
+            起動する 外部トリガモジュール の ID
+        """
+        enable_list = [0, 0, 0, 0, 0, 0, 0, 0]
+        for ext_trig_id in ext_trig_id_list:
+            if (not ExternalTriggerId.has_value(ext_trig_id)):
+                raise ValueError("invalid external trigger id  " + str(ext_trig_id))
+            enable_list[int(ext_trig_id)] = 1
+
+        command = self.__joinargs("ExternalTriggerOn", enable_list)
+        self.__rft_ctrl_if.put(command)
+
+
+    def external_trigger_off(self, *ext_trig_id_list):
+        """
+        引数で指定した外部トリガモジュールを停止する.
+        停止したトリガモジュールは, トリガを発行しない.
+
+        Parameters
+        ----------
+        *ext_trig_id_list : ExternalTriggerId
+            停止する 外部トリガモジュール の ID
+        """
+        enable_list = [0, 0, 0, 0, 0, 0, 0, 0]
+        for ext_trig_id in ext_trig_id_list:
+            if (not ExternalTriggerId.has_value(ext_trig_id)):
+                raise ValueError("invalid external trigger id  " + str(ext_trig_id))
+            enable_list[int(ext_trig_id)] = 1
+
+        command = self.__joinargs("ExternalTriggerOff", enable_list)
+        self.__rft_ctrl_if.put(command)
+
+
+    def set_trigger_mode(self, awg_id, trig_mode):
+        """
+        引数で指定した AWG のトリガモードを設定する.
+
+        Parameters
+        ----------
+        awg_id : AwgId
+            トリガモードを設定する AWG の ID
+        trig_mode : TriggerMode
+            MANUAL -> AwgSaCommand.start_wave_sequence を呼ぶと AWG の処理が始まる
+            EXTERNAL -> AwgSaCommand.external_trigger_on で起動した外部トリガモジュールがトリガを発行すると AWG の処理が始まる
+        """
+        if (not AwgId.has_value(awg_id)):
+            raise ValueError("invalid awg_id  " + str(awg_id))
+        
+        if (not TriggerMode.has_value(trig_mode)):
+            raise ValueError("invalid trig_mode  " + str(trig_mode))
+        
+        command = self.__joinargs("SetTriggerMode", [int(awg_id), int(trig_mode)])
+        self.__rft_ctrl_if.put(command)
+
+
+    def get_trigger_mode(self, awg_id):
+        """
+        引数で指定した AWG のトリガモードを取得する.
+
+        Parameters
+        ----------
+        awg_id : AwgId
+            トリガモードを取得する AWG の ID
+        
+        Returns
+        -------
+        trigger_mode : TriggerMode
+            引数で指定した AWG のトリガモード
+        """
+        if (not AwgId.has_value(awg_id)):
+            raise ValueError("invalid awg_id  " + str(awg_id))
+        
+        command = self.__joinargs("GetTriggerMode", [int(awg_id)])
+        res = self.__rft_ctrl_if.put(command)        
+        return TriggerMode.of(int(res))
+
+
+    def set_external_trigger_param(self, ext_trig_id, param_id, param):
+        """
+        引数で指定した外部トリガモジュールにトリガパラメータを設定する
+
+        Parameters
+        ----------
+        ext_trig_id : ExternalTriggerId
+            パラメータを設定する外部トリガモジュールの ID
+        param_id : int
+            値を設定するパラメータの番号
+        param : signed int (4 bytes) or unsigned int (4 bytes)
+            設定するパラメータ
+        """
+        if (not ExternalTriggerId.has_value(ext_trig_id)):
+            raise ValueError("invalid external trigger id  " + str(ext_trig_id))
+
+        if (not isinstance(param_id, int) or (param_id < 0)):
+            raise ValueError("invalid param_id " + str(param_id))
+
+        if (not isinstance(param_id, int) or (param < -2147483648) or (4294967295 < param)):
+            raise ValueError("invalid param " + str(param))
+
+        if (param < 0):
+            param = param + (1 << 32) # to unsigned
+
+        command = self.__joinargs("SetExternalTriggerParam", [int(ext_trig_id), param_id, param])
+        self.__rft_ctrl_if.put(command)
+
+
+    def get_external_trigger_param(self, ext_trig_id, param_id, to_signed):
+        """
+        引数で指定した外部トリガモジュールのトリガパラメータを取得する
+
+        Parameters
+        ----------
+        ext_trig_id : ExternalTriggerId
+            パラメータを取得する外部トリガモジュールの ID
+        param_id : int
+            値を取得するパラメータの番号
+        to_signed : bool
+            取得したパラメータ (4 bytes) を符号付き整数で返す場合 true, 符号無し整数で返す場合 false
+        
+        Returns
+        -------
+        trigger_param : int
+            引数で指定したトリガモジュールに設定されているトリガパラメータ
+        """
+        if (not ExternalTriggerId.has_value(ext_trig_id)):
+            raise ValueError("invalid external trigger id  " + str(ext_trig_id))
+
+        if (not isinstance(param_id, int) or (param_id < 0)):
+            raise ValueError("invalid param_id " + str(param_id))
+
+        command = self.__joinargs("GetExternalTriggerParam", [int(ext_trig_id), param_id])
+        res = self.__rft_ctrl_if.put(command)
+        trigger_param = int(res) # コマンドの戻り値は unsigned
+        if to_signed and (trigger_param & 0x80000000):
+            trigger_param = trigger_param - 0x100000000
+        
+        return trigger_param
+
+
+    def is_external_trigger_active(self, ext_trig_id):
+        """
+        引数で指定した外部トリガモジュールが動作中かどうか調べる
+
+        Parameters
+        ----------
+        ext_trig_id : ExternalTriggerId
+            動作中かどうかを調べる外部トリガモジュールの ID
+
+        Returns
+        -------
+        flag : bool
+            true -> 外部トリガモジュールが動作中
+            false -> 外部トリガモジュールが停止中
+        """
+        if (not ExternalTriggerId.has_value(ext_trig_id)):
+            raise ValueError("invalid external trigger id  " + str(ext_trig_id))
+
+        command = self.__joinargs("IsExternalTriggerActive", [int(ext_trig_id)])
+        res = self.__rft_ctrl_if.put(command)
+        return False if int(res) == 0 else True
+
+
+    def is_external_trigger_signal_sent(self, ext_trig_id):
+        """
+        引数で指定した外部トリガモジュールが, トリガを発行したかどうかを調べる
+
+        Parameters
+        ----------
+        ext_trig_id : ExternalTriggerId
+            トリガを発行したかどうかを調べる外部トリガモジュールの ID
+
+        Returns
+        -------
+        flag : bool
+            true -> トリガを発行した
+            false -> トリガを発行していない
+        """
+        if (not ExternalTriggerId.has_value(ext_trig_id)):
+            raise ValueError("invalid external trigger id  " + str(ext_trig_id))
+
+        command = self.__joinargs("IsExternalTriggerSignalSent", [int(ext_trig_id)])
+        res = self.__rft_ctrl_if.put(command)
+        return False if int(res) == 0 else True

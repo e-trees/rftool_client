@@ -41,13 +41,13 @@ if is_private_capture_ram:
     PLOT_DIR = "plot_awg_x8_send_recv_prv_cap_ram/"
     DAC_FREQ = 6554.0
     ADC_FREQ = 4096.0
-    CAPTURE_DELAY = 140
+    CAPTURE_DELAY = 143
 else:
     BITSTREAM = 7  # AWG SA
     PLOT_DIR = "plot_awg_x8_send_recv/"
     DAC_FREQ = 6554.0
     ADC_FREQ = 3686.4
-    CAPTURE_DELAY = 145
+    CAPTURE_DELAY = 151
 
 BITSTREAM_LOAD_TIMEOUT = 10
 TRIG_BUSY_TIMEOUT = 60
@@ -323,6 +323,22 @@ def set_dac_sampling_rate(rftcmd, dac_sampling_rate):
     return
 
 
+def shutdown_all_tiles(rftcmd):
+    """
+    DAC と ADC の全タイルをシャットダウンする
+    """
+    rftcmd.Shutdown(DAC, -1)
+    rftcmd.Shutdown(ADC, -1)
+
+
+def startup_all_tiles(rftcmd):
+    """
+    DAC と ADC の全タイルを起動する
+    """
+    rftcmd.StartUp(DAC, -1)
+    rftcmd.StartUp(ADC, -1)
+
+
 def wait_for_sequence_to_finish(awg_sa_cmd, *awg_id_list):
     """
     波形シーケンスの出力とキャプチャが終了するまで待つ
@@ -544,8 +560,10 @@ def main():
 
         print("Configure Bitstream.")
         config_bitstream(rft.command, BITSTREAM)
+        shutdown_all_tiles(rft.command)
         set_adc_sampling_rate(rft.command, ADC_FREQ)
         set_dac_sampling_rate(rft.command, DAC_FREQ)
+        startup_all_tiles(rft.command)
         setup_dac(rft.command)
         setup_adc(rft.command)
 
@@ -600,7 +618,6 @@ def main():
         # 送信波形をグラフ化
         for awg_id in awg_list:
            rft.awg_sa_cmd.get_waveform_sequence(awg_id).save_as_img(PLOT_DIR + "waveform/awg_{}_waveform.png".format(awg_id))
-
 
     print("Done.")
     return

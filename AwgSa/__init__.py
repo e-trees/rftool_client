@@ -30,3 +30,9 @@ from .awgsaerror import *
 
 from . import flattenedwaveformsequence
 from .flattenedwaveformsequence import *
+
+from . import externaltriggerid
+from .externaltriggerid import *
+
+from . import triggermode
+from .triggermode import *

@@ -201,3 +201,10 @@ class WaveSequence(object):
         else:
             return FlattenedWaveformSequence.build_from_wave_obj(
                 self.__step_id_to_wave, step_id_to_interval, self.__sampling_rate)
+
+
+    def get_step_id_list(self):
+        """
+        この波形シーケンスに登録されたステップの ID を出力順に並べてリストにして返す.
+        """
+        return sorted(self.__step_id_to_wave.keys())

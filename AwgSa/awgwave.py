@@ -255,7 +255,7 @@ class AwgAnyWave(WaveParamSerializer):
         """
         この波形の周波数を返す. (単位:MHz)
         """
-        if self.__sampling_rate == None:
+        if self.__sampling_rate is None:
             raise awgsaerror.InvalidOperationError("The sampling rate has not been set.")
         return self.__sampling_rate / len(self.__samples)
 
