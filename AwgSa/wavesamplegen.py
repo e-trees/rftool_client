@@ -26,6 +26,9 @@ class WaveObjToSampleConverter(object):
         else:
             assert False, ("This should never happen.")
 
+        if wave.get_duration() == float('inf'):
+            return np.tile(samples, 1)
+
         return np.tile(samples, wave.get_num_cycles())
 
 
@@ -44,6 +47,9 @@ class WaveObjToSampleConverter(object):
             i_samples = np.append(i_samples, np.zeros(len(q_samples) - len(i_samples)))
         else:
             q_samples = np.append(q_samples, np.zeros(len(i_samples) - len(q_samples)))
+
+        if iq_wave.get_duration() == float('inf'):
+            return (np.tile(i_samples, 1), np.tile(q_samples, 1))
 
         return (np.tile(i_samples, iq_wave.get_i_wave().get_num_cycles()),
                 np.tile(q_samples, iq_wave.get_q_wave().get_num_cycles()))

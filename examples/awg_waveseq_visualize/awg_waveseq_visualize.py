@@ -27,7 +27,7 @@ import AwgSa as awgsa
 LOG_LEVEL = logging.INFO
 ZCU111_IP_ADDR = "192.168.1.3"
 DAC_FREQ = 4096.0
-BITSTREAM = 7
+BITSTREAM = 7 # AWG SA DRAM CAPTURE
 BITSTREAM_LOAD_TIMEOUT = 10
 PLOT_DIR = "plot_awg_waveseq_visualize/"
 

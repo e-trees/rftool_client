@@ -31,7 +31,7 @@ PLOT_DIR = "plot_awg_measure_capture_end_proc/"
 LOG_LEVEL = logging.INFO
 
 # Constants
-BITSTREAM = 7  # AWG SA
+BITSTREAM = 7  # AWG SA DRAM CAPTURE
 BITSTREAM_LOAD_TIMEOUT = 10
 DAC_FREQ = 6554.0
 TRIG_BUSY_TIMEOUT = 480

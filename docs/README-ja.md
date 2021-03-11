@@ -39,6 +39,7 @@ ZCU111を利用して任意の波形出力とその応答波形のキャプチ�
 - [ディジタル出力の利用](../examples/awg_digital_output/README.md)
 - [キャプチャを連続で行う](../examples/awg_x8_continuous_send_recv/README.md)
 - [外部トリガで AWG を起動する](../examples/awg_x8_external_trigger/README.md)
+- [AWG から波形を出力し続ける](../examples/awg_infinite_send/README.md)
 - [DAC の最大サンプリングレートでの波形データの送信](../examples/bram_send_max_sampling_rate/README.md)
 - [BRAM を使った波形データの送受信](../examples/bram_send_recv/README.md)
 - [BRAM を使った IQ データの受信](../examples/bram_iq_send_recv/README.md)

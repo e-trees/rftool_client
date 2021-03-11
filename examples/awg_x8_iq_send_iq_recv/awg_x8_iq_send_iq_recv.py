@@ -59,7 +59,7 @@ if is_private_capture_ram:
     ADC_FREQ = 2334.72
     CAPTURE_DELAY = 250
 else:
-    BITSTREAM = 7  # AWG SA
+    BITSTREAM = 7  # AWG SA DRAM CAPTURE
     PLOT_DIR = "plot_awg_x8_iq_send_iq_recv/"
     DAC_FREQ = 6554.0
     ADC_FREQ = 1843.2

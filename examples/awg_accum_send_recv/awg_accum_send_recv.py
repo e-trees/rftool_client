@@ -43,11 +43,11 @@ if is_private_capture_ram:
     ADC_FREQ = 4096.0
     CAPTURE_DELAY = 130
 else:
-    BITSTREAM = 7  # AWG SA
+    BITSTREAM = 7  # AWG SA DRAM CAPTURE
     PLOT_DIR = "plot_awg_accum_send_recv/"
     DAC_FREQ = 6554.0
-    ADC_FREQ = 3686.4
-    CAPTURE_DELAY = 140
+    ADC_FREQ = 1843.2
+    CAPTURE_DELAY = 190
 
 BITSTREAM_LOAD_TIMEOUT = 10
 TRIG_BUSY_TIMEOUT = 60
@@ -357,7 +357,7 @@ def set_capture_sequence(awg_sa_cmd, seq):
     awg_sa_cmd.set_capture_config(capture_config)
 
 
-def main(cycle_multiplier):   
+def main():   
 
     with client.RftoolClient(logger=logger) as rft:
         print("Connect to RFTOOL Server.")
@@ -378,7 +378,7 @@ def main(cycle_multiplier):
         # ADC キャリブレーション
         calibrate_adc(rft.awg_sa_cmd)
         # 波形シーケンス設定
-        wave_seq_0 = set_wave_sequence(rft.awg_sa_cmd, cycle_multiplier)
+        wave_seq_0 = set_wave_sequence(rft.awg_sa_cmd, 1)
         # キャプチャシーケンス設定
         set_capture_sequence(rft.awg_sa_cmd, wave_seq_0)
         # 波形出力 & キャプチャスタート
@@ -419,9 +419,4 @@ if __name__ == "__main__":
     logger.setLevel(LOG_LEVEL)
     logger.addHandler(handler)
 
-    try:
-        cycle_multiplier = int(sys.argv[1])
-    except Exception:
-        cycle_multiplier = 1
-
-    main(cycle_multiplier)
+    main()
