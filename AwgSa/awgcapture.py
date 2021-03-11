@@ -30,7 +30,10 @@ class AwgCapture(object):
         
         if (not isinstance(delay, (int, float)) or delay < 0.0):
             raise ValueError("invalid delay  " + str(delay))
-        
+
+        if 1.4e+10 < float(delay):
+            raise ValueError("The {}[ns] capture delay is too long. (max={}[ns])".format(delay, 1.4e+10))
+
         if not isinstance(do_accumulation, bool):
             raise ValueError("invalid do_accumulation  " + str(do_accumulation))
         

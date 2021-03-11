@@ -4,6 +4,7 @@
 import struct
 import copy
 import os
+import math
 import numpy as np
 from .flattenedwaveform import FlattenedWaveform, FlattenedIQWaveform
 from . import hardwareinfo
@@ -22,7 +23,8 @@ class WaveSequenceParams(object):
     __NUM_WAVE_STEPS_OFFSET = 0
     __IS_IQ_DATA_OFFSET     = 4
     __SAMPLING_RATE_OFFSET  = 8
-    __STEP_ID_OFFSET        = 16
+    __EACH_STEP_PARAMS_OFFSET = 16
+    __EACH_STEP_PARAM_SIZE = 8
 
     """
     波形シーケンスのパラメータ
@@ -40,19 +42,24 @@ class WaveSequenceParams(object):
         tmp = wave_sequence_param_bytes[cls.__SAMPLING_RATE_OFFSET : cls.__SAMPLING_RATE_OFFSET + 8]
         sampling_rate = struct.unpack('d', tmp)[0]
         step_id_list = []
+        infinite_cycles_flag_list = []
         for i in range(num_wave_steps):
-            tmp = wave_sequence_param_bytes[cls.__STEP_ID_OFFSET + i * 4: cls.__STEP_ID_OFFSET + (i + 1) * 4]
+            offset = cls.__EACH_STEP_PARAMS_OFFSET + i * cls.__EACH_STEP_PARAM_SIZE
+            tmp = wave_sequence_param_bytes[offset : offset + 4]
             step_id_list.append(struct.unpack('I', tmp)[0])
+            tmp = wave_sequence_param_bytes[offset + 4 : offset + 8]
+            infinite_cycles_flag_list.append(struct.unpack('I', tmp)[0])
 
-        return WaveSequenceParams(num_wave_steps, is_iq_data, sampling_rate, step_id_list)
+        return WaveSequenceParams(num_wave_steps, is_iq_data, sampling_rate, step_id_list, infinite_cycles_flag_list)
 
 
-    def __init__(self, num_wave_steps, is_iq_data, sampling_rate, step_id_list):
+    def __init__(self, num_wave_steps, is_iq_data, sampling_rate, step_id_list, infinite_cycles_flag_list):
         
         self.__num_wave_steps = num_wave_steps
         self.__is_iq_data = is_iq_data
         self.__sampling_rate = sampling_rate
         self.__step_id_list = step_id_list
+        self.__infinite_cycles_flag_list = infinite_cycles_flag_list
 
     @property
     def num_wave_steps(self):
@@ -70,15 +77,16 @@ class WaveSequenceParams(object):
     def step_id_list(self):
         return copy.copy(self.__step_id_list)
 
+    @property
+    def infinite_cycles_flag_list(self):
+        return copy.copy(self.__infinite_cycles_flag_list)
 
 def get_interval_from_wave_ram(wave_ram_data, step_idx):
     """ 波形 RAM データから step_idx で指定した波形ステップのインターバル (単位:ns) を取得する """
     offset = step_idx * WaveStepParamsLayout.WAVE_STEP_PARAMS_WORD_SIZE + WaveStepParamsLayout.INTERVAL_OFFSET
     clk_count = wave_ram_data[offset : offset + WaveStepParamsLayout.INTERVAL_SIZE]
     clk_count = int.from_bytes(clk_count, 'little') # 波形ステップのインターバルとして HW 内部でカウントする値
-    # 波形 RAM には, AWG スタートにかかるオーバヘッドを引いて -2 したカウント値が格納されているので,
-    # 実際のインターバルは +2 してから算出する.
-    interval = 1000 * (clk_count + 2) / AWG_CLK_FREQ
+    interval = 1000 * clk_count / AWG_CLK_FREQ
     return interval
     
 
@@ -104,7 +112,11 @@ class FlattenedWaveformSequence(object):
             step_id = step_id_list[step_idx]
             waveform = FlattenedWaveform.build_from_wave_ram(wave_ram_data, step_idx)
             step_id_to_waveform[step_id] = waveform
-            duration = 1000.0 * waveform.get_num_samples() / wave_seq_params.sampling_rate
+            if wave_seq_params.infinite_cycles_flag_list[step_idx] == 0:
+                duration = 1000.0 * waveform.get_num_samples() / wave_seq_params.sampling_rate
+            else:
+                duration = float('inf')
+
             interval = get_interval_from_wave_ram(wave_ram_data, step_idx)
             if interval < duration:
                 interval = duration
@@ -225,7 +237,10 @@ class FlattenedIQWaveformSequence(object):
             step_id_to_waveform[step_id] = waveform
             # I/Q データは, DAC (RF Data Converter) で x2 補間をするので, サンプルは半分に間引かれている.
             # よって, サンプル数から出力期間を求める際は, サンプル数を 2 倍する
-            duration = 2 * 1000.0 * waveform.get_num_samples() / wave_seq_params.sampling_rate
+            if wave_seq_params.infinite_cycles_flag_list[step_idx] == 0:
+                duration = 2 * 1000.0 * waveform.get_num_samples() / wave_seq_params.sampling_rate
+            else:
+                duration = float('inf')
             interval = get_interval_from_wave_ram(wave_ram_data, step_idx)
             if interval < duration:
                 interval = duration
@@ -494,11 +509,13 @@ class WaveSequencePlotter(object):
         step_id_list = sorted(self.__step_id_to_waveform.keys())
         for step_id in step_id_list:
             duration = time + self.__step_id_to_duration[step_id] / 1000.0
-            duration = Decimal(duration).quantize(Decimal("0.001"), rounding = ROUND_HALF_UP)
+            if math.isfinite(duration):
+                duration = Decimal(duration).quantize(Decimal("0.001"), rounding = ROUND_HALF_UP)
             xval_list.append(duration)
             if self.__step_has_blank(step_id):
                 interval = time + self.__step_id_to_interval[step_id] / 1000.0
-                interval = Decimal(interval).quantize(Decimal("0.001"), rounding = ROUND_HALF_UP)
+                if math.isfinite(interval):
+                    interval = Decimal(interval).quantize(Decimal("0.001"), rounding = ROUND_HALF_UP)
                 xval_list.append(interval)
             time += self.__step_id_to_interval[step_id] / 1000.0
         
@@ -515,10 +532,13 @@ class WaveSequencePlotter(object):
                 xytext = (vline_pos_list[i + 1], ymin - extension),
                 arrowprops = dict(arrowstyle = '<->'))
             texst_xpos = vline_pos_list[i] + (vline_pos_list[i + 1] - vline_pos_list[i]) / 5
+
             interval = x_axis_val_list[i + 1] - x_axis_val_list[i]
-            interval = Decimal(interval).quantize(Decimal("0.001"), rounding = ROUND_HALF_UP)
-            extension = 0.05 * (ymax - ymin)
-            axes.text(texst_xpos, ymin - extension, interval, rotation = 40, fontsize = 6)
+            if math.isfinite(interval):
+                interval = Decimal(interval).quantize(Decimal("0.001"), rounding = ROUND_HALF_UP)
+            if not math.isnan(interval):
+                extension = 0.05 * (ymax - ymin)
+                axes.text(texst_xpos, ymin - extension, interval, rotation = 40, fontsize = 6)
 
 
     def __add_grid_lines(self, axes, vline_pos_list, vline_props_list, ymax, ymin):
@@ -534,6 +554,16 @@ class WaveSequencePlotter(object):
         axes.grid(which = "minor", alpha = 0.2)
 
 
+    def __convert_to_x_axis_labes(self, x_axis_val_list):
+        
+        x_axis_label_list = [""] * len(x_axis_val_list)
+        for i in range(len(x_axis_val_list)):
+            x_axis_label_list[i] = x_axis_val_list[i]
+            if math.isinf(x_axis_val_list[i]):
+                break
+        return x_axis_label_list
+
+
     def plot_waveform(self, plt, axes, title, color):
         """
         引数で指定した matplotlib の axes に波形シーケンスを描画する
@@ -543,6 +573,7 @@ class WaveSequencePlotter(object):
         vline_pos_list = self.__get_vline_pos_list()
         vline_props_list = self.__get_vline_properties_list()
         x_axis_val_list = self.__get_x_axis_val_list()
+        x_axis_label_list = self.__convert_to_x_axis_labes(x_axis_val_list)
 
         ymin = min(samples)
         ymax = max(samples)
@@ -551,6 +582,6 @@ class WaveSequencePlotter(object):
 
         axes.plot(xpos_list, samples, linewidth = 0.8, color = color)
         axes.set_xticks(vline_pos_list)
-        axes.set_xticklabels(x_axis_val_list, fontsize = 6)
+        axes.set_xticklabels(x_axis_label_list, fontsize = 6)
         plt.setp(axes.get_xticklabels(), rotation = 40, horizontalalignment = 'right')
         plt.title(title)

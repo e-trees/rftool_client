@@ -21,6 +21,7 @@ class WaveParamSerializer(object):
         variance,
         domain_begin,
         domain_end,
+        is_infinite_cycles,
         num_any_wave_samples):
 
         data = bytearray()
@@ -35,6 +36,7 @@ class WaveParamSerializer(object):
         data += struct.pack("<d", variance)
         data += struct.pack("<d", domain_begin)
         data += struct.pack("<d", domain_end)
+        data += struct.pack("<i", 1) if is_infinite_cycles else struct.pack("<i", 0)
         data += num_any_wave_samples.to_bytes(4, 'little')
         return data
 
@@ -106,7 +108,7 @@ class AwgWave(WaveParamSerializer):
         if not isinstance(offset, (int, float)):
             raise ValueError("invalid offset  " + str(offset))
 
-        if (not isinstance(num_cycles, int) or (num_cycles <= 0 or 0xFFFFFFFE < num_cycles)):
+        if (not isinstance(num_cycles, int) or (num_cycles == 0 or 0xFFFFFFFE < num_cycles)):
             raise ValueError("invalid number of cycles " + str(num_cycles))
         
         if (not isinstance(duty_cycle, (int, float)) or\
@@ -126,7 +128,6 @@ class AwgWave(WaveParamSerializer):
         if (not isinstance(domain_end, (int, float))):
            raise ValueError("invalid end of the domain of the definition  " + str(domain_end))
 
-
         self.__wave_type = wave_type
         self.__frequency = float(frequency)
         if float(phase) < 0.0:
@@ -136,12 +137,13 @@ class AwgWave(WaveParamSerializer):
         
         self.__amplitude = float(amplitude)
         self.__offset = float(offset)
-        self.__num_cycles = num_cycles
+        self.__num_cycles = 0 if num_cycles < 0 else num_cycles
         self.__duty_cycle = float(duty_cycle)
         self.__crest_pos = float(crest_pos)
         self.__variance = float(variance)
         self.__domain_begin = float(domain_begin)
         self.__domain_end = float(domain_end)
+        self.__is_infinite_cycles = True if num_cycles < 0 else False
         return
 
 
@@ -150,14 +152,17 @@ class AwgWave(WaveParamSerializer):
             self.__wave_type, self.__frequency, self.__phase,
             self.__amplitude, self.__offset, self.__num_cycles,
             self.__duty_cycle, self.__crest_pos, self.__variance,
-            self.__domain_begin, self.__domain_end, 0)
+            self.__domain_begin, self.__domain_end, self.__is_infinite_cycles, 0)
         return data
 
 
     def get_duration(self):
         """
-        この波形が出力される時間 (単位:ns) を取得する
+        この波形が出力される時間 (単位:ns) を取得する.
+        サイクル数が無限の場合は, float 型の無限大を返す.
         """
+        if self.__is_infinite_cycles:
+            return float('inf')
         return 1000.0 * self.__num_cycles / self.__frequency
 
 
@@ -185,6 +190,10 @@ class AwgWave(WaveParamSerializer):
 
 
     def get_num_cycles(self):
+        """
+        基本となる波の出力サイクル数を返す.
+        サイクル数が無限の場合は 0 を返す.
+        """
         return self.__num_cycles
 
 
@@ -232,7 +241,7 @@ class AwgAnyWave(WaveParamSerializer):
         if (samples.dtype != np.int16):
             raise ValueError("The type of samples must be numpy.int16.  " + str(samples.dtype))
 
-        if (not isinstance(num_cycles, int) or (num_cycles <= 0 or 0xFFFFFFFE < num_cycles)):
+        if (not isinstance(num_cycles, int) or (num_cycles == 0 or 0xFFFFFFFE < num_cycles)):
             raise ValueError("invalid number of cycles " + str(num_cycles))
 
         if (len(samples) == 0):
@@ -240,14 +249,18 @@ class AwgAnyWave(WaveParamSerializer):
 
         self.__sampling_rate = None
         self.__samples = copy.deepcopy(samples)
-        self.__num_cycles = num_cycles
+        self.__num_cycles = 0 if num_cycles < 0 else num_cycles
+        self.__is_infinite_cycles = True if num_cycles < 0 else False
         return
 
 
     def get_duration(self):
         """
-        この波形が出力される時間 (単位:ns) を取得する
+        この波形が出力される時間 (単位:ns) を取得する.
+        サイクル数が無限の場合は, float 型の無限大を返す.
         """
+        if self.__is_infinite_cycles:
+            return float('inf')
         return 1000.0 * self.__num_cycles / self.get_frequency()
 
 
@@ -274,6 +287,10 @@ class AwgAnyWave(WaveParamSerializer):
 
 
     def get_num_cycles(self):
+        """
+        基本となる波の出力サイクル数を返す.
+        サイクル数が無限の場合は 0 を返す.
+        """
         return self.__num_cycles
 
 
@@ -282,7 +299,7 @@ class AwgAnyWave(WaveParamSerializer):
             AwgAnyWave.__ANY_WAVE, self.get_frequency(), 0.0,
             0.0, 0.0, self.__num_cycles,
             0.0, 0.0, 0.0,
-            0.0, 0.0, len(self.__samples))
+            0.0, 0.0, self.__is_infinite_cycles, len(self.__samples))
         data += self.__samples.tobytes()
         return data
 
@@ -334,7 +351,8 @@ class AwgIQWave(object):
     def get_duration(self):
         """
         この波形が出力される時間 (単位:ns) を取得する.
-        I/Q データの出力時間は, I 相と Q 相の長い方の出力時間である.
+        I/Q データの出力時間は, I 相と Q 相の長い方の出力時間を返す.
+        サイクル数が無限の場合は, float 型の無限大を返す.
         """
         return max(self.__i_wave.get_duration(), self.__q_wave.get_duration())
 

@@ -73,6 +73,7 @@ class AwgSaCommand(object):
             設定する波形シーケンス
         num_repeats : int
             波形シーケンスを繰り返す回数
+            負の数を指定すると AWG を強制停止させるまでシーケンスを繰り返し続ける
         """
         if (not isinstance(wave_sequence, WaveSequence)):
             raise ValueError("invalid wave_sequence " + str(wave_sequence))
@@ -81,11 +82,12 @@ class AwgSaCommand(object):
            raise ValueError("invalid awg_id  " + str(awg_id))
         
         if (not isinstance(num_repeats, int)) or\
-           (num_repeats <= 0 or 0xFFFFFFFE <= num_repeats):
+           (num_repeats == 0 or 0xFFFFFFFE < num_repeats):
            raise ValueError("invalid num_repeats  " + str(num_repeats))
-        
+
+        infinite_repeat = 1 if num_repeats < 0 else 0
         data = wave_sequence.serialize()
-        command = self.__joinargs("SetWaveSequence", [int(awg_id), num_repeats, len(data)])
+        command = self.__joinargs("SetWaveSequence", [int(awg_id), num_repeats, infinite_repeat, len(data)])
         self.__rft_data_if.PutCmdWithData(command, data)
 
 
@@ -148,7 +150,7 @@ class AwgSaCommand(object):
         -------
         status : int
             WAVE_SEQUENCE_NOT_COMPLETE -> 出力未完了
-            WAVE_SEQUENCE_COMPLETE -> 出力完了
+            WAVE_SEQUENCE_COMPLETE -> 出力完了 or 停止命令により停止した
             WAVE_SEQUENCE_ERROR -> 出力中にエラーが発生
         """ 
         if (not AwgId.has_value(awg_id)):
@@ -162,6 +164,34 @@ class AwgSaCommand(object):
             return AwgSaCmdResult.WAVE_SEQUENCE_COMPLETE
         elif res == 2:
             return AwgSaCmdResult.WAVE_SEQUENCE_ERROR
+        
+        return AwgSaCmdResult.UNKNOWN
+
+
+    def is_awg_working(self, awg_id):
+        """
+        AWG が動作中かどうかを調べる
+
+        Parameters
+        ----------
+        awg_id : AwgId
+            動作中かどうかを調べる AWG の ID
+
+        Returns
+        -------
+        status : bool
+            True -> 動作中
+            False -> 非動作中
+        """ 
+        if (not AwgId.has_value(awg_id)):
+            raise ValueError("invalid awg_id  " + str(awg_id))
+        command = self.__joinargs("IsAwgWorking", [int(awg_id)])
+        res = self.__rft_ctrl_if.put(command)
+        res = int(res)
+        if res == 0:
+            return False
+        elif res == 1:
+            return True
         
         return AwgSaCmdResult.UNKNOWN
 
@@ -342,6 +372,7 @@ class AwgSaCommand(object):
             取得する FFT のフレーム数
         is_iq_data : bool
             キャプチャデータが I/Q データの場合 True. Real データの場合 False.
+        
         Returns
         -------
         spectrum : bytes
@@ -730,3 +761,34 @@ class AwgSaCommand(object):
         command = self.__joinargs("IsExternalTriggerSignalSent", [int(ext_trig_id)])
         res = self.__rft_ctrl_if.put(command)
         return False if int(res) == 0 else True
+
+
+    def terminate_awgs(self, *awg_list):
+        """
+        引数で指定した AWG に停止命令を発行する.
+        AWG が停止命令を受け取ったときに実行中のキャプチャは最後まで実行される.
+        AWG の停止までブロックするわけではないので, 停止の確認は is_wave_sequence_complete メソッドの戻り値が
+        AwgSaCmdResult.WAVE_SEQUENCE_COMPLETE かどうかで判断すること.
+
+        Parameters
+        ----------
+        *awg_list : AwgId
+            停止させる AWG の ID
+        """
+        termination_flag_list = [0, 0, 0, 0, 0, 0, 0, 0]
+        for awg_id in awg_list:
+            if (not AwgId.has_value(awg_id)):
+                raise ValueError("invalid awg id  " + str(awg_id))
+            termination_flag_list[int(awg_id)] = 1
+
+        command = self.__joinargs("TerminateAwgs", termination_flag_list)
+        self.__rft_ctrl_if.put(command)
+
+    def terminate_all_awgs(self):
+        """
+        全ての AWG に停止命令を発行する.
+        AWG が停止命令を受け取ったときに実行中のキャプチャは最後まで実行される.
+        AWG の停止までブロックするわけではないので, 停止の確認は is_wave_sequence_complete メソッドの戻り値が
+        AwgSaCmdResult.WAVE_SEQUENCE_COMPLETE かどうかで判断すること.
+        """
+        self.__rft_ctrl_if.put("TerminateAllAwgs")

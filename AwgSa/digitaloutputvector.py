@@ -15,6 +15,12 @@ class DigitalOutputVector(object):
         delay : float
             このデジタル出力に対応する波形ステップの開始から, 最初のデジタルデータを出力するまでの遅延時間 (単位:ns)
         """
+        if (not isinstance(delay, (int, float)) or delay < 0.0):
+            raise ValueError("invalid delay  " + str(delay))
+
+        if 1.4e+10 < float(delay):
+            raise ValueError("The {}[ns] digital output delay is too long. (max={}[ns])".format(delay, 1.4e+10))
+        
         self.__delay = delay
         self.__output_list = []
         return
@@ -36,8 +42,11 @@ class DigitalOutputVector(object):
         if (not isinstance(val, int) or (val < 0 or 255 < val)):
             raise ValueError("invalid output value " + hex(val))
 
-        if (not isinstance(duration, (float, int)) or 1.0e+10 < duration):
+        if (not isinstance(duration, (float, int)) or 1.4e+10 < duration):
             raise ValueError("invalid duration " + str(duration))
+
+        if 1.4e+10 < float(duration):
+            raise ValueError("The {}[ns] digital output duration is too long. (max={}[ns])".format(duration, 1.4e+10))
 
         self.__output_list.append((val, float(duration)))
         return self

@@ -32,7 +32,7 @@ PLOT_DIR = "plot_awg_digital_output/"
 LOG_LEVEL = logging.INFO
 
 # Constants
-BITSTREAM = 7  # AWG SA
+BITSTREAM = 7  # AWG SA DRAM CAPTURE
 BITSTREAM_LOAD_TIMEOUT = 10
 DAC_FREQ = 4096.0
 ADC_FREQ = 1105.92

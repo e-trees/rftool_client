@@ -67,9 +67,11 @@ class WaveSequence(object):
         self.__check_wave_type(wave)
         self.__set_sampling_rate_to_wave(wave)
         self.__step_id_to_wave[step_id] = copy.deepcopy(wave)
-        interval = float(wave.get_duration() + post_blank)
-        if 1.0e+10 < interval:
-            raise ValueError("The time from the start to the end of the step {} is too long.".format(step_id))
+
+        if wave.get_duration() != float('inf'):
+            interval = float(wave.get_duration() + post_blank)
+            if 1.4e+10 < interval:
+                raise ValueError("The time from the start to the end of the step {} is too long.".format(step_id))
 
         self.__step_id_to_post_blank[step_id] = post_blank
         return self
@@ -137,6 +139,7 @@ class WaveSequence(object):
         ----------
         duration : float
             引数で指定したステップの開始から次のステップの開始までの時間 (単位:ns)
+            float 型の
         """
         if not step_id in self.__step_id_to_wave:
             raise ValueError("invalid step_id " + str(step_id))

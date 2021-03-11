@@ -1,10 +1,10 @@
 # 外部トリガから AWG を起動する
 
-[awg_x8_external_trigger_1.py](../examples/awg_x8_external_trigger/awg_x8_external_trigger_1.py) と 
-[awg_x8_external_trigger_2.py](../examples/awg_x8_external_trigger/awg_x8_external_trigger_2.py) は，1つの AWG から出力した波形を外部トリガモジュールが読み取り，残りの AWG にトリガをかけるスクリプトです．
-[awg_x8_external_trigger_1.py](../examples/awg_x8_external_trigger/awg_x8_external_trigger_1.py) は，
+[awg_x8_external_trigger_1.py](./awg_x8_external_trigger_1.py) と 
+[awg_x8_external_trigger_2.py](.awg_x8_external_trigger_2.py) は，1つの AWG から出力した波形を外部トリガモジュールが読み取り，残りの AWG にトリガをかけるスクリプトです．
+[awg_x8_external_trigger_1.py](./awg_x8_external_trigger_1.py) は，
 AWG 0 がトリガ条件を満たす波形を出力し，外部トリガモジュール 0 が読み取ります．
-[awg_x8_external_trigger_2.py](../examples/awg_x8_external_trigger/awg_x8_external_trigger_2.py) は，
+[awg_x8_external_trigger_2.py](./awg_x8_external_trigger_2.py) は，
 AWG 4 がトリガ条件を満たす波形を出力し，外部トリガモジュール 4 が読み取ります．
 外部トリガで駆動された AWG の波形は，対応するキャプチャモジュールでキャプチャされます．
 
