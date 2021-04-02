@@ -26,51 +26,32 @@ sys.path.append(lib_path)
 from RftoolClient import client, rfterr, wavegen, ndarrayutil
 import AwgSa as awgsa
 
-# FPGA design
-SHARED_CAPTURE_RAM = 0
-PRIVATE_CAPTURE_RAM = 1
-MTS = 2
-fpga_design = SHARED_CAPTURE_RAM
-try:
-    if sys.argv[1] == "prv_cap_ram":
-        fpga_design = PRIVATE_CAPTURE_RAM
-    elif sys.argv[1] == "mts":
-        fpga_design = MTS
-except Exception:
-    pass
-
 # Parameters
 ZCU111_IP_ADDR = "192.168.1.3"
 # Log level
 LOG_LEVEL = logging.INFO
 
 # Constants
-if fpga_design == SHARED_CAPTURE_RAM:
-    BITSTREAM = 7  # AWG SA DRAM CAPTURE
-    PLOT_DIR = "plot_awg_infinite_send/"
-    DAC_FREQ = 6554.0
-    ADC_FREQ = 1843.2
-    CAPTURE_DELAY = 171
-    POST_BLANK = 2000
-elif fpga_design == PRIVATE_CAPTURE_RAM:
-    BITSTREAM = 9  # AWG SA BRAM CAPTURE
-    PLOT_DIR = "plot_awg_infinite_send_prv_cap_ram/"
-    DAC_FREQ = 6554.0
-    ADC_FREQ = 4096.0
-    CAPTURE_DELAY = 143
-    POST_BLANK = 100
-else:
-    BITSTREAM = 8  # MTS AWG SA
-    PLOT_DIR = "plot_mts_awg_infinite_send/"
-    DAC_FREQ = 3932.16
-    ADC_FREQ = 3932.16
-    CAPTURE_DELAY = 143
-    POST_BLANK = 100
+BITSTREAM = 7  # AWG SA DRAM CAPTURE
+PLOT_DIR = "plot_awg_windowed_capture/"
+DAC_FREQ = 1843.2
+ADC_FREQ = 1843.2
+CAPTURE_DELAY = 320
+POST_BLANK = 1000
 
 BITSTREAM_LOAD_TIMEOUT = 10
 TRIG_BUSY_TIMEOUT = 60
 DUC_DDC_FACTOR = 1
-INFINITE = -1
+
+is_infinite_windows = False
+if is_infinite_windows:
+    NUM_WINDOWS = -1
+    NUM_CYCLES_IN_WINDOW = 10
+    NUM_CYCLES = -1
+else:
+    NUM_WINDOWS = 10000
+    NUM_CYCLES_IN_WINDOW = 10
+    NUM_CYCLES = NUM_WINDOWS * NUM_CYCLES_IN_WINDOW
 
 # ADC or DAC
 ADC = 0
@@ -247,42 +228,33 @@ def startup_all_tiles(rftcmd):
     rftcmd.StartUp(ADC, -1)
 
 
-def stop_awgs(awg_sa_cmd):
+def stop_awg(awg_sa_cmd, awg_id):
     """
     ユーザが選択した AWG を停止する
     """
-    while True:
-        print("Select AWG to stop.")
-        for awg_id in awg_list:
-            print("    {} -> AWG {}".format(int(awg_id), int(awg_id)))
-        print("    a -> all AWGs")
-
-        selected = input()
-        pattern = r'^[0-7a]$'
-        result = re.match(pattern, selected)
-        if result is None:
-            print("'{}' is invaid awg id.\n".format(selected))
-        elif selected == 'a':
-            awg_sa_cmd.terminate_all_awgs()
-            print("stopped all awgs\n")
-        else:
-            awg_sa_cmd.terminate_awgs(awgsa.AwgId.to_awg_id(selected))
-            print("stopped awg {}\n".format(selected))
-        
-        if all_sequences_are_complete(awg_sa_cmd, *awg_list):
-            return
+    print("Press enter to stop AWG {}".format(int(awg_id)))
+    input()
+    awg_sa_cmd.terminate_awgs(awg_id)        
+    wait_for_sequence_to_finish(awg_sa_cmd, awg_id)
 
 
-def all_sequences_are_complete(awg_sa_cmd, *awg_id_list):
+def wait_for_sequence_to_finish(awg_sa_cmd, *awg_id_list):
     """
     波形シーケンスの出力とキャプチャが終了するまで待つ
     """
-    for awg_id in awg_id_list:
-        awg_stat = awg_sa_cmd.is_wave_sequence_complete(awg_id)
-        if awg_stat != awgsa.AwgSaCmdResult.WAVE_SEQUENCE_COMPLETE:
-            return False
+    for i in range(TRIG_BUSY_TIMEOUT):
+        all_finished = True
+        for awg_id in awg_id_list:
+            awg_stat = awg_sa_cmd.is_wave_sequence_complete(awg_id)
+            if awg_stat != awgsa.AwgSaCmdResult.WAVE_SEQUENCE_COMPLETE:
+                all_finished = False
+                break
 
-    return True
+        if all_finished:
+            return
+        time.sleep(1.)
+        
+    raise("AWG busy timed out.")
 
 
 def check_skipped_step(awg_sa_cmd):
@@ -346,7 +318,7 @@ def calibrate_adc(awg_sa_cmd):
         awg_sa_cmd.set_wave_sequence(awg_id, calib_wave_sequence, num_repeats = 1)
 
     awg_sa_cmd.start_wave_sequence()
-    all_sequences_are_complete(awg_sa_cmd, *awg_list)
+    wait_for_sequence_to_finish(awg_sa_cmd, *awg_list)
 
 
 def set_wave_sequence(awg_sa_cmd):
@@ -355,35 +327,27 @@ def set_wave_sequence(awg_sa_cmd):
     """
     # 波形の定義
     wave_0 = awgsa.AwgWave(
-        wave_type = awgsa.AwgWave.SINE,
-        frequency = 10,
+        wave_type = awgsa.AwgWave.SAWTOOTH,
+        frequency = 7.2,
         phase = 0,
         amplitude = 30000,
-        num_cycles = INFINITE)
+        num_cycles = NUM_CYCLES)
 
     wave_1 = awgsa.AwgWave(
-        wave_type = awgsa.AwgWave.SQUARE,
-        frequency = 10,
-        phase = 0,
-        amplitude = 30000,
-        num_cycles = 3)
-
-    wave_2 = awgsa.AwgWave(
         wave_type = awgsa.AwgWave.SAWTOOTH,
-        frequency = 10,
+        frequency = 11.0,
         phase = 0,
         amplitude = 30000,
-        num_cycles = 4)
+        num_cycles = NUM_CYCLES)
 
     # 波形シーケンスの定義
     wave_sequence_0 = (awgsa.WaveSequence(DAC_FREQ)
         .add_step(step_id = 0, wave = wave_0, post_blank = 0))
     wave_sequence_1 = (awgsa.WaveSequence(DAC_FREQ)
-        .add_step(step_id = 0, wave = wave_1, post_blank = 0)
-        .add_step(step_id = 1, wave = wave_2, post_blank = POST_BLANK))
+        .add_step(step_id = 0, wave = wave_1, post_blank = 0))
     # AWG に波形シーケンスをセットする
     awg_sa_cmd.set_wave_sequence(awg_id = awg_list[0], wave_sequence = wave_sequence_0, num_repeats = 1)
-    awg_sa_cmd.set_wave_sequence(awg_id = awg_list[1], wave_sequence = wave_sequence_1, num_repeats = INFINITE)
+    awg_sa_cmd.set_wave_sequence(awg_id = awg_list[1], wave_sequence = wave_sequence_1, num_repeats = 1)
     return { awg_list[0] : wave_sequence_0, 
              awg_list[1] : wave_sequence_1 }
 
@@ -392,22 +356,23 @@ def set_capture_sequence(awg_sa_cmd, awg_id_to_wave_sequence):
     """
     キャプチャシーケンスを AWG にセットする
     """
-    capture_0 = awgsa.AwgCapture(
-        time = 500,
-        delay = CAPTURE_DELAY,
-        do_accumulation = False)
-    capture_1 = awgsa.AwgCapture(
-        time = awg_id_to_wave_sequence[awg_list[1]].get_whole_duration() - POST_BLANK + 100,
-        delay = CAPTURE_DELAY,
-        do_accumulation = False)
-
-    # キャプチャシーケンスの定義
-    capture_sequence_0 = awgsa.CaptureSequence(ADC_FREQ).add_step(step_id = 0, capture = capture_0)
-    capture_sequence_1 = awgsa.CaptureSequence(ADC_FREQ).add_step(step_id = 0, capture = capture_1)
-    # キャプチャシーケンスとキャプチャモジュールを対応付ける
     capture_config = awgsa.CaptureConfig()
-    capture_config.add_capture_sequence(awg_list[0], capture_sequence_0)
-    capture_config.add_capture_sequence(awg_list[1], capture_sequence_1)
+
+    for awg_id, wave_sequence in awg_id_to_wave_sequence.items():
+        # DAC から出力する波形 10 サイクル分の期間をキャプチャ時間とする
+        num_dac_wave_samples = int(DAC_FREQ / wave_sequence.get_wave(0).get_frequency())
+        capture = awgsa.AwgWindowedCapture(
+            time = 1000 * NUM_CYCLES_IN_WINDOW * num_dac_wave_samples / ADC_FREQ,
+            num_windows = NUM_WINDOWS,
+            delay = CAPTURE_DELAY)
+
+        # キャプチャシーケンスの定義
+        capture_sequence = (awgsa.CaptureSequence(ADC_FREQ)
+            .add_step(step_id = 0, capture = capture))
+        
+        # キャプチャシーケンスとキャプチャモジュールを対応付ける
+        capture_config.add_capture_sequence(awg_id, capture_sequence)
+
     # キャプチャモジュールにキャプチャシーケンスを設定する
     awg_sa_cmd.set_capture_config(capture_config)
 
@@ -416,10 +381,16 @@ def start_awg_and_capture(awg_sa_cmd):
     """
     波形の出力とキャプチャを開始する
     """
-    # 全チャネル同時に波形出力とキャプチャを行う
-    print("start all AWGs")
-    awg_sa_cmd.start_wave_sequence()
-
+    # 1 チャネルずつ波形出力とキャプチャを行う
+    for awg_id in awg_list:
+        print("start AWG {}".format(awg_id))
+        awg_sa_cmd.disable_awg(*awg_list)
+        awg_sa_cmd.enable_awg(awg_id)
+        awg_sa_cmd.start_wave_sequence()
+        if is_infinite_windows:
+            stop_awg(awg_sa_cmd, awg_id)
+        else:
+            wait_for_sequence_to_finish(awg_sa_cmd, awg_id)
 
 def main():
 
@@ -430,24 +401,12 @@ def main():
 
         print("Configure Bitstream.")
         config_bitstream(rft.command, BITSTREAM)
-        if fpga_design != MTS:
-            shutdown_all_tiles(rft.command)
-            set_adc_sampling_rate(rft.command, ADC_FREQ)
-            set_dac_sampling_rate(rft.command, DAC_FREQ)
-            startup_all_tiles(rft.command)
-
         setup_dac(rft.command)
         setup_adc(rft.command)
         # 初期化    
         rft.awg_sa_cmd.initialize_awg_sa()
         # AWG 有効化
         rft.awg_sa_cmd.enable_awg(*awg_list)
-        
-        if fpga_design == MTS:
-            # Multi Tile Synchronization
-            rft.awg_sa_cmd.sync_dac_tiles()
-            rft.awg_sa_cmd.sync_adc_tiles()
-
         # ADC キャリブレーション
         calibrate_adc(rft.awg_sa_cmd)
         # 波形シーケンス設定
@@ -456,8 +415,6 @@ def main():
         set_capture_sequence(rft.awg_sa_cmd, awg_id_to_wave_sequence)        
         # 波形出力 & キャプチャスタート
         start_awg_and_capture(rft.awg_sa_cmd)
-        # AWG 停止
-        stop_awgs(rft.awg_sa_cmd)       
         # エラーチェック
         check_skipped_step(rft.awg_sa_cmd)
         check_capture_data_fifo_oevrflow(rft.awg_sa_cmd)
@@ -478,10 +435,6 @@ def main():
         print("Output capture data.")
         for awg_id, wave_samples in awg_id_to_wave_samples.items():
             output_graphs((awg_id, 0, wave_samples))
-
-        # 送信波形をグラフ化
-        for awg_id in awg_list:
-           rft.awg_sa_cmd.get_waveform_sequence(awg_id).save_as_img(PLOT_DIR + "waveform/awg_{}_waveform.png".format(awg_id))
 
     print("Done.")
     return

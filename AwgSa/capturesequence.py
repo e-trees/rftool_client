@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # coding: utf-8
 
-from . import AwgCapture
+from . import AwgCapture, AwgWindowedCapture
 import struct
 
 class CaptureSequence(object):
@@ -43,8 +43,8 @@ class CaptureSequence(object):
         ----------
         step_id : int
             キャプチャ開始の基準となる波形ステップID.
-        capture : AwgCapture
-            AwgCapture オブジェクト
+        capture : AwgCapture, AwgWindowedCapture
+            AwgCapture or AwgWindowedCapture オブジェクト
         """
         if (not isinstance(step_id, int) or (step_id < 0 or 0x7FFFFFFF < step_id)):
             raise ValueError("invalid step_id " + str(step_id))
@@ -55,7 +55,7 @@ class CaptureSequence(object):
         if (len(self.__capture_list) == self.__MAX_CAPTURE_STEPS):
             raise ValueError("No more captures can be added. (max=" + str(self.__MAX_CAPTURE_STEPS) + ")")
 
-        if (not isinstance(capture, AwgCapture)):
+        if (not isinstance(capture, (AwgCapture, AwgWindowedCapture))):
             raise ValueError("invalid capture " + str(capture))
 
         self.__capture_list[step_id] = capture
