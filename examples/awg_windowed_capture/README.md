@@ -23,7 +23,9 @@ python awg_windowed_capture.py
 キャプチャモジュール 0 と 1 がキャプチャした波形のグラフが，カレントディレクトリの下の `plot_awg_windowed_capture` ディレクトリ以下に作成されます．
 
 キャプチャモジュール 0 がキャプチャした波形
+
 ![キャプチャモジュール 0 がキャプチャした波形](images/AWG_0_step_0_captured.png)
 
 キャプチャモジュール 1 がキャプチャした波形
+
 ![キャプチャモジュール 1 がキャプチャした波形](images/AWG_1_step_0_captured.png)
