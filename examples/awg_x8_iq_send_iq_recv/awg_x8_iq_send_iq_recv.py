@@ -62,7 +62,7 @@ else:
     BITSTREAM = 7  # AWG SA DRAM CAPTURE
     PLOT_DIR = "plot_awg_x8_iq_send_iq_recv/"
     DAC_FREQ = 6554.0
-    ADC_FREQ = 1843.2
+    ADC_FREQ = 1720.32
     CAPTURE_DELAY = 250
 
 # Constants
@@ -520,7 +520,7 @@ def set_wave_sequence(awg_sa_cmd):
 
     for awg_id in awg_list:
         # 波形の定義
-        num_cycles = int(5.0 * awg_to_freq[awg_id]) # 5.0[us]
+        num_cycles = int(6.0 * awg_to_freq[awg_id]) # 6.0[us]
         i_wave = awgsa.AwgWave(
             wave_type = awgsa.AwgWave.SINE,
             frequency = awg_to_freq[awg_id],
