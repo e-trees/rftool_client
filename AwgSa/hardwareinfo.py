@@ -3,6 +3,7 @@
 
 AWG_CLK_FREQ = 300 #MHz
 WAVE_SAMPLE_SIZE = 2 #bytes
+PL_DDR4_RAM_SIZE = 0x100000000
 
 class WaveStepParamsLayout(object):
     """
@@ -23,3 +24,4 @@ class WaveStepParamsLayout(object):
     LAST_CYCLE_NUM_SAMPLES_SIZE = 4
     NUM_CYCLES_SIZE = 4
     INTERVAL_SIZE = 4
+

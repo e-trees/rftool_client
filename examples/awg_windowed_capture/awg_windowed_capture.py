@@ -49,7 +49,7 @@ if is_infinite_windows:
     NUM_CYCLES_IN_WINDOW = 10
     NUM_CYCLES = -1
 else:
-    NUM_WINDOWS = 10000
+    NUM_WINDOWS = 60
     NUM_CYCLES_IN_WINDOW = 10
     NUM_CYCLES = NUM_WINDOWS * NUM_CYCLES_IN_WINDOW
 

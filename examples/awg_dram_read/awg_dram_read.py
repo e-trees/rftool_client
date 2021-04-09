@@ -2,8 +2,12 @@
 # coding: utf-8
 
 """
-AWG x8 サンプルプログラム
-各 AWG から特定の周波数の正弦波を出力してキャプチャする.
+アドレスとデータサイズを指定して DRAM からデータを読み取るサンプルプログラム.
+本プログラムでは, DRAM のアドレスとデータサイズを指定して, キャプチャデータを読み出す.
+DRAM キャプチャ版 も BRAM キャプチャ版 もキャプチャデータは, キャプチャ完了後に DRAM に格納されるので, 
+DRAM 読み取りメソッド (AwgSaCommand.read_dram) によって, キャプチャデータを取得できる.
+なお, 通常, キャプチャデータを取得する際は, AwgSaCommand.read_dram メソッドを使うのではなく, 
+AwgSaCommand.read_capture_data メソッドを使うことを推奨する.
 """
 
 import os
@@ -38,13 +42,13 @@ LOG_LEVEL = logging.INFO
 # Constants
 if is_private_capture_ram:
     BITSTREAM = 9  # AWG SA BRAM CAPTURE
-    PLOT_DIR = "plot_awg_x8_send_recv_prv_cap_ram/"
+    PLOT_DIR = "plot_awg_dram_read_prv_cap_ram/"
     DAC_FREQ = 6554.0
     ADC_FREQ = 4096.0
     CAPTURE_DELAY = 143
 else:
     BITSTREAM = 7  # AWG SA DRAM CAPTURE
-    PLOT_DIR = "plot_awg_x8_send_recv/"
+    PLOT_DIR = "plot_awg_dram_read/"
     DAC_FREQ = 6554.0
     ADC_FREQ = 3563.52
     CAPTURE_DELAY = 151
@@ -57,18 +61,10 @@ DUC_DDC_FACTOR = 1
 ADC = 0
 DAC = 1
 
-awg_list = [awgsa.AwgId.AWG_0, awgsa.AwgId.AWG_1, awgsa.AwgId.AWG_2, awgsa.AwgId.AWG_3, 
-            awgsa.AwgId.AWG_4, awgsa.AwgId.AWG_5, awgsa.AwgId.AWG_6, awgsa.AwgId.AWG_7]
+awg_list = [awgsa.AwgId.AWG_0, awgsa.AwgId.AWG_1]
 
 awg_to_freq = { awgsa.AwgId.AWG_0 : 10,
-                awgsa.AwgId.AWG_1 : 20,
-                awgsa.AwgId.AWG_2 : 655.4,
-                awgsa.AwgId.AWG_3 : 595.81,
-                awgsa.AwgId.AWG_4 : 546.16,
-                awgsa.AwgId.AWG_5 : 504.15,
-                awgsa.AwgId.AWG_6 : 468.14,
-                awgsa.AwgId.AWG_7 : 436.93,
-            } #MHz
+                awgsa.AwgId.AWG_1 : 20 } #MHz
 
 def calculate_min_max(sample, chunks):
     sample_rs = np.reshape(sample, (-1, chunks))
@@ -480,14 +476,14 @@ def set_wave_sequence(awg_sa_cmd):
             frequency = awg_to_freq[awg_id],
             phase = 0,
             amplitude = 30000,
-            num_cycles = 10)
+            num_cycles = 8)
 
         wave_1 = awgsa.AwgWave(
-            wave_type = awgsa.AwgWave.SINE,
+            wave_type = awgsa.AwgWave.SAWTOOTH,
             frequency = awg_to_freq[awg_id],
             phase = 0,
             amplitude = 30000,
-            num_cycles = int(2.5 * awg_to_freq[awg_id])) #2.5us
+            num_cycles = 5)
 
         # 波形シーケンスの定義
         # 波形ステップの開始から終了までの期間は, キャプチャの終了処理にかかるオーバーヘッドを考慮し, 波形出力期間 + 2000 ns を設定する.
@@ -586,34 +582,22 @@ def main():
             check_intr_flags(rft.command, ADC, ch)
         for ch in range(8):
             check_intr_flags(rft.command, DAC, ch)
-        
-        # キャプチャデータ取得
+
+        # キャプチャデータのアドレスとサイズを指定してキャプチャデータを取得する
         print("Get capture data.")
         nu = ndarrayutil.NdarrayUtil
         awg_id_to_wave_samples = {}
         for awg_id in awg_list:
-            wave_data = rft.awg_sa_cmd.read_capture_data(awg_id, step_id = 0)
-            awg_id_to_wave_samples[awg_id] = nu.bytes_to_real_32(wave_data)
+            (addr, size) = rft.awg_sa_cmd.get_capture_section_info(awg_id, step_id = 0)
+            capture_data_0 = rft.awg_sa_cmd.read_dram(addr, size)
+            (addr, size) = rft.awg_sa_cmd.get_capture_section_info(awg_id, step_id = 1)
+            capture_data_1 = rft.awg_sa_cmd.read_dram(addr, size)
+            awg_id_to_wave_samples[awg_id] = (nu.bytes_to_real_32(capture_data_0), nu.bytes_to_real_32(capture_data_1))
 
         # キャプチャデータ出力
         print("Output capture data.")
         for awg_id, wave_samples in awg_id_to_wave_samples.items():
-            output_graphs((awg_id, 0, wave_samples))
-
-        # スペクトラム取得
-        print("Get spectrums.")
-        num_frames = 1
-        start_sample_idx = 16 # FFT 開始サンプルのインデックス
-        fft_size = rft.awg_sa_cmd.get_fft_size()
-        awg_id_to_spectrum = {}
-        for awg_id in awg_list:
-            awg_id_to_spectrum[awg_id] = rft.awg_sa_cmd.get_spectrum(
-                awg_id, step_id = 1,
-                start_sample_idx = start_sample_idx, num_frames = num_frames, is_iq_data = False)
-
-        # スペクトラム出力
-        print("Output spectrums.")
-        output_spectrum_data(awg_id_to_spectrum, num_frames, 1, fft_size)
+            output_graphs((awg_id, 0, wave_samples[0]), (awg_id, 1, wave_samples[1]))
 
         # 送信波形をグラフ化
         for awg_id in awg_list:

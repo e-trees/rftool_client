@@ -13,6 +13,7 @@ from AwgSa import FlattenedWaveformSequence
 from AwgSa import FlattenedIQWaveformSequence
 from AwgSa import ExternalTriggerId
 from AwgSa import TriggerMode
+from AwgSa import PL_DDR4_RAM_SIZE
 
 class AwgSaCommand(object):
     """AWG SA 制御用のコマンドを定義するクラス"""
@@ -220,7 +221,7 @@ class AwgSaCommand(object):
         Parameters
         ----------
         awg_id : AwgId
-            読み取るキャプチャステップを含むキャプチャシーケンスをセットした AWG の ID
+            読み取るキャプチャステップを含むキャプチャシーケンスをセットしたキャプチャモジュールの ID
         step_id : int
             読み取るキャプチャステップのID
         
@@ -784,11 +785,80 @@ class AwgSaCommand(object):
         command = self.__joinargs("TerminateAwgs", termination_flag_list)
         self.__rft_ctrl_if.put(command)
 
+
     def terminate_all_awgs(self):
         """
         全ての AWG に停止命令を発行する.
         AWG が停止命令を受け取ったときに実行中のキャプチャは最後まで実行される.
-        AWG の停止までブロックするわけではないので, 停止の確認は is_wave_sequence_complete メソッドの戻り値が
+        AWG が停止するまでブロックするわけではないので, 停止の確認は is_wave_sequence_complete メソッドの戻り値が
         AwgSaCmdResult.WAVE_SEQUENCE_COMPLETE かどうかで判断すること.
         """
         self.__rft_ctrl_if.put("TerminateAllAwgs")
+
+
+    def read_dram(self, offset, size):
+        """
+        PL に接続された外部 DRAM の任意のアドレスからデータを読み取る.
+        
+        Parameters
+        ----------
+        offset : int
+            データを取得するアドレス
+        size : int
+            読み取るサイズ (Bytes)
+        
+        Returns
+        -------
+        data : bytes
+            DRAM のデータ
+        """
+        if (not isinstance(offset, int) or (offset < 0 or 0xFFFFFFFF < offset)):
+            raise ValueError("invalid offset " + str(offset))
+
+        if (not isinstance(size, int) or (size <= 0 or PL_DDR4_RAM_SIZE < (size + offset))):
+            raise ValueError(
+                "invalid read addr range  ({} - {})\n".format(offset, size + offset - 1) + 
+                "The valid one is 0 to {}.".format(PL_DDR4_RAM_SIZE - 1))
+
+        command = self.__joinargs("ReadDram", [offset, size])
+        self.__rft_data_if.send_command(command)
+        res = self.__rft_data_if.recv_response().rstrip('\r\n') # キャプチャデータの前のコマンド成否レスポンス  AWG_SUCCESS/AWG_FAILURE
+        if (res == "AWG_SUCCESS"):
+            data = self.__rft_data_if.recv_data(size)
+            res = self.__rft_data_if.recv_response() # end of capture data
+
+        res = self.__rft_data_if.recv_response() # end of 'ReadDram' command
+        if res[:5] == "ERROR":
+            raise rfterr.RftoolExecuteCommandError(res)
+        self.__logger.debug(res)
+        return data
+
+
+    def get_capture_section_info(self, awg_id, step_id):
+        """
+        キャプチャモジュールの ID とキャプチャステップから, 
+        対応するキャプチャデータの格納先の RAM のアドレスとデータサイズ (Bytes) を取得する.
+        set_capture_config でキャプチャシーケンスをキャプチャモジュールにセットしてから呼ぶこと.
+
+        Parameters
+        ----------
+        awg_id : AwgId
+            引数で指定したキャプチャデータを取得するキャプチャモジュールの ID
+        step_id : int
+            引数で指定したキャプチャデータを取得するステップの ID
+        
+        Returns
+        -------
+        (addr, data_size) : (int, int)
+            引数で指定したキャプチャデータの格納先である RAM のアドレスとデータサイズ
+        """
+        if (not AwgId.has_value(awg_id)):
+            raise ValueError("invalid awg_id  " + str(awg_id))
+        
+        if (not isinstance(step_id, int) or (step_id < 0 or 0x7FFFFFFF < step_id)):
+            raise ValueError("invalid step_id " + str(step_id))
+
+        command = self.__joinargs("GetCaptureSectionInfo", [int(awg_id), step_id])
+        res = self.__rft_ctrl_if.put(command)
+        [addr, data_size] = self.__split_response(res, ",")
+        return (int(addr), int(data_size))

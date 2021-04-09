@@ -36,3 +36,6 @@ from .externaltriggerid import *
 
 from . import triggermode
 from .triggermode import *
+
+from . import hardwareinfo
+from .hardwareinfo import *

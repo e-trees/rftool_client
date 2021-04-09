@@ -105,7 +105,29 @@ awg_sa_cmd.set_capture_config(capture_config)
 
 ![AWGに登録されたキャプチャシーケンスの例](images/capture-sequence-registration-example.png)
 
+## キャプチャデータの取得
+
+キャプチャデータの取得には，`AwgSaCommand` クラスの `read_capture_data` メソッドを使用します．
+キャプチャパラメータの設定によっては，キャプチャステップがスキップされたり，ADC データの取りこぼしが発生する場合があるので，
+キャプチャデータの取得前には，同クラスの `is_capture_step_skipped` メソッドと `is_capture_data_fifo_overflowed` メソッドを使って，これらのエラーが発生していないかチェックしてください．
+
+### 使用例
+
+APIの使用例とその動作例は次の通りです．
+
+```
+# キャプチャエラーチェック
+if awg_sa_cmd.is_capture_step_skipped(awgsa.AwgId.AWG_0, step_id = 1):
+    raise Exception("キャプチャモジュール 0 のキャプチャステップ 1 がスキップされました")
+
+if awg_sa_cmd.is_capture_data_fifo_overflowed(awgsa.AwgId.AWG_0, step_id = 1):
+    raise Exception("キャプチャモジュール 0 のキャプチャステップ 1 で ADC データの取りこぼしが発生しました")
+
+# キャプチャデータの取得
+capture_data = awg_sa_cmd.read_capture_data(awgsa.AwgId.AWG_0, step_id = 1)
+
+```
+
 ## キャプチャシーケンスに関する補足
 
 ![キャプチャシーケンスに関する補足](images/capture-add-note-ja.png)
-
