@@ -536,7 +536,7 @@ def set_capture_sequence(awg_sa_cmd, seq_0, seq_1):
 
     capture_1 = awgsa.AwgCapture(
         time = seq_1.get_wave(step_id = 0).get_duration() + 20,
-        delay = 270,
+        delay = 290,
         do_accumulation = False)
 
     # キャプチャシーケンスの定義

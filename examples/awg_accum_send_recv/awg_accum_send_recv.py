@@ -47,7 +47,7 @@ else:
     PLOT_DIR = "plot_awg_accum_send_recv/"
     DAC_FREQ = 6554.0
     ADC_FREQ = 1843.2
-    CAPTURE_DELAY = 190
+    CAPTURE_DELAY = 220
 
 BITSTREAM_LOAD_TIMEOUT = 10
 TRIG_BUSY_TIMEOUT = 60

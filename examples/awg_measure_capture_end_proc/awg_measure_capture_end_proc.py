@@ -8,13 +8,12 @@
 これにより, DDR4 への書き込みパスがビジーであるときにどのくらい後処理が遅れるかを測定する.
 """
 
-from RftoolClient import client, rfterr, wavegen, ndarrayutil
-import AwgSa as awgsa
 import os
 import sys
 import time
 import logging
 import numpy as np
+import pathlib
 from scipy import fftpack
 try:
     import matplotlib
@@ -22,6 +21,11 @@ try:
     matplotlib.rcParams["agg.path.chunksize"] = 20000
 finally:
     import matplotlib.pyplot as plt
+
+lib_path = str(pathlib.Path(__file__).resolve().parents[2])
+sys.path.append(lib_path)
+from RftoolClient import client, rfterr, wavegen, ndarrayutil
+import AwgSa as awgsa
 
 # Parameters
 ZCU111_IP_ADDR = "192.168.1.3"
@@ -56,71 +60,90 @@ def set_awg_capture_params(param_sel):
     global awg_to_freq
     global awg_to_num_cycles
     global do_accumulation
+    global POST_BLANK
 
     if param_sel == 0:
+        POST_BLANK = 1800
         awg_list = [awgsa.AwgId.AWG_0, awgsa.AwgId.AWG_2]
         do_accumulation = False
         tile_to_sampling_rate = {
-            0 : 1228.8, # awg 0, awg 1
-            1 : 2457.6, # awg 2, awg 3
-            2 : 1228.8, # awg 4, awg 5
-            3 : 1228.8  # awg 6, awg 7
+            0 : 1228.8,  # awg 0, awg 1
+            1 : 2211.84, # awg 2, awg 3
+            2 : 1228.8,  # awg 4, awg 5
+            3 : 1228.8   # awg 6, awg 7
         }
     elif param_sel == 1:
+        POST_BLANK = 1800
         awg_list = [awgsa.AwgId.AWG_1, awgsa.AwgId.AWG_4]
         do_accumulation = False
         tile_to_sampling_rate = {
-            0 : 1228.8, # awg 0, awg 1
-            1 : 1228.8, # awg 2, awg 3
-            2 : 2457.6, # awg 4, awg 5
-            3 : 1228.8  # awg 6, awg 7
+            0 : 1228.8,  # awg 0, awg 1
+            1 : 1228.8,  # awg 2, awg 3
+            2 : 2211.84, # awg 4, awg 5
+            3 : 1228.8   # awg 6, awg 7
         }
     elif param_sel == 2:
+        POST_BLANK = 2200
         awg_list = [awgsa.AwgId.AWG_0, awgsa.AwgId.AWG_1, awgsa.AwgId.AWG_2]
         do_accumulation = False
         tile_to_sampling_rate = {
             0 : 1044.48, # awg 0, awg 1
-            1 : 1597.44, # awg 2, awg 3
+            1 : 1228.8,  # awg 2, awg 3
             2 : 1044.48, # awg 4, awg 5
             3 : 1044.48  # awg 6, awg 7
         }
     elif param_sel == 3:
+        POST_BLANK = 2200
         awg_list = [awgsa.AwgId.AWG_3, awgsa.AwgId.AWG_4, awgsa.AwgId.AWG_7]
         do_accumulation = False
         tile_to_sampling_rate = {
             0 : 1044.48, # awg 0, awg 1
             1 : 1044.48, # awg 2, awg 3
             2 : 1044.48, # awg 4, awg 5
-            3 : 1597.44  # awg 6, awg 7
+            3 : 1228.8   # awg 6, awg 7
         }
     elif param_sel == 4:
+        POST_BLANK = 1800
         awg_list = [awgsa.AwgId.AWG_2, awgsa.AwgId.AWG_4]
         do_accumulation = False
         tile_to_sampling_rate = {
-            0 : 1904.64, # awg 0, awg 1
-            1 : 1904.64, # awg 2, awg 3
-            2 : 1904.64, # awg 4, awg 5
-            3 : 1904.64  # awg 6, awg 7
+            0 : 1597.44, # awg 0, awg 1
+            1 : 1597.44, # awg 2, awg 3
+            2 : 1597.44, # awg 4, awg 5
+            3 : 1597.44  # awg 6, awg 7
         }
     elif param_sel == 5:
+        POST_BLANK = 1300
         awg_list = [awgsa.AwgId.AWG_2]
         do_accumulation = False
         tile_to_sampling_rate = {
             0 : 1228.8,  # awg 0, awg 1
-            1 : 3747.84, # awg 2, awg 3
+            1 : 3563.52, # awg 2, awg 3   3686.4 はダメ 2021/04/09
             2 : 1228.8,  # awg 4, awg 5
             3 : 1228.8   # awg 6, awg 7
         }
     elif param_sel == 6:
-        awg_list = [awgsa.AwgId.AWG_2, awgsa.AwgId.AWG_0]
+        POST_BLANK = 1800
+        awg_list = [awgsa.AwgId.AWG_2, awgsa.AwgId.AWG_4]
         do_accumulation = False
         tile_to_sampling_rate = {
-            0 : 2703.36, # awg 0, awg 1
+            0 : 2457.6,  # awg 0, awg 1
             1 : 1044.48, # awg 2, awg 3
-            2 : 2703.36, # awg 4, awg 5
-            3 : 2703.36  # awg 6, awg 7
+            2 : 1044.48, # awg 4, awg 5
+            3 : 1044.48  # awg 6, awg 7
         }
     elif param_sel == 7:
+        POST_BLANK = 2200
+        awg_list = [awgsa.AwgId.AWG_2, awgsa.AwgId.AWG_4, awgsa.AwgId.AWG_6]
+        do_accumulation = False
+        tile_to_sampling_rate = {
+            0 : 1105.92,  # awg 0, awg 1
+            1 : 1105.92, # awg 2, awg 3
+            2 : 1105.92, # awg 4, awg 5
+            3 : 1105.92  # awg 6, awg 7
+        }
+    elif param_sel == 8:
+        POST_BLANK = 1300
         awg_list = [awgsa.AwgId.AWG_2]
         do_accumulation = True
         tile_to_sampling_rate = {
@@ -138,7 +161,7 @@ def set_awg_capture_params(param_sel):
         awg_id = awg_list[i]
         awg_to_freq[awg_id] = freq
         awg_to_num_cycles[awg_id] = (base_cycle * (i + 1), base_cycle * (3 - i))
-
+    
 
 def calculate_min_max(sample, chunks):
     sample_rs = np.reshape(sample, (-1, chunks))
@@ -301,6 +324,22 @@ def set_dac_sampling_rate(rftcmd, dac_sampling_rate):
     return
 
 
+def shutdown_all_tiles(rftcmd):
+    """
+    DAC と ADC の全タイルをシャットダウンする
+    """
+    rftcmd.Shutdown(DAC, -1)
+    rftcmd.Shutdown(ADC, -1)
+
+
+def startup_all_tiles(rftcmd):
+    """
+    DAC と ADC の全タイルを起動する
+    """
+    rftcmd.StartUp(DAC, -1)
+    rftcmd.StartUp(ADC, -1)
+
+
 def wait_for_sequence_to_finish(awg_sa_cmd, awg_id):
     """
     波形シーケンスの出力とキャプチャが終了するまで待つ
@@ -387,7 +426,6 @@ def set_wave_sequence(awg_sa_cmd):
     波形シーケンスを AWG にセットする
     """
     awg_to_wave_sequence = {}
-
     for awg_id in awg_list:
         # 波形の定義
         freq = awg_to_freq[awg_id]
@@ -395,17 +433,14 @@ def set_wave_sequence(awg_sa_cmd):
         num_cycles_1 = awg_to_num_cycles[awg_id][1]
         wave_0 = awgsa.AwgWave(wave_type = awgsa.AwgWave.SINE, frequency = freq, num_cycles = num_cycles_0)
         wave_1 = awgsa.AwgWave(wave_type = awgsa.AwgWave.SINE, frequency = freq, num_cycles = num_cycles_1)
-
         # 波形シーケンスの定義
         # post_blank は, キャプチャの終了処理にかかるオーバーヘッドを考慮して設定する.
         wave_sequence = (awgsa.WaveSequence(DAC_FREQ)
             .add_step(step_id = 0, wave = wave_0, post_blank = POST_BLANK)
             .add_step(step_id = 1, wave = wave_1, post_blank = POST_BLANK))
-
         # AWG に波形シーケンスをセットする
         awg_sa_cmd.set_wave_sequence(awg_id = awg_id, wave_sequence = wave_sequence, num_repeats = 10)
         awg_to_wave_sequence[awg_id] = wave_sequence
-
     return awg_to_wave_sequence
 
 
@@ -414,28 +449,24 @@ def set_capture_sequence(awg_sa_cmd, awg_to_wave_sequence):
     キャプチャシーケンスを AWG にセットする
     """
     capture_config = awgsa.CaptureConfig()
-
     for awg_id, wave_sequence in awg_to_wave_sequence.items():
         capture_0 = awgsa.AwgCapture(
             time = wave_sequence.get_wave(step_id = 0).get_duration(),
             delay = 0,
             do_accumulation = do_accumulation)
-
         capture_1 = awgsa.AwgCapture(
             time = wave_sequence.get_wave(step_id = 1).get_duration(),
             delay = 0,
             do_accumulation = do_accumulation)
-
         # キャプチャシーケンスの定義
         tile = awg_sa_cmd.get_adc_tile_id_by_awg_id(awg_id)
         sampling_rate = tile_to_sampling_rate[tile]
         capture_sequence = (awgsa.CaptureSequence(sampling_rate)
             .add_step(step_id = 0, capture = capture_0)
             .add_step(step_id = 1, capture = capture_1))
-       
+     
         # キャプチャシーケンスとキャプチャモジュールを対応付ける
         capture_config.add_capture_sequence(awg_id, capture_sequence)
-
     # キャプチャモジュールにキャプチャシーケンスを設定する
     awg_sa_cmd.set_capture_config(capture_config)
 
@@ -443,14 +474,18 @@ def set_capture_sequence(awg_sa_cmd, awg_to_wave_sequence):
 def main():   
 
     with client.RftoolClient(logger=logger) as rft:
+
         print("Connect to RFTOOL Server.")
         rft.connect(ZCU111_IP_ADDR)
         rft.command.TermMode(0)
 
         print("Configure Bitstream.")
         config_bitstream(rft.command, BITSTREAM)
+        shutdown_all_tiles(rft.command)
         set_adc_sampling_rate(rft.command)
         set_dac_sampling_rate(rft.command, DAC_FREQ)
+        startup_all_tiles(rft.command)
+        
         setup_dac(rft.command)
         setup_adc(rft.command)
 
