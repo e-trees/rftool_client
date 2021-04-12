@@ -34,9 +34,9 @@ LOG_LEVEL = logging.INFO
 # Constants
 BITSTREAM = 7  # AWG SA DRAM CAPTURE
 PLOT_DIR = "plot_awg_windowed_capture/"
-DAC_FREQ = 1474.56
-ADC_FREQ = 1474.56
-CAPTURE_DELAY = 320
+DAC_FREQ = 1228.8
+ADC_FREQ = 1228.8
+CAPTURE_DELAY = 500
 POST_BLANK = 2000
 
 BITSTREAM_LOAD_TIMEOUT = 10
@@ -51,7 +51,7 @@ if is_infinite_windows:
 else:
     NUM_WINDOWS = 10000
     NUM_CYCLES_IN_WINDOW = 15
-    NUM_CYCLES = NUM_WINDOWS * NUM_CYCLES_IN_WINDOW
+    NUM_CYCLES = NUM_WINDOWS * NUM_CYCLES_IN_WINDOW + 10
 
 # ADC or DAC
 ADC = 0
@@ -359,7 +359,7 @@ def set_capture_sequence(awg_sa_cmd, awg_id_to_wave_sequence):
     capture_config = awgsa.CaptureConfig()
 
     for awg_id, wave_sequence in awg_id_to_wave_sequence.items():
-        # DAC から出力する波形 10 サイクル分の期間をキャプチャ時間とする
+        # DAC から出力する波形の NUM_CYCLES_IN_WINDOW サイクル分の期間をキャプチャ時間とする
         num_dac_wave_samples = int(DAC_FREQ / wave_sequence.get_wave(0).get_frequency())
         capture = awgsa.AwgWindowedCapture(
             time = 1000 * NUM_CYCLES_IN_WINDOW * num_dac_wave_samples / ADC_FREQ,
@@ -401,6 +401,10 @@ def main():
 
         print("Configure Bitstream.")
         config_bitstream(rft.command, BITSTREAM)
+        shutdown_all_tiles(rft.command)
+        set_adc_sampling_rate(rft.command, ADC_FREQ)
+        set_dac_sampling_rate(rft.command, DAC_FREQ)
+        startup_all_tiles(rft.command)
         setup_dac(rft.command)
         setup_adc(rft.command)
         # 初期化    
@@ -435,7 +439,7 @@ def main():
         print("Output capture data.")
         for awg_id, wave_samples in awg_id_to_wave_samples.items():
             output_graphs((awg_id, 0, wave_samples))
-
+        
     print("Done.")
     return
 
