@@ -131,3 +131,8 @@ capture_data = awg_sa_cmd.read_capture_data(awgsa.AwgId.AWG_0, step_id = 1)
 ## キャプチャシーケンスに関する補足
 
 ![キャプチャシーケンスに関する補足](images/capture-add-note-ja.png)
+
+### キャプチャの後処理
+各キャプチャには後処理が必要で，BRAMキャプチャ版および MTS 版では 830 ns 程度かかり，DRAM キャプチャ版では 2080 ns 程度かかります．通常，キャプチャのタイミングは，この後処理時間を考慮して決めなければなりませんが，ADC のサンプリングレートやキャプチャ時間などの条件によっては，後処理を次のキャプチャの間に終えることができるので，
+その場合，後処理が無いものとしてキャプチャのタイミングを決められます．
+詳細は，example/awg_x8_continuous_send_recv 以下の [README.md](../examples/awg_x8_continuous_send_recv/README.md) ファイルを参照してください．
