@@ -25,17 +25,31 @@ sys.path.append(lib_path)
 from RftoolClient import client, rfterr, wavegen, ndarrayutil
 import AwgSa as awgsa
 
+try:
+    is_private_capture_ram = (sys.argv[1] == "prv_cap_ram")
+except Exception:
+    is_private_capture_ram = False
+
 # Parameters
 ZCU111_IP_ADDR = "192.168.1.3"
 # Log level
 LOG_LEVEL = logging.INFO
 
 # Constants
-BITSTREAM = 9  # AWG SA BRAM CAPTURE
-PLOT_DIR = "plot_awg_x8_continuous_send_recv_prv_cap_ram/"
-DAC_FREQ = 6554.0
-ADC_FREQ = 4096.0
-CAPTURE_DELAY = 148 # ns
+if is_private_capture_ram:
+    BITSTREAM = 9  # AWG SA BRAM CAPTURE
+    PLOT_DIR = "plot_awg_x8_send_recv_prv_cap_ram/"
+    DAC_FREQ = 6554.0
+    ADC_FREQ = 4096.0
+    CAPTURE_DELAY = 143
+    WAVE_STEP_DURATION = 2.5 #us
+else:
+    BITSTREAM = 7  # AWG SA DRAM CAPTURE
+    PLOT_DIR = "plot_awg_x8_send_recv/"
+    DAC_FREQ = 6554.0
+    ADC_FREQ = 3440.64
+    CAPTURE_DELAY = 173
+    WAVE_STEP_DURATION = 5 #us
 
 BITSTREAM_LOAD_TIMEOUT = 10
 TRIG_BUSY_TIMEOUT = 60
@@ -467,14 +481,14 @@ def set_wave_sequence(awg_sa_cmd):
             frequency = awg_to_freq[awg_id][0],
             phase = 0,
             amplitude = 30000,
-            num_cycles = int(2.5 * awg_to_freq[awg_id][0])) #2.5us
+            num_cycles = int(WAVE_STEP_DURATION * awg_to_freq[awg_id][0])) #2.5us
 
         wave_1 = awgsa.AwgWave(
             wave_type = awgsa.AwgWave.SINE,
             frequency = awg_to_freq[awg_id][1],
             phase = 0,
             amplitude = 30000,
-            num_cycles = int(2.5 * awg_to_freq[awg_id][1])) #2.5us
+            num_cycles = int(WAVE_STEP_DURATION * awg_to_freq[awg_id][1])) #2.5us
 
         # 波形シーケンスの定義
         wave_sequence = (awgsa.WaveSequence(DAC_FREQ)
@@ -522,10 +536,19 @@ def start_awg_and_capture(awg_sa_cmd):
     """
     波形の出力とキャプチャを開始する
     """
-    # 全チャネル同時に波形出力とキャプチャを行う
-    print("start all AWGs")
-    awg_sa_cmd.start_wave_sequence()
-    wait_for_sequence_to_finish(awg_sa_cmd, *awg_list)
+    if is_private_capture_ram:
+        # 全チャネル同時に波形出力とキャプチャを行う
+        print("start all AWGs")
+        awg_sa_cmd.start_wave_sequence()
+        wait_for_sequence_to_finish(awg_sa_cmd, *awg_list)
+    else:
+        # 1 チャネルずつ波形出力とキャプチャを行う
+        for awg_id in awg_list:
+            print("start AWG {}".format(awg_id))
+            awg_sa_cmd.disable_awg(*awg_list)
+            awg_sa_cmd.enable_awg(awg_id)
+            awg_sa_cmd.start_wave_sequence()
+            wait_for_sequence_to_finish(awg_sa_cmd, awg_id)
 
 
 def main():
@@ -579,7 +602,6 @@ def main():
         num_frames = 1
         start_sample_idx = 0 # FFT 開始サンプルのインデックス
         fft_size = rft.awg_sa_cmd.get_fft_size()
-        awg_id_to_spectrum = {}
         for awg_id in awg_list:
             print("Get capture {} spectrums.".format(awg_id))
             for step_id in [0, 1]:

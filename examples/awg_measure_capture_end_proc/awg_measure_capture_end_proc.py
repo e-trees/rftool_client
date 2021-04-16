@@ -63,7 +63,7 @@ def set_awg_capture_params(param_sel):
     global POST_BLANK
 
     if param_sel == 0:
-        POST_BLANK = 1800
+        POST_BLANK = 0
         awg_list = [awgsa.AwgId.AWG_0, awgsa.AwgId.AWG_2]
         do_accumulation = False
         tile_to_sampling_rate = {
@@ -73,7 +73,7 @@ def set_awg_capture_params(param_sel):
             3 : 1228.8   # awg 6, awg 7
         }
     elif param_sel == 1:
-        POST_BLANK = 1800
+        POST_BLANK = 0
         awg_list = [awgsa.AwgId.AWG_1, awgsa.AwgId.AWG_4]
         do_accumulation = False
         tile_to_sampling_rate = {
@@ -83,7 +83,7 @@ def set_awg_capture_params(param_sel):
             3 : 1228.8   # awg 6, awg 7
         }
     elif param_sel == 2:
-        POST_BLANK = 2200
+        POST_BLANK = 0
         awg_list = [awgsa.AwgId.AWG_0, awgsa.AwgId.AWG_1, awgsa.AwgId.AWG_2]
         do_accumulation = False
         tile_to_sampling_rate = {
@@ -93,7 +93,7 @@ def set_awg_capture_params(param_sel):
             3 : 1044.48  # awg 6, awg 7
         }
     elif param_sel == 3:
-        POST_BLANK = 2200
+        POST_BLANK = 0
         awg_list = [awgsa.AwgId.AWG_3, awgsa.AwgId.AWG_4, awgsa.AwgId.AWG_7]
         do_accumulation = False
         tile_to_sampling_rate = {
@@ -103,7 +103,7 @@ def set_awg_capture_params(param_sel):
             3 : 1228.8   # awg 6, awg 7
         }
     elif param_sel == 4:
-        POST_BLANK = 1800
+        POST_BLANK = 0
         awg_list = [awgsa.AwgId.AWG_2, awgsa.AwgId.AWG_4]
         do_accumulation = False
         tile_to_sampling_rate = {
@@ -113,7 +113,7 @@ def set_awg_capture_params(param_sel):
             3 : 1597.44  # awg 6, awg 7
         }
     elif param_sel == 5:
-        POST_BLANK = 1300
+        POST_BLANK = 0
         awg_list = [awgsa.AwgId.AWG_2]
         do_accumulation = False
         tile_to_sampling_rate = {
@@ -123,7 +123,7 @@ def set_awg_capture_params(param_sel):
             3 : 1228.8   # awg 6, awg 7
         }
     elif param_sel == 6:
-        POST_BLANK = 1800
+        POST_BLANK = 0
         awg_list = [awgsa.AwgId.AWG_2, awgsa.AwgId.AWG_4]
         do_accumulation = False
         tile_to_sampling_rate = {
@@ -133,7 +133,7 @@ def set_awg_capture_params(param_sel):
             3 : 1044.48  # awg 6, awg 7
         }
     elif param_sel == 7:
-        POST_BLANK = 2200
+        POST_BLANK = 0
         awg_list = [awgsa.AwgId.AWG_2, awgsa.AwgId.AWG_4, awgsa.AwgId.AWG_6]
         do_accumulation = False
         tile_to_sampling_rate = {
@@ -143,7 +143,7 @@ def set_awg_capture_params(param_sel):
             3 : 1105.92  # awg 6, awg 7
         }
     elif param_sel == 8:
-        POST_BLANK = 1300
+        POST_BLANK = 0
         awg_list = [awgsa.AwgId.AWG_2]
         do_accumulation = True
         tile_to_sampling_rate = {
