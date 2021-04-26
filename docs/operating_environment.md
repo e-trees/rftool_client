@@ -15,3 +15,4 @@
 1. 「pipenv install --python=/home/<WSLのユーザー名>/.pyenv/versions/3.7.5/bin/python」 で仮想環境を作成します
 1. 「pipenv shell」で仮想環境に入ります
 1. 以降は各サンプルを実行してください
+
