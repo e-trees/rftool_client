@@ -4,9 +4,11 @@
 波形シーケンス全体の波形と各波形ステップの開始時刻と終了時刻が示されます．
 
 Realデータ波形シーケンスの例
+
 ![Realデータ波形シーケンスの例](images/wave-sequence-vis-example-1.png)
 
 I/Qデータ波形シーケンスの例
+
 ![I/Qデータ波形シーケンスの例](images/wave-sequence-vis-example-2.png)
 
 ## 波形シーケンス可視化機能クラス
