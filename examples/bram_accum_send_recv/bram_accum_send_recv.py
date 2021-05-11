@@ -38,7 +38,7 @@ sys.path.append(lib_path)
 from RftoolClient import client, rfterr, wavegen, ndarrayutil
 
 ## Variables
-ZCU111_IP_ADDR = "192.168.1.3"
+ZCU111_IP_ADDR = os.environ.get('ZCU111_IP_ADDR', "192.168.1.3")
 DAC_SAMPLES = 32768  # DAC num of samples
 ADC_SAMPLES = 32768  # ADC num of samples
 DUC_DDC_FACTOR = 1  # ADC decimation / DAC interpolation factor (1, 2, 4, 8)

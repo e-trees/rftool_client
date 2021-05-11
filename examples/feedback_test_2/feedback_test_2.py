@@ -39,7 +39,7 @@ class SelfTestFault(Exception):
     pass
 
 # Parameters
-ZCU111_IP_ADDR = "192.168.1.3"
+ZCU111_IP_ADDR = os.environ.get('ZCU111_IP_ADDR', "192.168.1.3")
 PLOT_DIR = "plot_feedback_test_2/"
 
 # Test channels
