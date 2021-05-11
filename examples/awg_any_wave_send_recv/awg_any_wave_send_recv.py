@@ -37,7 +37,7 @@ from RftoolClient import client, rfterr, wavegen, ndarrayutil
 import AwgSa as awgsa
 
 # Parameters
-ZCU111_IP_ADDR = "192.168.1.3"
+ZCU111_IP_ADDR = os.environ.get('ZCU111_IP_ADDR', "192.168.1.3")
 PLOT_DIR = "plot_awg_any_wave_send_recv/"
 
 # Log level

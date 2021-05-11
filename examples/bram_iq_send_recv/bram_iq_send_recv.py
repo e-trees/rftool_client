@@ -38,7 +38,7 @@ sys.path.append(lib_path)
 from RftoolClient import client, rfterr, wavegen, ndarrayutil
 
 ## Variables
-ZCU111_IP_ADDR = "192.168.1.3"
+ZCU111_IP_ADDR = os.environ.get('ZCU111_IP_ADDR', "192.168.1.3")
 DAC_SAMPLES = 16384  # DAC num of samples
 ADC_SAMPLES = 16384  # ADC num of samples
 CROP_PLOT = [0, 1024]  # crop samples for plot

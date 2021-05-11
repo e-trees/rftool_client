@@ -25,7 +25,7 @@ from RftoolClient import client, rfterr, wavegen, ndarrayutil
 import AwgSa as awgsa
 
 LOG_LEVEL = logging.INFO
-ZCU111_IP_ADDR = "192.168.1.3"
+ZCU111_IP_ADDR = os.environ.get('ZCU111_IP_ADDR', "192.168.1.3")
 DAC_FREQ = 4096.0
 BITSTREAM = 7 # AWG SA DRAM CAPTURE
 BITSTREAM_LOAD_TIMEOUT = 10

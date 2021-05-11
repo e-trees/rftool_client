@@ -31,7 +31,7 @@ except Exception:
     is_private_capture_ram = False
 
 # Parameters
-ZCU111_IP_ADDR = "192.168.1.3"
+ZCU111_IP_ADDR = os.environ.get('ZCU111_IP_ADDR', "192.168.1.3")
 # Log level
 LOG_LEVEL = logging.INFO
 

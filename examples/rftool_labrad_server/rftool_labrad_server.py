@@ -12,7 +12,7 @@ lib_path = str(pathlib.Path(__file__).resolve().parents[2])
 sys.path.append(lib_path)
 from RftoolClient import client, rfterr
 
-ZCU111_IP_ADDR = "192.168.1.3"
+ZCU111_IP_ADDR = os.environ.get('ZCU111_IP_ADDR', "192.168.1.3")
 LOG_LEVEL = logging.DEBUG
 BUF_MEM_SIZE = 1024 * 1024 * 1024
 
