@@ -5,6 +5,7 @@
 rftoolクライアント サンプルプログラム: 疎通確認プログラム
 """
 
+import os
 import sys
 import time
 import socket
