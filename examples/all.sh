@@ -18,7 +18,7 @@ EXAMPLES="./"
 (cd ${EXAMPLES}/awg_x8_continuous_send_recv; python awg_x8_continuous_send_recv.py)
 (cd ${EXAMPLES}/awg_x8_continuous_send_recv; python mts_awg_x8_continuous_send_recv.py)
 (cd ${EXAMPLES}/awg_x8_external_trigger; python awg_x8_external_trigger_1.py)
-(cd ${EXAMPLES}/awg_x8_external_trigger; python awg_x8_external_trigger_2.py)
+#(cd ${EXAMPLES}/awg_x8_external_trigger; python awg_x8_external_trigger_2.py)
 (cd ${EXAMPLES}/awg_x8_iq_send_iq_recv; python awg_x8_iq_send_iq_recv.py)
 (cd ${EXAMPLES}/awg_x8_send_recv; python awg_x8_send_recv.py)
 (cd ${EXAMPLES}/bram_accum_send_recv; python bram_accum_send_recv.py)
