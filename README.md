@@ -5,7 +5,7 @@ rftool_clinet
 
 ## Description
 
-## Demo
+See [docs/README.md](docs/README.md) for details.
 
 ## Requirement
 
