@@ -72,6 +72,8 @@ class WaveSequence(object):
             interval = float(wave.get_duration() + post_blank)
             if 1.4e+10 < interval:
                 raise ValueError("The time from the start to the end of the step {} is too long.".format(step_id))
+        else:
+            post_blank = 0
 
         self.__step_id_to_post_blank[step_id] = post_blank
         return self
@@ -194,16 +196,12 @@ class WaveSequence(object):
         -------
         FlattenedWaveformSequence
         """
-        step_id_to_interval = {}
-        for step_id in self.__step_id_to_wave.keys():
-            step_id_to_interval[step_id] = self.get_step_interval(step_id)
-
         if self.__is_iq_data == 1:
             return FlattenedIQWaveformSequence.build_from_wave_obj(
-                self.__step_id_to_wave, step_id_to_interval, self.__sampling_rate)
+                self.__step_id_to_wave, self.__step_id_to_post_blank, self.__sampling_rate)
         else:
             return FlattenedWaveformSequence.build_from_wave_obj(
-                self.__step_id_to_wave, step_id_to_interval, self.__sampling_rate)
+                self.__step_id_to_wave, self.__step_id_to_post_blank, self.__sampling_rate)
 
 
     def get_step_id_list(self):

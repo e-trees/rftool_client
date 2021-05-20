@@ -51,7 +51,7 @@ else:
     PLOT_DIR = "plot_awg_dram_read/"
     DAC_FREQ = 6554.0
     ADC_FREQ = 3563.52
-    CAPTURE_DELAY = 151
+    CAPTURE_DELAY = 200
 
 BITSTREAM_LOAD_TIMEOUT = 10
 TRIG_BUSY_TIMEOUT = 60

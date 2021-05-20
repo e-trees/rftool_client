@@ -38,17 +38,17 @@ LOG_LEVEL = logging.INFO
 # Constants
 if is_private_capture_ram:
     BITSTREAM = 9  # AWG SA BRAM CAPTURE
-    PLOT_DIR = "plot_awg_x8_send_recv_prv_cap_ram/"
+    PLOT_DIR = "plot_awg_x8_continuous_send_recv_prv_cap_ram/"
     DAC_FREQ = 6554.0
     ADC_FREQ = 4096.0
     CAPTURE_DELAY = 143
     WAVE_STEP_DURATION = 2.5 #us
 else:
     BITSTREAM = 7  # AWG SA DRAM CAPTURE
-    PLOT_DIR = "plot_awg_x8_send_recv/"
+    PLOT_DIR = "plot_awg_x8_continuous_send_recv/"
     DAC_FREQ = 6554.0
     ADC_FREQ = 3440.64
-    CAPTURE_DELAY = 173
+    CAPTURE_DELAY = 228
     WAVE_STEP_DURATION = 5 #us
 
 BITSTREAM_LOAD_TIMEOUT = 10

@@ -50,8 +50,8 @@ if fpga_design == SHARED_CAPTURE_RAM:
     PLOT_DIR = "plot_awg_infinite_send/"
     DAC_FREQ = 6554.0
     ADC_FREQ = 1843.2
-    CAPTURE_DELAY = 171
-    POST_BLANK = 2000
+    CAPTURE_DELAY = 270
+    POST_BLANK = 1000
 elif fpga_design == PRIVATE_CAPTURE_RAM:
     BITSTREAM = 9  # AWG SA BRAM CAPTURE
     PLOT_DIR = "plot_awg_infinite_send_prv_cap_ram/"

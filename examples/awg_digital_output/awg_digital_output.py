@@ -206,6 +206,22 @@ def set_dac_sampling_rate(rftcmd, dac_sampling_rate):
     return
 
 
+def shutdown_all_tiles(rftcmd):
+    """
+    DAC と ADC の全タイルをシャットダウンする
+    """
+    rftcmd.Shutdown(DAC, -1)
+    rftcmd.Shutdown(ADC, -1)
+
+
+def startup_all_tiles(rftcmd):
+    """
+    DAC と ADC の全タイルを起動する
+    """
+    rftcmd.StartUp(DAC, -1)
+    rftcmd.StartUp(ADC, -1)
+
+
 def wait_for_sequence_to_finish(awg_sa_cmd):
     """
     波形シーケンスの出力とキャプチャが終了するまで待つ
@@ -422,14 +438,15 @@ def main():
 
         print("Configure Bitstream.")
         config_bitstream(rft.command, BITSTREAM)
+        shutdown_all_tiles(rft.command)
         set_adc_sampling_rate(rft.command, ADC_FREQ)
         set_dac_sampling_rate(rft.command, DAC_FREQ)
+        startup_all_tiles(rft.command)
         setup_dac(rft.command)
         setup_adc(rft.command)
         
         # 初期化    
         rft.awg_sa_cmd.initialize_awg_sa()
-        #"""
         # AWG 有効化
         rft.awg_sa_cmd.enable_awg(awgsa.AwgId.AWG_0, awgsa.AwgId.AWG_1)
         # ADC キャリブレーション
@@ -444,7 +461,6 @@ def main():
         rft.awg_sa_cmd.start_wave_sequence()
         # 終了待ち
         wait_for_sequence_to_finish(rft.awg_sa_cmd)
-        #"""
         # エラーチェック
         check_skipped_step(rft.awg_sa_cmd)
         check_capture_data_fifo_oevrflow(rft.awg_sa_cmd)
@@ -453,7 +469,7 @@ def main():
             check_intr_flags(rft.command, ADC, ch)
         for ch in range(8):
             check_intr_flags(rft.command, DAC, ch)
-        #"""
+        
         # キャプチャデータ取得
         r_data_0 = rft.awg_sa_cmd.read_capture_data(awgsa.AwgId.AWG_0, step_id = 0)
         r_data_1 = rft.awg_sa_cmd.read_capture_data(awgsa.AwgId.AWG_0, step_id = 1)
@@ -468,7 +484,7 @@ def main():
             (awgsa.AwgId.AWG_0, 0, r_sample_0),
             (awgsa.AwgId.AWG_0, 1, r_sample_1),
             (awgsa.AwgId.AWG_1, 0, r_sample_2))
-        #"""
+
     print("Done.")
     return
 
