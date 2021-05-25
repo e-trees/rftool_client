@@ -41,7 +41,7 @@ if is_private_capture_ram:
     PLOT_DIR = "plot_awg_x8_continuous_send_recv_prv_cap_ram/"
     DAC_FREQ = 6554.0
     ADC_FREQ = 4096.0
-    CAPTURE_DELAY = 143
+    CAPTURE_DELAY = 215
     WAVE_STEP_DURATION = 2.5 #us
 else:
     BITSTREAM = 7  # AWG SA DRAM CAPTURE
@@ -611,8 +611,8 @@ def main():
                 output_spectrum_data(awg_id, step_id, spectrum, num_frames, fft_size)
 
         # 送信波形をグラフ化
-        for awg_id in awg_list:
-           rft.awg_sa_cmd.get_waveform_sequence(awg_id).save_as_img(PLOT_DIR + "waveform/awg_{}_waveform.png".format(awg_id))
+        #for awg_id in awg_list:
+        #   rft.awg_sa_cmd.get_waveform_sequence(awg_id).save_as_img(PLOT_DIR + "waveform/awg_{}_waveform.png".format(awg_id))
 
     print("Done.")
     return

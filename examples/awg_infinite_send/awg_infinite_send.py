@@ -57,14 +57,14 @@ elif fpga_design == PRIVATE_CAPTURE_RAM:
     PLOT_DIR = "plot_awg_infinite_send_prv_cap_ram/"
     DAC_FREQ = 6554.0
     ADC_FREQ = 4096.0
-    CAPTURE_DELAY = 143
+    CAPTURE_DELAY = 200
     POST_BLANK = 100
 else:
     BITSTREAM = 8  # MTS AWG SA
     PLOT_DIR = "plot_mts_awg_infinite_send/"
     DAC_FREQ = 3932.16
     ADC_FREQ = 3932.16
-    CAPTURE_DELAY = 143
+    CAPTURE_DELAY = 290
     POST_BLANK = 100
 
 BITSTREAM_LOAD_TIMEOUT = 10
@@ -441,13 +441,11 @@ def main():
         # 初期化    
         rft.awg_sa_cmd.initialize_awg_sa()
         # AWG 有効化
-        rft.awg_sa_cmd.enable_awg(*awg_list)
-        
+        rft.awg_sa_cmd.enable_awg(*awg_list)        
+        # Multi Tile Synchronization
         if fpga_design == MTS:
-            # Multi Tile Synchronization
             rft.awg_sa_cmd.sync_dac_tiles()
             rft.awg_sa_cmd.sync_adc_tiles()
-
         # ADC キャリブレーション
         calibrate_adc(rft.awg_sa_cmd)
         # 波形シーケンス設定

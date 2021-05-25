@@ -32,10 +32,10 @@ LOG_LEVEL = logging.INFO
 
 # Constants
 BITSTREAM = 8  # MTS AWG SA
-PLOT_DIR = "plot_mts_awg_x8_continuous_send_recv_prv_cap_ram/"
+PLOT_DIR = "plot_mts_awg_x8_continuous_send_recv/"
 DAC_FREQ = 3932.16
 ADC_FREQ = 3932.16
-CAPTURE_DELAY = 196 # ns
+CAPTURE_DELAY = 351 # ns
 
 BITSTREAM_LOAD_TIMEOUT = 10
 TRIG_BUSY_TIMEOUT = 60
@@ -506,7 +506,6 @@ def main():
         num_frames = 1
         start_sample_idx = 0 # FFT 開始サンプルのインデックス
         fft_size = rft.awg_sa_cmd.get_fft_size()
-        awg_id_to_spectrum = {}
         for awg_id in awg_list:
             print("Get capture {} spectrums.".format(awg_id))
             for step_id in [0, 1]:

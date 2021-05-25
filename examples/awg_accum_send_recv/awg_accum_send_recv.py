@@ -41,7 +41,7 @@ if is_private_capture_ram:
     PLOT_DIR = "plot_awg_accum_send_recv_prv_cap_ram/"
     DAC_FREQ = 6554.0
     ADC_FREQ = 4096.0
-    CAPTURE_DELAY = 130
+    CAPTURE_DELAY = 200
 else:
     BITSTREAM = 7  # AWG SA DRAM CAPTURE
     PLOT_DIR = "plot_awg_accum_send_recv/"

@@ -41,6 +41,7 @@ TRIG_BUSY_TIMEOUT = 60
 DUC_DDC_FACTOR = 1
 DAC_FREQ = 3932.16
 ADC_FREQ = 3932.16
+CAPTURE_DELAY = 345
 
 # ADC or DAC
 ADC = 0
@@ -433,11 +434,11 @@ def set_capture_sequence(awg_sa_cmd, awg_id_to_wave_sequence):
         # delay が波形ステップの開始から終了までの時間を超えないように注意.
         capture_0 = awgsa.AwgCapture(
             time = wave_sequence.get_wave(step_id = 0).get_duration() + 35,
-            delay = 185,
+            delay = CAPTURE_DELAY,
             do_accumulation = False)
         capture_1 = awgsa.AwgCapture(
             time = wave_sequence.get_wave(step_id = 1).get_duration() + 35,
-            delay = 185,
+            delay = CAPTURE_DELAY,
             do_accumulation = False)
 
         # キャプチャシーケンスの定義
