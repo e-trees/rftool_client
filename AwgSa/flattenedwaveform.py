@@ -10,7 +10,7 @@ class FlattenedWaveform(object):
     Real データの波形のサンプルデータとインターバルを保持する
     """
     @classmethod
-    def build_from_wave_ram(cls, wave_ram_data, step_idx):
+    def build_from_wave_ram(cls, wave_ram_data, num_prime_wave_samples, step_idx):
         """
         波形 RAM の情報から FlattenedWaveform オブジェクトを作成する
         
@@ -18,6 +18,8 @@ class FlattenedWaveform(object):
         ----------
         wave_ram_data : bytes
             波形 RAM のバイトデータ
+        num_prime_wave_samples : int
+            波形ステップの有波形部のサンプル数
         step_idx : int
             波形データを作成する波形ステップの番号 (0, 1, 2, ...)
             ステップID ではない.
@@ -27,7 +29,7 @@ class FlattenedWaveform(object):
         instance : FlattenedWaveform
             FlattenedWaveform オブジェクト
         """
-        samples = WaveRamToSampleConverter.gen_samples(wave_ram_data, step_idx)
+        samples = WaveRamToSampleConverter.gen_samples(wave_ram_data, num_prime_wave_samples, step_idx)
         return FlattenedWaveform(samples)
 
 
@@ -70,7 +72,7 @@ class FlattenedIQWaveform(object):
     I/Q データの波形のサンプルデータとインターバルを保持する
     """
     @classmethod
-    def build_from_wave_ram(cls, wave_ram_data, step_idx):
+    def build_from_wave_ram(cls, wave_ram_data, num_prime_wave_samples, step_idx):
         """
         波形 RAM の情報から FlattenedIQWaveform オブジェクトを作成する
         
@@ -78,6 +80,8 @@ class FlattenedIQWaveform(object):
         ----------
         wave_ram_data : bytes
             波形 RAM のバイトデータ
+        num_prime_wave_samples : int
+            波形ステップの有波形部のサンプル数
         step_idx : int
             波形データを作成する波形ステップの番号 (0, 1, 2, ...)
             ステップID ではない.
@@ -87,7 +91,7 @@ class FlattenedIQWaveform(object):
         instance : FlattenedIQWaveform
             FlattenedIQWaveform オブジェクト
         """
-        (i_samples, q_samples) = WaveRamToSampleConverter.gen_iq_samples(wave_ram_data, step_idx)
+        (i_samples, q_samples) = WaveRamToSampleConverter.gen_iq_samples(wave_ram_data, num_prime_wave_samples, step_idx)
         return FlattenedIQWaveform(i_samples, q_samples)
 
 
@@ -115,7 +119,7 @@ class FlattenedIQWaveform(object):
     def __init__(self, i_samples, q_samples):
         self.__i_samples = i_samples
         self.__q_samples = q_samples
-        assert len(self.__i_samples) == len(self.__i_samples), "I data and Q data have the different numbers of the samples."
+        assert len(self.__i_samples) == len(self.__q_samples), "I data and Q data have the different numbers of the samples."
         return
 
 

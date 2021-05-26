@@ -63,7 +63,7 @@ else:
     PLOT_DIR = "plot_awg_x8_iq_send_iq_recv/"
     DAC_FREQ = 6554.0
     ADC_FREQ = 1720.32
-    CAPTURE_DELAY = 250
+    CAPTURE_DELAY = 400
 
 # Constants
 BITSTREAM_LOAD_TIMEOUT = 10

@@ -31,13 +31,42 @@ PLOT_DIR = "plot_awg_digital_output/"
 # Log level
 LOG_LEVEL = logging.INFO
 
+SHARED_CAPTURE_RAM = 0
+PRIVATE_CAPTURE_RAM = 1
+MTS = 2
+fpga_design = SHARED_CAPTURE_RAM
+try:
+    if sys.argv[1] == "prv_cap_ram":
+        fpga_design = PRIVATE_CAPTURE_RAM
+    elif sys.argv[1] == "mts":
+        fpga_design = MTS
+except Exception:
+    pass
+
 # Constants
-BITSTREAM = 7  # AWG SA DRAM CAPTURE
+if fpga_design == SHARED_CAPTURE_RAM:
+    BITSTREAM = 7  # AWG SA DRAM CAPTURE
+    PLOT_DIR = "plot_awg_digital_output/"
+    DAC_FREQ = 6554.0
+    ADC_FREQ = 1105.92
+    CAPTURE_DELAY = 335
+elif fpga_design == PRIVATE_CAPTURE_RAM:
+    BITSTREAM = 9  # AWG SA BRAM CAPTURE
+    PLOT_DIR = "plot_awg_digital_output_prv_cap_ram/"
+    DAC_FREQ = 6554.0
+    ADC_FREQ = 4096.0
+    CAPTURE_DELAY = 200
+else:
+    BITSTREAM = 8  # MTS AWG SA
+    PLOT_DIR = "plot_mts_awg_digital_output/"
+    DAC_FREQ = 3932.16
+    ADC_FREQ = 3932.16
+    CAPTURE_DELAY = 345
+
 BITSTREAM_LOAD_TIMEOUT = 10
-DAC_FREQ = 4096.0
-ADC_FREQ = 1105.92
 TRIG_BUSY_TIMEOUT = 60
 DUC_DDC_FACTOR = 1
+POST_BLANK = 2000
 
 # ADC or DAC
 ADC = 0
@@ -206,6 +235,22 @@ def set_dac_sampling_rate(rftcmd, dac_sampling_rate):
     return
 
 
+def shutdown_all_tiles(rftcmd):
+    """
+    DAC と ADC の全タイルをシャットダウンする
+    """
+    rftcmd.Shutdown(DAC, -1)
+    rftcmd.Shutdown(ADC, -1)
+
+
+def startup_all_tiles(rftcmd):
+    """
+    DAC と ADC の全タイルを起動する
+    """
+    rftcmd.StartUp(DAC, -1)
+    rftcmd.StartUp(ADC, -1)
+
+
 def wait_for_sequence_to_finish(awg_sa_cmd):
     """
     波形シーケンスの出力とキャプチャが終了するまで待つ
@@ -333,13 +378,13 @@ def set_wave_sequence(awg_sa_cmd):
         crest_pos = 1.0)
 
     # 波形シーケンスの定義
-    # 波形ステップの開始から終了までの期間は, キャプチャの終了処理にかかるオーバーヘッドを考慮し, 波形出力期間 + 2000 ns を設定する.
+    # 波形ステップの開始から終了までの期間は, キャプチャの終了処理にかかるオーバーヘッドを考慮し, 波形出力期間 + POST_BLANK を設定する.
     wave_sequence_0 = (awgsa.WaveSequence(DAC_FREQ)
-        .add_step(step_id = 0, wave = wave_0, post_blank = 2000)
-        .add_step(step_id = 1, wave = wave_1, post_blank = 2000))
+        .add_step(step_id = 0, wave = wave_0, post_blank = POST_BLANK)
+        .add_step(step_id = 1, wave = wave_1, post_blank = POST_BLANK))
 
     wave_sequence_1 = (awgsa.WaveSequence(DAC_FREQ)
-        .add_step(step_id = 0, wave = wave_2, post_blank = 2000))
+        .add_step(step_id = 0, wave = wave_2, post_blank = POST_BLANK))
 
     # AWG に波形シーケンスをセットする
     awg_sa_cmd.set_wave_sequence(awgsa.AwgId.AWG_0, wave_sequence_0, num_repeats = 1)
@@ -355,19 +400,19 @@ def set_capture_sequence(awg_sa_cmd, seq_0, seq_1):
     # delay が波形ステップの開始から終了までの時間を超えないように注意.
     capture_0 = awgsa.AwgCapture(
         time = seq_0.get_wave(step_id = 0).get_duration() + 20,
-        delay = 335,
+        delay = CAPTURE_DELAY,
         do_accumulation = False)
 
     capture_1 = awgsa.AwgCapture(
         time = seq_0.get_wave(step_id = 1).get_duration() + 20,
-        delay = 335,
+        delay = CAPTURE_DELAY,
         do_accumulation = False)
 
     # 波形シーケンス 1 全体をキャプチャするため, キャプチャ時間は,
-    # シーケンス 1 全体の長さ - 余分にとった時間 (2000 ns) + 20 ns とする.
+    # シーケンス 1 全体の長さ - 余分にとった時間 (POST_BLANK) + 20 ns とする.
     capture_2 = awgsa.AwgCapture(
-       time = seq_1.get_whole_duration() - 2000 + 20,
-       delay = 335,
+       time = seq_1.get_whole_duration() - POST_BLANK + 20,
+       delay = CAPTURE_DELAY,
        do_accumulation = False)
 
     # キャプチャシーケンスの定義
@@ -422,16 +467,22 @@ def main():
 
         print("Configure Bitstream.")
         config_bitstream(rft.command, BITSTREAM)
-        set_adc_sampling_rate(rft.command, ADC_FREQ)
-        set_dac_sampling_rate(rft.command, DAC_FREQ)
+        if fpga_design != MTS:
+            shutdown_all_tiles(rft.command)
+            set_adc_sampling_rate(rft.command, ADC_FREQ)
+            set_dac_sampling_rate(rft.command, DAC_FREQ)
+            startup_all_tiles(rft.command)
+
         setup_dac(rft.command)
         setup_adc(rft.command)
-        
         # 初期化    
         rft.awg_sa_cmd.initialize_awg_sa()
-        #"""
         # AWG 有効化
         rft.awg_sa_cmd.enable_awg(awgsa.AwgId.AWG_0, awgsa.AwgId.AWG_1)
+        # Multi Tile Synchronization
+        if fpga_design == MTS:
+            rft.awg_sa_cmd.sync_dac_tiles()
+            rft.awg_sa_cmd.sync_adc_tiles()
         # ADC キャリブレーション
         calibrate_adc(rft.awg_sa_cmd)
         # 波形シーケンス設定
@@ -444,7 +495,6 @@ def main():
         rft.awg_sa_cmd.start_wave_sequence()
         # 終了待ち
         wait_for_sequence_to_finish(rft.awg_sa_cmd)
-        #"""
         # エラーチェック
         check_skipped_step(rft.awg_sa_cmd)
         check_capture_data_fifo_oevrflow(rft.awg_sa_cmd)
@@ -453,7 +503,7 @@ def main():
             check_intr_flags(rft.command, ADC, ch)
         for ch in range(8):
             check_intr_flags(rft.command, DAC, ch)
-        #"""
+        
         # キャプチャデータ取得
         r_data_0 = rft.awg_sa_cmd.read_capture_data(awgsa.AwgId.AWG_0, step_id = 0)
         r_data_1 = rft.awg_sa_cmd.read_capture_data(awgsa.AwgId.AWG_0, step_id = 1)
@@ -468,7 +518,7 @@ def main():
             (awgsa.AwgId.AWG_0, 0, r_sample_0),
             (awgsa.AwgId.AWG_0, 1, r_sample_1),
             (awgsa.AwgId.AWG_1, 0, r_sample_2))
-        #"""
+
     print("Done.")
     return
 

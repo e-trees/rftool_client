@@ -35,7 +35,7 @@ BITSTREAM = 9  # AWG SA BRAM CAPTURE
 PLOT_DIR = "plot_awg_x8_external_trigger_2/"
 DAC_FREQ = 6554.0
 ADC_FREQ = 4096.0
-CAPTURE_DELAY = 140
+CAPTURE_DELAY = 200
 
 BITSTREAM_LOAD_TIMEOUT = 10
 TRIG_BUSY_TIMEOUT = 60
@@ -501,7 +501,7 @@ def set_wave_sequence(awg_sa_cmd):
                     amplitude = 30000,
                     num_cycles = cycles)
             # 波形シーケンスの定義
-            wave_sequence.add_step(step_id, wave, post_blank = 185)
+            wave_sequence.add_step(step_id, wave, post_blank = 200)
         
         # AWG に波形シーケンスをセットする
         awg_sa_cmd.set_wave_sequence(awg_id, wave_sequence, num_repeats = 1)

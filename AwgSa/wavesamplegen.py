@@ -4,7 +4,7 @@
 import struct
 import numpy as np
 from .awgwave import AwgWave, AwgAnyWave
-from .hardwareinfo import WaveStepParamsLayout as params
+from .hardwareinfo import WaveChunkParamsLayout as params
 from .hardwareinfo import WAVE_SAMPLE_SIZE
 from decimal import Decimal, ROUND_HALF_UP, ROUND_HALF_EVEN
 from collections import namedtuple
@@ -194,86 +194,86 @@ class WaveObjToSampleConverter(object):
 class WaveRamToSampleConverter(object):
     
     @classmethod
-    def gen_samples(cls, wave_ram_data, step_idx):
+    def gen_samples(cls, wave_ram_data, num_prime_wave_samples, step_idx):
         """
         波形 RAM のデータを元に Real 波形のサンプルデータを生成する
         """
-        params = cls.__get_wave_step_params(wave_ram_data, step_idx)
-        samples_part = []
-        for i in range(params.num_samples):
-            offset = i * WAVE_SAMPLE_SIZE + params.start_addr
-            tmp = wave_ram_data[offset : offset + WAVE_SAMPLE_SIZE]
-            samples_part.append(struct.unpack('h', tmp)[0])
+        samples = []
+        chunk_params = cls.__get_wave_chunk_params(wave_ram_data, step_idx)
+        for chunk_param in chunk_params:
+            samples_part = []
+            for i in range(chunk_param.num_samples):
+                offset = i * WAVE_SAMPLE_SIZE + chunk_param.start_addr
+                tmp = wave_ram_data[offset : offset + WAVE_SAMPLE_SIZE]
+                samples_part.append(struct.unpack('h', tmp)[0])
+            
+            num_cycles = chunk_param.num_cycles
+            if chunk_param.infinite_cycles:
+                num_prime_wave_samples = len(samples_part)
+                num_cycles = 1
 
-        samples = []        
-        for i in range(params.num_cycles - 1):
-            samples.extend(samples_part)
+            samples.extend(np.tile(samples_part, num_cycles))
+            if len(samples) >= num_prime_wave_samples:
+                break
 
-        for i in range(params.last_cyle_num_samples):
-            offset = i * WAVE_SAMPLE_SIZE + params.last_cycle_start_addr
-            tmp = wave_ram_data[offset : offset + WAVE_SAMPLE_SIZE]
-            samples.append(struct.unpack('h', tmp)[0])        
-
-        return np.array(samples, np.int16)
+        return np.array(samples[0:num_prime_wave_samples], np.int16)
 
 
     @classmethod
-    def gen_iq_samples(cls, wave_ram_data, step_idx):
+    def gen_iq_samples(cls, wave_ram_data, num_prime_wave_samples, step_idx):
         """
         波形 RAM のデータを元に I/Q 波形のサンプルデータを生成する
         """
-        params = cls.__get_wave_step_params(wave_ram_data, step_idx)
-        i_samples_part = []
-        q_samples_part = []
-        for i in range(int(params.num_samples / 2)):
-            offset = 2 * i * WAVE_SAMPLE_SIZE + params.start_addr
-            tmp = wave_ram_data[offset : offset + WAVE_SAMPLE_SIZE]
-            i_samples_part.append(struct.unpack('h', tmp)[0])
-            tmp = wave_ram_data[offset + WAVE_SAMPLE_SIZE : offset + WAVE_SAMPLE_SIZE * 2]
-            q_samples_part.append(struct.unpack('h', tmp)[0])
-
+        num_prime_wave_samples = int(num_prime_wave_samples / 2)
         i_samples = []
         q_samples = []
-        for i in range(params.num_cycles - 1):
-            i_samples.extend(i_samples_part)
-            q_samples.extend(q_samples_part)
+        chunk_params = cls.__get_wave_chunk_params(wave_ram_data, step_idx)
+        for chunk_param in chunk_params:
+            i_samples_part = []
+            q_samples_part = []
+            for i in range(int(chunk_param.num_samples / 2)):
+                offset = 2 * i * WAVE_SAMPLE_SIZE + chunk_param.start_addr
+                tmp = wave_ram_data[offset : offset + WAVE_SAMPLE_SIZE]
+                i_samples_part.append(struct.unpack('h', tmp)[0])
+                tmp = wave_ram_data[offset + WAVE_SAMPLE_SIZE : offset + WAVE_SAMPLE_SIZE * 2]
+                q_samples_part.append(struct.unpack('h', tmp)[0])
 
-        for i in range(int(params.last_cyle_num_samples / 2)):
-            offset = 2 * i * WAVE_SAMPLE_SIZE + params.last_cycle_start_addr
-            tmp = wave_ram_data[offset : offset + WAVE_SAMPLE_SIZE]
-            i_samples.append(struct.unpack('h', tmp)[0])
-            tmp = wave_ram_data[offset + WAVE_SAMPLE_SIZE : offset + WAVE_SAMPLE_SIZE * 2]
-            q_samples.append(struct.unpack('h', tmp)[0])
+            num_cycles = chunk_param.num_cycles
+            if chunk_param.infinite_cycles:
+                num_prime_wave_samples = len(i_samples_part)
+                num_cycles = 1
 
-        return (np.array(i_samples, np.int16), np.array(q_samples, np.int16))
+            i_samples.extend(np.tile(i_samples_part, num_cycles))
+            q_samples.extend(np.tile(q_samples_part, num_cycles))
+            if len(i_samples_part) >= num_prime_wave_samples:
+                break
+
+        return (np.array(i_samples[0 : num_prime_wave_samples], np.int16), 
+                np.array(q_samples[0 : num_prime_wave_samples], np.int16))
     
 
     @classmethod
-    def __get_wave_step_params(cls, wave_ram_data, step_idx):
+    def __get_wave_chunk_params(cls, wave_ram_data, step_idx):
 
-        offset = step_idx * params.WAVE_STEP_PARAMS_WORD_SIZE
-        param_bytes = wave_ram_data[offset:]
-        
-        offset = params.START_ADDR_OFFSET
-        tmp = param_bytes[offset : offset + params.START_ADDR_SIZE]
-        start_addr = struct.unpack('I', tmp)[0]
-        
-        offset = params.NUM_SAMPLES_OFFSET
-        tmp = param_bytes[offset : offset + params.NUM_SAMPLES_SIZE]
-        num_samples = struct.unpack('I', tmp)[0]
-        
-        offset = params.LAST_CYCLE_START_ADDR_OFFSET
-        tmp = param_bytes[offset : offset + params.LAST_CYCLE_START_ADDR_SIZE]
-        last_cycle_start_addr = struct.unpack('I', tmp)[0]
+        param_list = []
+        step_offset = params.WAVE_CHUNK_PARAMS_SEGMENT_OFFSET + step_idx * params.WAVE_CHUNK_PARAMS_WORD_SIZE
+        for i in range(params.MAX_CHUNKS_IN_STEP):
+            chunk_offset = step_offset + i * params.WAVE_CHUNK_PARAM_SIZE
+            param_bytes = wave_ram_data[chunk_offset : chunk_offset + params.WAVE_CHUNK_PARAM_SIZE]
 
-        offset = params.LAST_CYCLE_NUM_SAMPLES_OFFSET
-        tmp = param_bytes[offset : offset + params.LAST_CYCLE_NUM_SAMPLES_SIZE]
-        last_cyle_num_samples = struct.unpack('I', tmp)[0]
+            tmp = param_bytes[params.START_ADDR_OFFSET : params.START_ADDR_OFFSET + 4]
+            start_addr = struct.unpack('I', tmp)[0]
+            tmp = param_bytes[params.NUM_SAMPLES_OFFSET : params.NUM_SAMPLES_OFFSET + 4]
+            num_samples = struct.unpack('I', tmp)[0]
+            tmp = param_bytes[params.NUM_CYCLES_OFFSET : params.NUM_CYCLES_OFFSET + 4]
+            num_cycles = struct.unpack('I', tmp)[0]
+            tmp = param_bytes[params.FLAG_LIST_OFFSET : params.FLAG_LIST_OFFSET + 1]
+            flag_list = struct.unpack('B', tmp)[0]
+            enabled = 0x1 & (flag_list >> params.BIT_ENABLED)
+            infinite_cycles = 0x1 & (flag_list >> params.BIT_INFINITE_CYCLES)
 
-        offset = params.NUM_CYCLES_OFFSET
-        tmp = param_bytes[offset : offset + params.NUM_CYCLES_SIZE]
-        num_cycles = struct.unpack('I', tmp)[0]
-
-        Params = namedtuple("Params", 
-            ["start_addr", "num_samples", "last_cycle_start_addr", "last_cyle_num_samples", "num_cycles"])
-        return Params(start_addr, num_samples, last_cycle_start_addr, last_cyle_num_samples, num_cycles)
+            if enabled:
+                Params = namedtuple(
+                    "Params", ["start_addr", "num_samples", "num_cycles", "infinite_cycles"])
+                param_list.append(Params(start_addr, num_samples, num_cycles, infinite_cycles))
+        return param_list 

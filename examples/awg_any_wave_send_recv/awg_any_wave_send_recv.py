@@ -335,6 +335,22 @@ def set_dac_sampling_rate(rftcmd, dac_sampling_rate):
     return
 
 
+def shutdown_all_tiles(rftcmd):
+    """
+    DAC と ADC の全タイルをシャットダウンする
+    """
+    rftcmd.Shutdown(DAC, -1)
+    rftcmd.Shutdown(ADC, -1)
+
+
+def startup_all_tiles(rftcmd):
+    """
+    DAC と ADC の全タイルを起動する
+    """
+    rftcmd.StartUp(DAC, -1)
+    rftcmd.StartUp(ADC, -1)
+
+
 def wait_for_sequence_to_finish(awg_sa_cmd):
     """
     波形シーケンスの出力とキャプチャが終了するまで待つ
@@ -531,12 +547,12 @@ def set_capture_sequence(awg_sa_cmd, seq_0, seq_1):
     """
     capture_0 = awgsa.AwgCapture(
         time = seq_0.get_wave(step_id = 0).get_duration() + 20,
-        delay = 130,
+        delay = 340,
         do_accumulation = False)
 
     capture_1 = awgsa.AwgCapture(
         time = seq_1.get_wave(step_id = 0).get_duration() + 20,
-        delay = 290,
+        delay = 425,
         do_accumulation = False)
 
     # キャプチャシーケンスの定義
@@ -564,9 +580,10 @@ def main():
 
         print("Configure Bitstream.")
         config_bitstream(rft.command, BITSTREAM)
-
+        shutdown_all_tiles(rft.command)
         set_adc_sampling_rate(rft.command, ADC_FREQ)
         set_dac_sampling_rate(rft.command, DAC_FREQ)
+        startup_all_tiles(rft.command)
         setup_dac(rft.command)
         setup_adc(rft.command)
         

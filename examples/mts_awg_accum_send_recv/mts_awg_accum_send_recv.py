@@ -428,12 +428,12 @@ def set_capture_sequence(awg_sa_cmd, awg_id_to_wave_sequence):
         # delay が波形ステップの開始から終了までの時間を超えないように注意.
         capture_0 = awgsa.AwgCapture(
             time = wave_sequence.get_wave(step_id = 0).get_duration() + 35,
-            delay = 185,
+            delay = 345,
             do_accumulation = True)
 
         capture_1 = awgsa.AwgCapture(
             time = wave_sequence.get_wave(step_id = 1).get_duration() + 35,
-            delay = 185,
+            delay = 345,
             do_accumulation = True)
 
         # キャプチャシーケンスの定義
