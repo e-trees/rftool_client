@@ -49,12 +49,13 @@ AWG の組み込みの波形を AwgWave クラスで定義するのに対し，�
 wave_0 = awgsa.AwgAnyWave(samples = samples, num_cyles = 10)
 ```
 
-`samples`は出力値の配列です．`dtype` が `numpy.int16` の `numpy.ndarray` 型の値を設定します．`num_cyclles`は`samples`で指定したデータを繰り返し出力する回数です．
+`samples`は出力値の配列です．`dtype` が `numpy.int16` の `numpy.ndarray` 型の値を設定します．`num_cycles`は`samples`で指定したデータを繰り返し出力する回数です．
 
 ## 波形シーケンスの定義
 
 波形シーケンスの定義には，`awgsa` パッケージの `WaveSequence` クラスとそのメソッド `add_step` を使用します．
-この API により `AwgWave` で定義した波形にステップ ID を割り当て、シーケンス内の出力順序と出力間隔を決定します。
+この API により `AwgWave` で定義した波形にステップ ID を割り当て、シーケンス内の出力順序と出力間隔を決定します．
+`post_blank` は，波形ステップの波形に続く空白期間となります．引数を省略した場合は 0 となります．
 
 たとえば，次のように波形シーケンスを定義します．
 
@@ -82,3 +83,30 @@ awg_sa_cmd.set_wave_sequence(
 ```
 
 ![AWGに定義される出力波形](images/awg-set-wave-sequence-example.png)
+
+## 波形ステップの空白期間に関する補足
+
+波形ステップの空白期間は，前述の `post_blank` によって指定できますが，実際の HW が出力する波形の空白期間は，指定値より増える場合があります．
+実際の空白期間は，波形ステップ全体の出力サンプル数によって決まり，以下の式で算出できます．
+
+A = post_blank [ns]  
+B = DAC サンプリングレート [Msps]  
+C = 出力波形の周波数 [MHz]  
+D = 出力波形のサイクル数  
+E = floor (A * B / 1000)  
+F = E + floor (B / C) * D  
+
+**【F が96 未満の場合】**  
+空白期間 [ns] = 1000 * (96 - F + E) / B
+
+**【F が 96 以上でかつ 32 の倍数でない場合】**  
+G = ceil (F / 32) * 32 - F + E  
+空白期間 [ns] = 1000 * G / B  
+
+**【F が 96 以上でかつ 32 の倍数の場合】**  
+空白期間 [ns] = 1000 * E / B  
+
+※ floor (x) = x の小数点以下を切り捨てた値  
+※ ceil (x) = x の小数点以下を切り上げた値  
+
+実際の波形間の空白期間は，エクセルシート([examples/awg_measure_wave_gap/wave_gap_calc.xlsx](../examples/awg_measure_wave_gap/wave_gap_calc.xlsx)) でも計算できます．
