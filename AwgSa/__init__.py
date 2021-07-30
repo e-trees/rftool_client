@@ -37,5 +37,8 @@ from .externaltriggerid import *
 from . import triggermode
 from .triggermode import *
 
+from . import clocksrc
+from .clocksrc import *
+
 from . import hardwareinfo
 from .hardwareinfo import *

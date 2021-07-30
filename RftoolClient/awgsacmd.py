@@ -13,6 +13,7 @@ from AwgSa import FlattenedWaveformSequence
 from AwgSa import FlattenedIQWaveformSequence
 from AwgSa import ExternalTriggerId
 from AwgSa import TriggerMode
+from AwgSa import ClockSrc
 from AwgSa import PL_DDR4_RAM_SIZE
 
 class AwgSaCommand(object):
@@ -862,3 +863,34 @@ class AwgSaCommand(object):
         res = self.__rft_ctrl_if.put(command)
         [addr, data_size] = self.__split_response(res, ",")
         return (int(addr), int(data_size))
+
+
+    def select_src_clk(self, clk_sel):
+        """
+        DAC と ADC のソースクロックを選択する.
+        
+        Parameters
+        ----------
+        clk_sel : ClockSrc
+            INTERNAL -> ボード上のオシレータを使用する
+            EXTERNAL -> 外部クロックを使用する
+        """
+        if not ClockSrc.has_value(clk_sel):
+            raise ValueError("invalid clk_sel  " + str(clk_sel))
+
+        command = self.__joinargs("SelectSrcClk", [int(clk_sel)])
+        self.__rft_ctrl_if.put(command)
+
+
+    def get_src_clk(self):
+        """
+        使用中の DAC と ADC のソースクロックを取得する.
+
+        Returns
+        -------
+        clk_sel : ClockSrc
+            現在選択されているソースクロック
+        """
+        command = "GetSrcClk"
+        res = self.__rft_ctrl_if.put(command)
+        return ClockSrc.of(int(res))
