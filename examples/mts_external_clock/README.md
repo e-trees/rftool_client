@@ -52,7 +52,7 @@ python mts_external_clock.py async
 ![async_dac](images/zcu111_ext_clk_2.gif)
 
 
-## 同期的な DAC の動作を確認する
+## 同期的した DAC の動作を確認する
 
 以下のコマンドを実行します．
 
