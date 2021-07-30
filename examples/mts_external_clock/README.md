@@ -49,7 +49,7 @@ python mts_external_clock.py async
 `async` オプションを付けて mts_external_clock.py を実行すると，DAC の動作クロックをボード上のオシレータから生成するので，異なるボード上の DAC は同期しません．
 このとき，同じ構成の DAC から同じ波形 (10MHz の正弦波) を出力しても，時間と共に位相差が変化します．
 
-![async_dac](images/zcu111_ext_clk_2.mp4)
+![async_dac](images/zcu111_ext_clk_2.gif)
 
 
 ## 同期的な DAC の動作を確認する
@@ -63,7 +63,7 @@ python mts_external_clock.py
 `async` オプションを付けずに mts_external_clock.py を実行すると，DAC の動作クロックを外部クロックから生成するので，異なるボード上の DAC が同期します．
 このとき，異なるボード上の DAC から位相差が変化しない 2つの波形 (10MHz の正弦波) が観察されます．
 
-![sync_dac](images/zcu111_ext_clk_3.mp4)
+![sync_dac](images/zcu111_ext_clk_3.gif)
 
 ## ソースクロック選択 API
 
