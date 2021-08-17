@@ -44,6 +44,7 @@ ZCU111を利用して任意の波形出力とその応答波形のキャプチ�
 - [キャプチャを連続で行う](../examples/awg_x8_continuous_send_recv/README.md)
 - [ウィンドウ単位でキャプチャデータを積算する](../examples/awg_windowed_capture/README.md)
 - [外部トリガで AWG を起動する](../examples/awg_x8_external_trigger/README.md)
+- [外部トリガで AWG を連続して起動する](../examples/awg_continual_external_trigger/README.md)
 - [AWG から波形を出力し続ける](../examples/awg_infinite_send/README.md)
 - [DRAM からデータを読み出す](../examples/awg_dram_read/README.md)
 - [波形ステップの空白期間を計測する](../examples/awg_measure_wave_gap/README.md)
