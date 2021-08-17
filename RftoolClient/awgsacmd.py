@@ -573,7 +573,7 @@ class AwgSaCommand(object):
         self.__rft_ctrl_if.put(command)
 
 
-    def external_trigger_on(self, *ext_trig_id_list):
+    def external_trigger_on(self, *ext_trig_id_list, oneshot = True):
         """
         引数で指定した外部トリガモジュールを起動する.
         起動したトリガモジュールは, トリガ条件を満たし次第トリガを発行する.
@@ -581,7 +581,10 @@ class AwgSaCommand(object):
         Parameters
         ----------
         *ext_trig_id_list : ExternalTriggerId
-            起動する 外部トリガモジュール の ID
+            起動する外部トリガモジュール の ID
+        oneshot : bool
+            True -> トリガ発行後, トリガモジュールを停止する
+            False -> トリガ発行後, トリガモジュールを停止しない
         """
         enable_list = [0, 0, 0, 0, 0, 0, 0, 0]
         for ext_trig_id in ext_trig_id_list:
@@ -589,7 +592,10 @@ class AwgSaCommand(object):
                 raise ValueError("invalid external trigger id  " + str(ext_trig_id))
             enable_list[int(ext_trig_id)] = 1
 
-        command = self.__joinargs("ExternalTriggerOn", enable_list)
+        if (not isinstance(oneshot, bool)):
+            raise ValueError("invalid oneshot " + str(oneshot))
+
+        command = self.__joinargs("ExternalTriggerOn", enable_list + [int(oneshot)])
         self.__rft_ctrl_if.put(command)
 
 
@@ -894,3 +900,13 @@ class AwgSaCommand(object):
         command = "GetSrcClk"
         res = self.__rft_ctrl_if.put(command)
         return ClockSrc.of(int(res))
+
+
+    def get_num_wave_sequence_completed(self, awg_id):
+        """
+        波形シーケンスの出力とそれに伴うキャプチャなどの処理が完了した回数を取得する.
+        強制終了した場合は, 完了した回数に含まれない.
+        """
+        command = self.__joinargs("GetNumWaveSequencesCompleted", [int(awg_id)])
+        res = self.__rft_ctrl_if.put(command)
+        return int(res)
