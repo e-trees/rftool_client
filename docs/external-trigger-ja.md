@@ -20,7 +20,8 @@
 外部トリガ機能を扱うための主な Python API を以下に示します．
 パラメータの詳細や使用例は、各メソッドの docstring やサンプルプログラム
  ([awg_x8_external_trigger_1.py](../examples/awg_x8_external_trigger/awg_x8_external_trigger_1.py)，
- [awg_x8_external_trigger_2.py](../examples/awg_x8_external_trigger/awg_x8_external_trigger_2.py)) を参照してください．
+ [awg_x8_external_trigger_2.py](../examples/awg_x8_external_trigger/awg_x8_external_trigger_2.py)，
+ [awg_continual_external_trigger.py](../examples/awg_continual_external_trigger/awg_continual_external_trigger.py)) を参照してください．
 
 **`AwgSaCommand.set_trigger_mode(awg_id, trig_mode)`**
 
@@ -42,9 +43,11 @@ ADC サンプルデータが閾値を上から下に跨いだ時にトリガを�
 ADC サンプルデータが閾値を下から上に跨いだ時にトリガを発行する | 3
 
 ***
-**`AwgSaCommand.external_trigger_on(*ext_trig_id_list)`**
+**`AwgSaCommand.external_trigger_on(*ext_trig_id_list, oneshot = True)`**
 
 `ext_trig_id_list` で指定した全ての外部モジュールを Active 状態にします．
+`oneshot` が `True` の場合，外部トリガモジュールはトリガを発行後，自動的に Inactive 状態になります．
+`False` の場合，トリガ発行後も `Active` 状態にとどまるので，トリガ条件を満たせば連続してトリガを発行することができます．
 
 ***
 **`AwgSaCommand.external_trigger_off(*ext_trig_id_list)`**
