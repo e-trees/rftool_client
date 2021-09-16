@@ -910,3 +910,36 @@ class AwgSaCommand(object):
         command = self.__joinargs("GetNumWaveSequencesCompleted", [int(awg_id)])
         res = self.__rft_ctrl_if.put(command)
         return int(res)
+
+
+    def get_binarization_result(self, awg_id):
+        """
+        引数で指定した2値化モジュールが算出した2値化結果を取得する.
+
+        
+        Returns
+        -------
+        (i_result, q_result) : (list or int, list of int)
+            i_result -> I 波形の2値化結果 (ビットベクタ) 
+            q_result -> Q 波形の2値化結果 (ビットベクタ) 
+        """
+
+        if (not AwgId.has_value(awg_id)):
+            raise ValueError("invalid awg_id  " + str(awg_id))
+
+        command = self.__joinargs("GetBinarizationResult", [int(awg_id)])
+        res = self.__rft_ctrl_if.put(command)
+        tmp = res.split(',')
+
+        i_bin_vec = int(tmp[0], 16)
+        q_bin_vec = int(tmp[1], 16)
+        i_num_bits = int(tmp[2])
+        q_num_bits = int(tmp[3])
+        i_result = []
+        q_result = []
+        for i in range(i_num_bits):
+            i_result.append((i_bin_vec >> i) & 0x1)
+        for i in range(q_num_bits):
+            q_result.append((q_bin_vec >> i) & 0x1)
+
+        return (i_result, q_result)
