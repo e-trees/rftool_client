@@ -915,7 +915,6 @@ class AwgSaCommand(object):
     def get_binarization_result(self, awg_id):
         """
         引数で指定した2値化モジュールが算出した2値化結果を取得する.
-
         
         Returns
         -------
@@ -924,7 +923,7 @@ class AwgSaCommand(object):
             q_result -> Q 波形の2値化結果 (ビットベクタ) 
         """
 
-        if (not AwgId.has_value(awg_id)):
+        if not AwgId.has_value(awg_id):
             raise ValueError("invalid awg_id  " + str(awg_id))
 
         command = self.__joinargs("GetBinarizationResult", [int(awg_id)])
@@ -943,3 +942,76 @@ class AwgSaCommand(object):
             q_result.append((q_bin_vec >> i) & 0x1)
 
         return (i_result, q_result)
+
+
+    def write_user_ctrl_reg(self, idx, val):
+        """
+        ユーザコントロールレジスタにデータを書き込む
+        
+        Parameters
+        ----------
+        idx : int
+            データを書き込むユーザコントロールレジスタの番号
+        val : int
+            書き込むデータ (符号の有無を問わず 4 Bytes で表せる整数値)
+        """
+
+        if (not isinstance(idx, int)) or (idx < 0):
+            raise ValueError(
+                "'idx' must be an integer greater than or equal to zero.  ({})".format(idx))
+        
+        if (not isinstance(val, int)) or (val < -0x80000000) or (val > 0xFFFFFFFF):
+            raise ValueError("'val' must be an integer between {} and {} inclusive.  ({})"
+                .format(-0x80000000, 0xFFFFFFFF, val))
+        
+        val = val & 0xFFFFFFFF
+        command = self.__joinargs("WriteUserCtrlReg", [idx, val])
+        self.__rft_ctrl_if.put(command)
+
+
+    def read_user_ctrl_reg(self, idx):
+        """
+        ユーザコントロールレジスタからデータを読みだす
+        
+        Parameters
+        ----------
+        idx : int
+            データを読みだすユーザコントロールレジスタの番号
+        
+        Returns
+        -------
+        val : int
+            idx で指定したユーザコントロールレジスタの値
+        """
+
+        if (not isinstance(idx, int)) or (idx < 0):
+            raise ValueError(
+                "'idx' must be an integer greater than or equal to zero.  ({})".format(idx))
+        
+        command = self.__joinargs("ReadUserCtrlReg", [idx])
+        val = self.__rft_ctrl_if.put(command)
+        return int(val)
+
+
+    def read_user_status_reg(self, idx):
+        """
+        ユーザステータスレジスタからデータを読みだす
+        
+        Parameters
+        ----------
+        idx : int
+            データを読みだすユーザステータスレジスタの番号
+        
+        Returns
+        -------
+        val : int
+            idx で指定したユーザステータスレジスタの値
+        """
+
+        if (not isinstance(idx, int)) or (idx < 0):
+            raise ValueError(
+                "'idx' must be an integer greater than or equal to zero.  ({})".format(idx))
+        
+        command = self.__joinargs("ReadUserStatusReg", [idx])
+        val = self.__rft_ctrl_if.put(command)
+        return int(val)
