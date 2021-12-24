@@ -1,6 +1,6 @@
 # FPGA デザイン拡張用レジスタにアクセスする
 
-[awg_user_reg_access.py](./awg_add_in_reg_access.py) は，FPGA デザイン拡張用のレジスタにアクセスするスクリプトです。
+[awg_add_in_reg_access.py](./awg_add_in_reg_access.py) は，FPGA デザイン拡張用のレジスタにアクセスするスクリプトです。
 
 FPGA デザイン拡張用レジスタには，`user_ctrl_*` と `user_status_*` の 2 種類があります．
 `user_ctrl_*` は，ソフトウェアから FPGA に値を渡すためのレジスタで，`user_status_*` は，FPGA からソフトウェアに値を渡すためのレジスタです．
