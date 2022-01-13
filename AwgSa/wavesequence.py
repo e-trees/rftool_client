@@ -65,8 +65,9 @@ class WaveSequence(object):
             raise ValueError("invalid post_blank " + str(post_blank))
 
         self.__check_wave_type(wave)
+        wave = copy.deepcopy(wave)
         self.__set_sampling_rate_to_wave(wave)
-        self.__step_id_to_wave[step_id] = copy.deepcopy(wave)
+        self.__step_id_to_wave[step_id] = wave
 
         if wave.get_duration() != float('inf'):
             interval = float(wave.get_duration() + post_blank)
