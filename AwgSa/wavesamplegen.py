@@ -5,7 +5,7 @@ import struct
 import numpy as np
 from .awgwave import AwgWave, AwgAnyWave
 from .hardwareinfo import WaveChunkParamsLayout as params
-from .hardwareinfo import WAVE_SAMPLE_SIZE
+from .hardwareinfo import AWG_WAVE_SAMPLE_SIZE
 from decimal import Decimal, ROUND_HALF_UP, ROUND_HALF_EVEN
 from collections import namedtuple
 
@@ -203,8 +203,8 @@ class WaveRamToSampleConverter(object):
         for chunk_param in chunk_params:
             samples_part = []
             for i in range(chunk_param.num_samples):
-                offset = i * WAVE_SAMPLE_SIZE + chunk_param.start_addr
-                tmp = wave_ram_data[offset : offset + WAVE_SAMPLE_SIZE]
+                offset = i * AWG_WAVE_SAMPLE_SIZE + chunk_param.start_addr
+                tmp = wave_ram_data[offset : offset + AWG_WAVE_SAMPLE_SIZE]
                 samples_part.append(struct.unpack('h', tmp)[0])
             
             num_cycles = chunk_param.num_cycles
@@ -232,10 +232,10 @@ class WaveRamToSampleConverter(object):
             i_samples_part = []
             q_samples_part = []
             for i in range(int(chunk_param.num_samples / 2)):
-                offset = 2 * i * WAVE_SAMPLE_SIZE + chunk_param.start_addr
-                tmp = wave_ram_data[offset : offset + WAVE_SAMPLE_SIZE]
+                offset = 2 * i * AWG_WAVE_SAMPLE_SIZE + chunk_param.start_addr
+                tmp = wave_ram_data[offset : offset + AWG_WAVE_SAMPLE_SIZE]
                 i_samples_part.append(struct.unpack('h', tmp)[0])
-                tmp = wave_ram_data[offset + WAVE_SAMPLE_SIZE : offset + WAVE_SAMPLE_SIZE * 2]
+                tmp = wave_ram_data[offset + AWG_WAVE_SAMPLE_SIZE : offset + AWG_WAVE_SAMPLE_SIZE * 2]
                 q_samples_part.append(struct.unpack('h', tmp)[0])
 
             num_cycles = chunk_param.num_cycles

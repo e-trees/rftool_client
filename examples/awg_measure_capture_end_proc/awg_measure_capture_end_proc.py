@@ -161,14 +161,7 @@ def set_awg_capture_params(param_sel):
         awg_id = awg_list[i]
         awg_to_freq[awg_id] = freq
         awg_to_num_cycles[awg_id] = (base_cycle * (i + 1), base_cycle * (3 - i))
-    
-
-def calculate_min_max(sample, chunks):
-    sample_rs = np.reshape(sample, (-1, chunks))
-    sample_min = np.amin(sample_rs, axis=1)
-    sample_max = np.amax(sample_rs, axis=1)
-    return sample_min, sample_max
-
+        
 
 def plot_graph(freq, sample, color, title, filename):
     
