@@ -27,6 +27,10 @@ ZCU111を利用して任意の波形出力とその応答波形のキャプチ�
 - [波形シーケンス可視化機能](wave-sequence-vis-ja.md) 
 - [外部トリガ機能](external-trigger-ja.md)
 
+## ユーザによるデザインの拡張
+
+- [DSP デザイン](dsp-design.md)
+
 ## サンプルプログラム
 
 - [ホスト PC と ZCU 111 の接続を確認する](../examples/setup_verify/README.md)
@@ -48,6 +52,8 @@ ZCU111を利用して任意の波形出力とその応答波形のキャプチ�
 - [AWG から波形を出力し続ける](../examples/awg_infinite_send/README.md)
 - [DRAM からデータを読み出す](../examples/awg_dram_read/README.md)
 - [波形ステップの空白期間を計測する](../examples/awg_measure_wave_gap/README.md)
+- [信号処理を適用したデータをキャプチャする](../examples/awg_dsp_send_recv/README.md)
+- [キャプチャデータに対し信号処理を適用する](../examples/awg_dsp_binalization/README.md)
 - [DAC の最大サンプリングレートでの波形データの送信](../examples/bram_send_max_sampling_rate/README.md)
 - [2つの ZCU111 の DAC を同期させる](../examples/mts_external_clock/README.md)
 - [BRAM を使った波形データの送受信](../examples/bram_send_recv/README.md)

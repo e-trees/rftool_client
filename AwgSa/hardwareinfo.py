@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
 # coding: utf-8
 
-AWG_CLK_FREQ = 300 #MHz
-WAVE_SAMPLE_SIZE = 2 #bytes
+AWG_CLK_FREQ = 300 # MHz
+AWG_WAVE_SAMPLE_SIZE = 2 # Bytes
+CAPTURE_WAVE_SAMPLE_SIZE = 4 # Bytes
 PL_DDR4_RAM_SIZE = 0x100000000
+NUM_REAL_SAMPLES_IN_CAPTURE_WORD = 16 # キャプチャワード内に含まれる Real データのサンプル数
+NUM_IQ_SAMPLES_IN_CAPTURE_WORD = 8 # キャプチャワード内に含まれる I/Q データのサンプル数
 
 class WaveChunkParamsLayout(object):
     """

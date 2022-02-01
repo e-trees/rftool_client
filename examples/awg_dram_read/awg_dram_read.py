@@ -66,13 +66,6 @@ awg_list = [awgsa.AwgId.AWG_0, awgsa.AwgId.AWG_1]
 awg_to_freq = { awgsa.AwgId.AWG_0 : 10,
                 awgsa.AwgId.AWG_1 : 20 } #MHz
 
-def calculate_min_max(sample, chunks):
-    sample_rs = np.reshape(sample, (-1, chunks))
-    sample_min = np.amin(sample_rs, axis=1)
-    sample_max = np.amax(sample_rs, axis=1)
-    return sample_min, sample_max
-
-
 def plot_graph(freq, sample, color, title, filename):
     
     time = np.linspace(0, len(sample) / freq, len(sample), endpoint=False)
@@ -587,12 +580,14 @@ def main():
         print("Get capture data.")
         nu = ndarrayutil.NdarrayUtil
         awg_id_to_wave_samples = {}
+        dram_start_addr = rft.awg_sa_cmd.get_dram_addr_offset()
         for awg_id in awg_list:
-            (addr, size) = rft.awg_sa_cmd.get_capture_section_info(awg_id, step_id = 0)
-            capture_data_0 = rft.awg_sa_cmd.read_dram(addr, size)
-            (addr, size) = rft.awg_sa_cmd.get_capture_section_info(awg_id, step_id = 1)
-            capture_data_1 = rft.awg_sa_cmd.read_dram(addr, size)
-            awg_id_to_wave_samples[awg_id] = (nu.bytes_to_real_32(capture_data_0), nu.bytes_to_real_32(capture_data_1))
+            awg_id_to_wave_samples[awg_id] = []
+            for step_id in range(2):
+                (addr, size) = rft.awg_sa_cmd.get_capture_section_info(awg_id, step_id = step_id)
+                addr_in_dram = addr - dram_start_addr
+                capture_data = rft.awg_sa_cmd.read_dram(addr_in_dram, size)
+                awg_id_to_wave_samples[awg_id].append(nu.bytes_to_real_32(capture_data))
 
         # キャプチャデータ出力
         print("Output capture data.")
