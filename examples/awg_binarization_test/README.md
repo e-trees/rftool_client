@@ -52,7 +52,7 @@ Vivado を開いたら，上部メニューから「Flow」→「Open Hardware M
 
 ![Vivado説明01](images/Vivado-01.png)
 
-ファイル選択ダイアログが表示されたら，awg_x8_binarization.py と同じディレクトリにある「zcu111_rfsoc_trd_wrapper.ltx」を選択します．
+ファイル選択ダイアログが表示されたら，awg_binarization_test.py と同じディレクトリにある「zcu111_rfsoc_trd_wrapper.ltx」を選択します．
 画面が変わったら画面上部の「hw_vios」タブを選択し，「hw_vio_1」 ～ 「hw_vio_8」 のタブがあるサブペインが見えること確認します．
 「hw_vio_5」タブを選択後「＋」マークを押し，出てきた信号をすべて選択してから OK を押します．
 
