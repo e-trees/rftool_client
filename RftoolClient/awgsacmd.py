@@ -14,7 +14,7 @@ from AwgSa import FlattenedIQWaveformSequence
 from AwgSa import ExternalTriggerId
 from AwgSa import TriggerMode
 from AwgSa import ClockSrc
-from AwgSa import PL_DDR4_RAM_SIZE
+from AwgSa import PL_DDR4_RAM_SIZE, MAX_BINARIZATION_RESULTS
 
 class AwgSaCommand(object):
     """AWG SA 制御用のコマンドを定義するクラス"""
@@ -932,8 +932,8 @@ class AwgSaCommand(object):
 
         i_bin_vec = int(tmp[0], 16)
         q_bin_vec = int(tmp[1], 16)
-        i_num_bits = int(tmp[2])
-        q_num_bits = int(tmp[3])
+        i_num_bits = min(int(tmp[2]), MAX_BINARIZATION_RESULTS)
+        q_num_bits = min(int(tmp[3]), MAX_BINARIZATION_RESULTS)
         i_result = []
         q_result = []
         for i in range(i_num_bits):

@@ -7,7 +7,7 @@ import struct
 class DigitalOutputSequence(object):
     """ デジタル出力ステップのシーケンスを保持する """
 
-    __MAX_DOUT_STEPS = 32
+    __MAX_DOUT_STEPS = 64
 
     def __init__(self):
         self.__dout_list = {}
