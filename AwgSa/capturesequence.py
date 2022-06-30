@@ -8,7 +8,7 @@ class CaptureSequence(object):
     """ キャプチャステップのシーケンスを保持する """
     __MIN_SAMPLING_RATE = 1000.0
     __MAX_SAMPLING_RATE = 4096.0
-    __MAX_CAPTURE_STEPS = 32
+    __MAX_CAPTURE_STEPS = 64
 
     def __init__(self, sampling_rate, *, is_iq_data = False):
         """

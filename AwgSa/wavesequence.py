@@ -10,7 +10,7 @@ class WaveSequence(object):
     """波形ステップのシーケンスを保持する"""
     __MIN_SAMPLING_RATE = 1000.0
     __MAX_SAMPLING_RATE = 6554.0
-    __MAX_WAVE_STEPS = 32
+    __MAX_WAVE_STEPS = 64
 
     def __init__(self, sampling_rate, *, is_iq_data = False):
         """
