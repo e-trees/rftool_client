@@ -47,7 +47,8 @@ DAC_FREQ = 6554.0
 ADC_FREQ = 4096.0
 CAPTURE_DELAY = 205
 CAPTURE_POST_PROC_TIME = 830 # キャプチャの後処理にかかる時間 (単位 : ns)
-TIME_TO_PREPARE = 3600  # 波形シーケンスの処理終了から, AWG が次のトリガーを受付可能になるまでの時間 (単位 : ns)
+TIME_TO_PREPARE = 6100  # キャプチャシーケンスの処理終了から, AWG が次のトリガーを受付可能になるまでの時間 (単位 : ns)
+                        # 最大ステップ数の増加に伴って増加. (2022/07/12)
 WAVE_LEN = 2100  # 外部トリガで駆動される AWG の出力波形の長さ (単位 : ns)
 
 BITSTREAM_LOAD_TIMEOUT = 10
