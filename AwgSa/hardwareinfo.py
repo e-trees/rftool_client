@@ -4,7 +4,7 @@
 AWG_CLK_FREQ = 300 #MHz
 WAVE_SAMPLE_SIZE = 2 #bytes
 PL_DDR4_RAM_SIZE = 0x100000000
-MAX_BINARIZATION_RESULTS = 256 # 保持可能な二値化結果の最大個数
+MAX_BINARIZATION_RESULTS = 512 # 保持可能な二値化結果の最大個数
 
 class WaveChunkParamsLayout(object):
     """

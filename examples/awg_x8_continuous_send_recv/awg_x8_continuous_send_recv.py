@@ -72,12 +72,6 @@ awg_to_freq = { awgsa.AwgId.AWG_0 : (10.021, 20.042),
                 awgsa.AwgId.AWG_7 : (436.93, 595.81)
             } #MHz
 
-def calculate_min_max(sample, chunks):
-    sample_rs = np.reshape(sample, (-1, chunks))
-    sample_min = np.amin(sample_rs, axis=1)
-    sample_max = np.amax(sample_rs, axis=1)
-    return sample_min, sample_max
-
 
 def plot_graph(freq, sample, color, title, filename):
     

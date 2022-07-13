@@ -72,13 +72,6 @@ POST_BLANK = 2000
 ADC = 0
 DAC = 1
 
-def calculate_min_max(sample, chunks):
-    sample_rs = np.reshape(sample, (-1, chunks))
-    sample_min = np.amin(sample_rs, axis=1)
-    sample_max = np.amax(sample_rs, axis=1)
-    return sample_min, sample_max
-
-
 def plot_graph(freq, sample, color, title, filename):
     
     time = np.linspace(0, len(sample) / freq, len(sample), endpoint=False)

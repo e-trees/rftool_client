@@ -47,7 +47,8 @@ DAC_FREQ = 6554.0
 ADC_FREQ = 4096.0
 CAPTURE_DELAY = 205
 CAPTURE_POST_PROC_TIME = 830 # キャプチャの後処理にかかる時間 (単位 : ns)
-TIME_TO_PREPARE = 3600  # 波形シーケンスの処理終了から, AWG が次のトリガーを受付可能になるまでの時間 (単位 : ns)
+TIME_TO_PREPARE = 6100  # キャプチャシーケンスの処理終了から, AWG が次のトリガーを受付可能になるまでの時間 (単位 : ns)
+                        # 最大ステップ数の増加に伴って増加. (2022/07/12)
 WAVE_LEN = 2100  # 外部トリガで駆動される AWG の出力波形の長さ (単位 : ns)
 
 BITSTREAM_LOAD_TIMEOUT = 10
@@ -96,12 +97,6 @@ awg_to_trigger_mode = {
     awgsa.AwgId.AWG_6 : awgsa.TriggerMode.EXTERNAL,
     awgsa.AwgId.AWG_7 : awgsa.TriggerMode.EXTERNAL
 }
-
-def calculate_min_max(sample, chunks):
-    sample_rs = np.reshape(sample, (-1, chunks))
-    sample_min = np.amin(sample_rs, axis=1)
-    sample_max = np.amax(sample_rs, axis=1)
-    return sample_min, sample_max
 
 
 def plot_graph(freq, sample, color, title, filename):

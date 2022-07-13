@@ -57,12 +57,6 @@ DUC_DDC_FACTOR = 1
 ADC = 0
 DAC = 1
 
-def calculate_min_max(sample, chunks):
-    sample_rs = np.reshape(sample, (-1, chunks))
-    sample_min = np.amin(sample_rs, axis=1)
-    sample_max = np.amax(sample_rs, axis=1)
-    return sample_min, sample_max
-
 
 def plot_graph(freq, sample, color, title, filename):
     
@@ -339,7 +333,7 @@ def set_wave_sequence(awg_sa_cmd, cycle_multiplier):
         .add_step(step_id = 1, wave = wave_1, post_blank = 2000))
 
     # AWG に波形シーケンスをセットする
-    awg_sa_cmd.set_wave_sequence(awgsa.AwgId.AWG_0, wave_sequence_0, num_repeats = 1000)
+    awg_sa_cmd.set_wave_sequence(awgsa.AwgId.AWG_0, wave_sequence_0, num_repeats = 100)
     return wave_sequence_0
 
 

@@ -340,7 +340,7 @@ def main():
         # ADC キャリブレーション
         calibrate_adc(rft.awg_sa_cmd)
 
-        MAX_SHIFT_REG_BITS = 256 # 2 値化結果を格納するシフトレジスタのビット数
+        MAX_SHIFT_REG_BITS = 512 # 2 値化結果を格納するシフトレジスタのビット数
         MAX_WAVE_STEPS = 64 # 波形シーケンスに登録可能な最大波形ステップ数
         num_repeats = MAX_SHIFT_REG_BITS // MAX_WAVE_STEPS
         expected_bin_result = [random.randint(0, 1) for _ in range(MAX_SHIFT_REG_BITS)] # 2値化結果の期待値
