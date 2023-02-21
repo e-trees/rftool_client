@@ -239,7 +239,7 @@ class AwgSaCommand(object):
 
         command = self.__joinargs("ReadCaptureData", [int(awg_id), step_id])
         self.__rft_data_if.send_command(command)
-        res = self.__rft_data_if.recv_response() # キャプチャデータの前のコマンド成否レスポンス  [SA_SUCCESS/SA_FAILURE, data size]
+        res = self.__rft_data_if.recv_response() # キャプチャデータの前のコマンド成否レスポンス  [AWG_SUCCESS/AWG_FAILURE, data size]
         [result, data_size] = self.__split_response(res, ",")
         if (result == "AWG_SUCCESS"):
             data = self.__rft_data_if.recv_data(data_size)
@@ -498,7 +498,7 @@ class AwgSaCommand(object):
 
         command = self.__joinargs("GetWaveRAM", [int(awg_id)])
         self.__rft_data_if.send_command(command)
-        res = self.__rft_data_if.recv_response() # 波形 RAM データの前のコマンド成否レスポンス  [SA_SUCCESS/SA_FAILURE, wave ram data size]
+        res = self.__rft_data_if.recv_response() # 波形 RAM データの前のコマンド成否レスポンス  [AWG_SUCCESS/AWG_FAILURE, wave ram data size]
         [result, wave_ram_data_size] = self.__split_response(res, ",")
         
         if (result == "AWG_SUCCESS"):
@@ -525,7 +525,7 @@ class AwgSaCommand(object):
 
         command = self.__joinargs("GetWaveSequenceParams", [int(awg_id)])
         self.__rft_data_if.send_command(command)
-        res = self.__rft_data_if.recv_response() # パラメータの前のコマンド成否レスポンス  [SA_SUCCESS/SA_FAILURE, wave sequence param size]
+        res = self.__rft_data_if.recv_response() # パラメータの前のコマンド成否レスポンス  [AWG_SUCCESS/AWG_FAILURE, wave sequence param size]
         [result, seq_param_size] = self.__split_response(res, ",")
 
         if (result == "AWG_SUCCESS"):
