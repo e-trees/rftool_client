@@ -117,14 +117,14 @@ def data_handler(client):
         elif values[0] == 'ReadDram':
             reply_len = int(values[2])
             reply_dat = b'0' * reply_len
-            reply_mesg = "{}".format("AWG_SUCCESS") # [SA_SUCCESS/SA_FAILURE, data size]
+            reply_mesg = "{}".format("AWG_SUCCESS") # [AWG_SUCCESS/AWG_FAILURE, data size]
             send_reply(client, [reply_mesg], ctrl=False)
             client.send(reply_dat)
             send_reply(client, [], ctrl=False)
             send_reply(client, values, ctrl=False)
         elif values[0] == 'ReadCaptureData':
             reply_len = 128
-            reply_mesg = "{},{}".format("AWG_SUCCESS", reply_len) # [SA_SUCCESS/SA_FAILURE, data size]
+            reply_mesg = "{},{}".format("AWG_SUCCESS", reply_len) # [AWG_SUCCESS/AWG_FAILURE, data size]
             send_reply(client, [reply_mesg], ctrl=False)
             reply_dat = b'0' * reply_len
             client.send(reply_dat)
@@ -143,7 +143,7 @@ def data_handler(client):
                                     )
             reply_dat += b'0' * (128*2)
             reply_len = len(reply_dat)
-            reply_mesg = "{},{}".format("AWG_SUCCESS", reply_len) # [SA_SUCCESS/SA_FAILURE, data size]
+            reply_mesg = "{},{}".format("AWG_SUCCESS", reply_len) # [AWG_SUCCESS/AWG_FAILURE, data size]
             send_reply(client, [reply_mesg], ctrl=False)
             client.send(reply_dat)
             send_reply(client, values, ctrl=False)
@@ -152,7 +152,7 @@ def data_handler(client):
             reply_dat = struct.pack('IIIII', 128, 0, 0, 0, 0)
             reply_dat += b'0' * 128
             reply_len = len(reply_dat)
-            reply_mesg = "{},{}".format("AWG_SUCCESS", reply_len) # [SA_SUCCESS/SA_FAILURE, data size]
+            reply_mesg = "{},{}".format("AWG_SUCCESS", reply_len) # [AWG_SUCCESS/AWG_FAILURE, data size]
             send_reply(client, [reply_mesg], ctrl=False)
             client.send(reply_dat)
             send_reply(client, values, ctrl=False)
