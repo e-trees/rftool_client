@@ -179,9 +179,9 @@ def check_intr_flags(rft, type, ch):
     if (flags & 0x00000002):
         details.append("RFDC FIFO underflow detected.")
     if (flags & 0x00000004):
-        details.append("RFDC FIFO merginal overflow detected.")
+        details.append("RFDC FIFO marginal overflow detected.")
     if (flags & 0x00000008):
-        details.append("RFDC FIFO merginal underflow detected.")
+        details.append("RFDC FIFO marginal underflow detected.")
     for d in details:
         print(" - " + d)
     return
