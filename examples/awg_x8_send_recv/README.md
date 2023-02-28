@@ -22,25 +22,28 @@
 python awg_x8_send_recv.py
 ```
 
-8つの AWG に対応するキャプチャ波形とスペクトルのグラフが，カレントディレクトリの下の `plot_awg_x8_send_recv` ディレクトリ以下に8枚ずつ作成されます．
+8つの AWG に対応するキャプチャ波形とスペクトルのグラフが，カレントディレクトリの下の `plot_awg_x8_send_recv` ディレクトリ以下に作成されます．
 
-LPF内蔵ポート(AWG0とAWG1のDAC/ADCポート)のキャプチャの波形例  
-![LPF内蔵ポートのキャプチャの波形例](images/awg-x8-send-recv-result-1.png)
+<br>
 
-HPF内蔵ポート(AWG2とAWG3のDAC/ADCポート)のキャプチャの波形例  
-![HPF内蔵ポートのキャプチャの波形例](images/awg-x8-send-recv-result-2.png)
+AWG 1 (LPF 内蔵ポート) の波形のキャプチャデータ  
+![AWG 1 の波形のキャプチャデータ](images/awg-x8-send-recv-result-1.png)
 
-差動入出力ポート(AWG4〜AWG7のDAC/ADCポート)のキャプチャの波形例  
-![差動入出力ポートのキャプチャの波形例](images/awg-x8-send-recv-result-3.png)
+AWG 2 (HPF 内蔵ポート) の波形のキャプチャデータ  
+![AWG 2 の波形のキャプチャデータ](images/awg-x8-send-recv-result-2.png)
 
-LPF内蔵ポート(AWG0とAWG1のDAC/ADCポート)のキャプチャ波形のスペクトル例  
-![LPF内蔵ポートのキャプチャ波形のスペクトル例](images/awg-x8-send-recv-spectrum-1.png)
+AWG 4 (差動入出力ポート) の波形のキャプチャデータ  
+![AWG 4 の波形のキャプチャデータ](images/awg-x8-send-recv-result-3.png)
 
-HPF内蔵ポート(AWG2とAWG3のDAC/ADCポート)のキャプチャ波形のスペクトル例  
-![HPF内蔵ポートのキャプチャ波形のスペクトル例](images/awg-x8-send-recv-spectrum-2.png)
+AWG 1 (LPF 内蔵ポート) の波形のスペクトル  
+![AWG 1 の波形のスペクトル](images/awg-x8-send-recv-spectrum-1.png)
 
-差動入出力ポート(AWG4〜AWG7のDAC/ADCポート)のキャプチャ波形のスペクトル例  
-![差動入出力ポートのキャプチャ波形のスペクトル例](images/awg-x8-send-recv-spectrum-3.png)
+AWG 2 (HPF 内蔵ポート) の波形のスペクトル  
+![AWG 2 の波形のスペクトル](images/awg-x8-send-recv-spectrum-2.png)
+
+AWG 4 (差動入出力ポート) の波形のスペクトル  
+![AWG 4 の波形のスペクトル](images/awg-x8-send-recv-spectrum-3.png)
+
 
 ## BRAMを利用する場合
 
@@ -50,22 +53,22 @@ HPF内蔵ポート(AWG2とAWG3のDAC/ADCポート)のキャプチャ波形のス
 python awg_x8_send_recv.py prv_cap_ram
 ```
 
-8つの AWG に対応するキャプチャ波形とスペクトルのグラフが，カレントディレクトリの下の `plot_awg_x8_send_recv_prv_cap_ram` ディレクトリ以下に8枚ずつ作成されます．
+8つの AWG に対応するキャプチャ波形とスペクトルのグラフが，カレントディレクトリの下の `plot_awg_x8_send_recv_prv_cap_ram` ディレクトリ以下に作成されます．
 
-LPF内蔵ポート(AWG0とAWG1のDAC/ADCポート)のキャプチャの波形例  
-![LPF内蔵ポートのキャプチャの波形例](images/awg-x8-send-recv-bram-result-1.png)
+AWG 0 (LPF 内蔵ポート) の波形のキャプチャデータ  
+![AWG 0 の波形のキャプチャデータ](images/awg-x8-send-recv-bram-result-1.png)
 
-HPF内蔵ポート(AWG2とAWG3のDAC/ADCポート)のキャプチャの波形例  
-![HPF内蔵ポートのキャプチャの波形例](images/awg-x8-send-recv-bram-result-2.png)
+AWG 2 (HPF 内蔵ポート) の波形のキャプチャデータ  
+![AWG 2 の波形のキャプチャデータ](images/awg-x8-send-recv-bram-result-2.png)
 
-差動入出力ポート(AWG4〜AWG7のDAC/ADCポート)のキャプチャの波形例  
-![差動入出力ポートのキャプチャの波形例](images/awg-x8-send-recv-bram-result-3.png)
+AWG 7 (差動入出力ポート) の波形のキャプチャデータ  
+![AWG 7 の波形のキャプチャデータ](images/awg-x8-send-recv-bram-result-3.png)
 
-LPF内蔵ポート(AWG0とAWG1のDAC/ADCポート)のキャプチャ波形のスペクトル例  
-![LPF内蔵ポートのキャプチャ波形のスペクトル例](images/awg-x8-send-recv-bram-spectrum-1.png)
+AWG 0 (LPF 内蔵ポート) の波形のスペクトル  
+![AWG 0 の波形のスペクトル](images/awg-x8-send-recv-bram-spectrum-1.png)
 
-HPF内蔵ポート(AWG2とAWG3のDAC/ADCポート)のキャプチャ波形のスペクトル例  
-![HPF内蔵ポートのキャプチャ波形のスペクトル例](images/awg-x8-send-recv-bram-spectrum-2.png)
+AWG 2 (LPF 内蔵ポート) の波形のスペクトル  
+![AWG 2 の波形のスペクトル](images/awg-x8-send-recv-bram-spectrum-2.png)
 
-差動入出力ポート(AWG4〜AWG7のDAC/ADCポート)のキャプチャ波形のスペクトル例  
-![差動入出力ポートのキャプチャ波形のスペクトル例](images/awg-x8-send-recv-bram-spectrum-3.png)
+AWG 7 (LPF 内蔵ポート) の波形のスペクトル  
+![AWG 7 の波形のスペクトル](images/awg-x8-send-recv-bram-spectrum-3.png)

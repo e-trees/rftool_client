@@ -29,35 +29,34 @@ import AwgSa as awgsa
 
 # Parameters
 ZCU111_IP_ADDR = os.environ.get('ZCU111_IP_ADDR', "192.168.1.3")
-PLOT_DIR = "plot_mts_awg_x8_send_recv_prv_cap_ram/"
+PLOT_DIR = "plot_mts_awg_x8_low_sampling_rate/"
 
 # Log level
 LOG_LEVEL = logging.INFO
 
 # Constants
-BITSTREAM = 8  # MTS AWG SA
+BITSTREAM = 12  # MTS AWG SA LOW SAMPLING RATE
 BITSTREAM_LOAD_TIMEOUT = 10
 TRIG_BUSY_TIMEOUT = 60
 DUC_DDC_FACTOR = 1
-DAC_FREQ = 3932.16
-ADC_FREQ = 3932.16
-CAPTURE_DELAY = 345
+DAC_FREQ = 614.4
+ADC_FREQ = 1105.92
+CAPTURE_DELAY = 2250
 
 # ADC or DAC
 ADC = 0
 DAC = 1
 
-awg_list = [awgsa.AwgId.AWG_0, awgsa.AwgId.AWG_1, awgsa.AwgId.AWG_2, awgsa.AwgId.AWG_3, 
-            awgsa.AwgId.AWG_4, awgsa.AwgId.AWG_5, awgsa.AwgId.AWG_6, awgsa.AwgId.AWG_7]
+awg_list = [awgsa.AwgId.AWG_0, awgsa.AwgId.AWG_1,
+            awgsa.AwgId.AWG_4, awgsa.AwgId.AWG_5,
+            awgsa.AwgId.AWG_6, awgsa.AwgId.AWG_7]
 
-awg_to_freq = { awgsa.AwgId.AWG_0 : 10,
-                awgsa.AwgId.AWG_1 : 20,
-                awgsa.AwgId.AWG_2 : 786.43,
-                awgsa.AwgId.AWG_3 : 655.36,
-                awgsa.AwgId.AWG_4 : 561.73,
-                awgsa.AwgId.AWG_5 : 491.52,
-                awgsa.AwgId.AWG_6 : 436.90,
-                awgsa.AwgId.AWG_7 : 393.21,
+awg_to_freq = { awgsa.AwgId.AWG_0 : 10.07,
+                awgsa.AwgId.AWG_1 : 20.48,
+                awgsa.AwgId.AWG_4 : 30.72,
+                awgsa.AwgId.AWG_5 : 40.96,
+                awgsa.AwgId.AWG_6 : 51.19,
+                awgsa.AwgId.AWG_7 : 61.44,
             } #MHz
 
 
@@ -373,7 +372,7 @@ def calibrate_adc(awg_sa_cmd):
             frequency = awg_to_freq[awg_id],
             phase = 0,
             amplitude = 30000,
-            num_cycles = int(awg_to_freq[awg_id] * 1e4)) #10ms
+            num_cycles = int(awg_to_freq[awg_id] * 1e5)) #10ms
         calib_wave_sequence = (awgsa.WaveSequence(DAC_FREQ)
             .add_step(step_id = 0, wave = calib_wave, post_blank = 0))
         awg_sa_cmd.set_wave_sequence(awg_id, calib_wave_sequence, num_repeats = 1)
@@ -395,14 +394,14 @@ def set_wave_sequence(awg_sa_cmd):
             frequency = awg_to_freq[awg_id],
             phase = 0,
             amplitude = 30000,
-            num_cycles = 10)
+            num_cycles = 15)
 
         wave_1 = awgsa.AwgWave(
             wave_type = awgsa.AwgWave.SINE,
             frequency = awg_to_freq[awg_id],
             phase = 0,
             amplitude = 30000,
-            num_cycles = int(2.5 * awg_to_freq[awg_id])) #2.5us
+            num_cycles = int(8.5 * awg_to_freq[awg_id])) # 10us
 
         # 波形シーケンスの定義
         # 波形ステップの開始から終了までの期間は, キャプチャの終了処理にかかるオーバーヘッドを考慮し, 波形出力期間 + 2000 ns を設定する.
@@ -484,8 +483,7 @@ def main():
             check_intr_flags(rft.command, ADC, ch)
         for ch in range(8):
             check_intr_flags(rft.command, DAC, ch)
-        return
-        
+    
         # キャプチャデータ取得
         print("Get capture data.")
         nu = ndarrayutil.NdarrayUtil

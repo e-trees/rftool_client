@@ -1540,6 +1540,70 @@ class RftoolCommand(object):
         self.res = self.rft_if.put(self.cmd)
         return
 
+    def IntrEnable(self, type, tile_id, block_id, interrupt_mask):
+        """Enable interrupt status of ADC/DAC.
+
+        Parameters
+        ----------
+        type : int
+            Type (ADC=0, DAC=1)
+        tile_id : int
+            ADC/DAC Tile ID number
+        block_id : int
+            ADC/DAC Block ID number
+        interrupt_mask : int
+            Mask to clear interrupt flag (set bit to clear)
+            in ADC
+             3- 0 bit : IXR_FIFOUSRDAT_MASK
+            11- 4 bit : ADC_IXR_DATAPATH_MASK
+            23-16 bit : SUBADC_IXR_DCDR_MASK
+               26 bit : ADC_OVR_VOLTAGE_MASK
+               27 bit : ADC_OVR_RANGE_MASK
+               28 bit : ADC_CMODE_OVR_MASK
+               29 bit : ADC_CMODE_UNDR_MASK
+               30 bit : ADC_DAT_OVR_MASK
+               31 bit : ADC_FIFO_OVR_MASK
+            in DAC
+             3- 0 bit : IXR_FIFOUSRDAT_MASK
+            12- 4 bit : DAC_IXR_DATAPATH_MASK
+        """
+        self.cmd = self._joinargs(
+            "IntrEnable", [type, tile_id, block_id, interrupt_mask])
+        self.res = self.rft_if.put(self.cmd)
+        return
+
+    def IntrDisable(self, type, tile_id, block_id, interrupt_mask):
+        """Enable interrupt status of ADC/DAC.
+
+        Parameters
+        ----------
+        type : int
+            Type (ADC=0, DAC=1)
+        tile_id : int
+            ADC/DAC Tile ID number
+        block_id : int
+            ADC/DAC Block ID number
+        interrupt_mask : int
+            Mask to clear interrupt flag (set bit to clear)
+            in ADC
+             3- 0 bit : IXR_FIFOUSRDAT_MASK
+            11- 4 bit : ADC_IXR_DATAPATH_MASK
+            23-16 bit : SUBADC_IXR_DCDR_MASK
+               26 bit : ADC_OVR_VOLTAGE_MASK
+               27 bit : ADC_OVR_RANGE_MASK
+               28 bit : ADC_CMODE_OVR_MASK
+               29 bit : ADC_CMODE_UNDR_MASK
+               30 bit : ADC_DAT_OVR_MASK
+               31 bit : ADC_FIFO_OVR_MASK
+            in DAC
+             3- 0 bit : IXR_FIFOUSRDAT_MASK
+            12- 4 bit : DAC_IXR_DATAPATH_MASK
+        """
+        self.cmd = self._joinargs(
+            "IntrDisable", [type, tile_id, block_id, interrupt_mask])
+        self.res = self.rft_if.put(self.cmd)
+        return
+    
     def GetIntrStatus(self, type, tile_id, block_id):
         """Get interrupt status of ADC/DAC.
 
