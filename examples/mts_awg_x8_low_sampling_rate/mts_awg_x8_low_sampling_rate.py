@@ -2,16 +2,15 @@
 # coding: utf-8
 
 """
-外部トリガサンプルプログラム
-AWG 0 がトリガ条件を満たす波形を連続して出力する.
-それを受信した外部トリガモジュール 0 は, AWG 1, AWG 4 ～ AWG 7 に連続してトリガをかける.
-外部トリガで起動した AWG の波形は, 対応するキャプチャモジュールによって積算されて保存される.
+MTS 版 AWG x8 サンプルプログラム.
+各 AWG から特定の周波数の正弦波を出力してキャプチャする.
+本スクリプトが想定する MTS 版 AWG デザインでは, ADC および DAC のサンプリングレートは固定であり,
+キャプチャ RAM は キャプチャモジュールごとに個別に存在ものとする.
 """
 
 import os
 import sys
 import time
-import math
 import logging
 import numpy as np
 import pathlib
@@ -23,13 +22,6 @@ try:
 finally:
     import matplotlib.pyplot as plt
 
-
-try:
-    num_trigger_wave_repeats = int(sys.argv[1])
-except Exception:
-    num_trigger_wave_repeats = 10
-
-
 lib_path = str(pathlib.Path(__file__).resolve().parents[2])
 sys.path.append(lib_path)
 from RftoolClient import client, rfterr, wavegen, ndarrayutil
@@ -37,65 +29,36 @@ import AwgSa as awgsa
 
 # Parameters
 ZCU111_IP_ADDR = os.environ.get('ZCU111_IP_ADDR', "192.168.1.3")
+PLOT_DIR = "plot_mts_awg_x8_low_sampling_rate/"
+
 # Log level
 LOG_LEVEL = logging.INFO
 
 # Constants
-BITSTREAM = 9  # AWG SA BRAM CAPTURE
-PLOT_DIR = 'plot_awg_continual_external_trigger/' + str(num_trigger_wave_repeats) + '/'
-DAC_FREQ = 6554.0
-ADC_FREQ = 4096.0
-CAPTURE_DELAY = 205
-CAPTURE_POST_PROC_TIME = 830 # キャプチャの後処理にかかる時間 (単位 : ns)
-TIME_TO_PREPARE = 3600  # 波形シーケンスの処理終了から, AWG が次のトリガーを受付可能になるまでの時間 (単位 : ns)
-WAVE_LEN = 2100  # 外部トリガで駆動される AWG の出力波形の長さ (単位 : ns)
-
+BITSTREAM = 12  # MTS AWG SA LOW SAMPLING RATE
 BITSTREAM_LOAD_TIMEOUT = 10
 TRIG_BUSY_TIMEOUT = 60
 DUC_DDC_FACTOR = 1
+DAC_FREQ = 614.4
+ADC_FREQ = 1105.92
+CAPTURE_DELAY = 2250
 
 # ADC or DAC
 ADC = 0
 DAC = 1
 
-awg_list = [awgsa.AwgId.AWG_0, awgsa.AwgId.AWG_1, awgsa.AwgId.AWG_4, 
-            awgsa.AwgId.AWG_5, awgsa.AwgId.AWG_6, awgsa.AwgId.AWG_7]
+awg_list = [awgsa.AwgId.AWG_0, awgsa.AwgId.AWG_1,
+            awgsa.AwgId.AWG_4, awgsa.AwgId.AWG_5,
+            awgsa.AwgId.AWG_6, awgsa.AwgId.AWG_7]
 
-awg_to_freq = { awgsa.AwgId.AWG_0 : 2, # AWG 0 generates trigger wave
-                awgsa.AwgId.AWG_1 : 2,
-                awgsa.AwgId.AWG_4 : 15,
-                awgsa.AwgId.AWG_5 : 20,
-                awgsa.AwgId.AWG_6 : 25,
-                awgsa.AwgId.AWG_7 : 30
+awg_to_freq = { awgsa.AwgId.AWG_0 : 10.07,
+                awgsa.AwgId.AWG_1 : 20.48,
+                awgsa.AwgId.AWG_4 : 30.72,
+                awgsa.AwgId.AWG_5 : 40.96,
+                awgsa.AwgId.AWG_6 : 51.19,
+                awgsa.AwgId.AWG_7 : 61.44,
             } #MHz
 
-awg_to_cycles = {
-    awgsa.AwgId.AWG_0 : [1],
-    awgsa.AwgId.AWG_1 : [int(0.001 * WAVE_LEN * awg_to_freq[awgsa.AwgId.AWG_1])],
-    awgsa.AwgId.AWG_4 : [int(0.001 * WAVE_LEN * awg_to_freq[awgsa.AwgId.AWG_4])],
-    awgsa.AwgId.AWG_5 : [int(0.001 * WAVE_LEN * awg_to_freq[awgsa.AwgId.AWG_5])],
-    awgsa.AwgId.AWG_6 : [int(0.001 * WAVE_LEN * awg_to_freq[awgsa.AwgId.AWG_6])],
-    awgsa.AwgId.AWG_7 : [int(0.001 * WAVE_LEN * awg_to_freq[awgsa.AwgId.AWG_7])] 
-}
-
-awg_to_post_blank = {
-    # トリガ波形の出力間隔 = 外部トリガで駆動される AWG の出力波形の長さ + キャプチャディレイ + キャプチャ後処理時間 + 次のトリガの受け入れ準備時間
-    awgsa.AwgId.AWG_0 : WAVE_LEN + CAPTURE_DELAY + CAPTURE_POST_PROC_TIME + TIME_TO_PREPARE,
-    awgsa.AwgId.AWG_1 : 0,
-    awgsa.AwgId.AWG_4 : 0,
-    awgsa.AwgId.AWG_5 : 0,
-    awgsa.AwgId.AWG_6 : 0,
-    awgsa.AwgId.AWG_7 : 0
-} # ns
-
-awg_to_trigger_mode = {
-    awgsa.AwgId.AWG_0 : awgsa.TriggerMode.MANUAL, # AWG 0 はトリガとなる波形を出力するので SW から起動する
-    awgsa.AwgId.AWG_1 : awgsa.TriggerMode.EXTERNAL,
-    awgsa.AwgId.AWG_4 : awgsa.TriggerMode.EXTERNAL,
-    awgsa.AwgId.AWG_5 : awgsa.TriggerMode.EXTERNAL,
-    awgsa.AwgId.AWG_6 : awgsa.TriggerMode.EXTERNAL,
-    awgsa.AwgId.AWG_7 : awgsa.TriggerMode.EXTERNAL
-}
 
 def plot_graph(freq, sample, color, title, filename):
     
@@ -120,6 +83,7 @@ def add_fft_annotate(plot, freq_res, threshold, bin_offset, spectrum):
             num_annotations += 1
         if num_annotations > 50:
             break
+
 
 # sampling_rate Msps
 def plot_graph_fft(real, imaginary, sampling_rate, plot_range, color, title, filename):
@@ -184,8 +148,8 @@ def plot_graph_fft_abs(spectrum, sampling_rate, plot_range, color, title, filena
     fig = plt.figure(figsize=(8, 6), dpi=300)
     plt.title(title)
     plt.suptitle(
-        "sampling rate: {} [Msps],  bin: {}-{},  FFT size: {}"
-        .format(sampling_rate, begin, end - 1, len(spectrum), freq_res),
+        "sampling rate: {} [Msps],  bin: {}-{},  FFT size: {},  Freq res: {} [KHz]"
+        .format(sampling_rate, begin, end - 1, len(spectrum), freq_res*1000),
         fontsize=10)
     ax = plt.gca()
     ax.grid(which="both")
@@ -267,7 +231,6 @@ def setup_dac(rftcmd):
         rftcmd.SetupFIFO(DAC, tile, 0)
         for block in [0, 1, 2, 3]:
             rftcmd.SetInterpolationFactor(tile, block, DUC_DDC_FACTOR)
-        rftcmd.SetFabClkOutDiv(DAC, tile, 2 + int(np.log2(DUC_DDC_FACTOR)))
         for block in [0, 1, 2, 3]:
             rftcmd.IntrClr(DAC, tile, block, 0xFFFFFFFF)
         rftcmd.SetupFIFO(DAC, tile, 1)
@@ -284,81 +247,12 @@ def setup_adc(rftcmd):
         for block in [0, 1]:
             rftcmd.SetDither(tile, block, 1 if ADC_FREQ > 3000. else 0)
             rftcmd.SetDecimationFactor(tile, block, DUC_DDC_FACTOR)
-        rftcmd.SetFabClkOutDiv(ADC, tile, 2 + int(np.log2(DUC_DDC_FACTOR)))
         for block in [0, 1]:
             rftcmd.IntrClr(ADC, tile, block, 0xFFFFFFFF)
         rftcmd.SetupFIFO(ADC, tile, 1)
 
 
-USE_INTERNAL_PLL = 1
-PLL_A = 0x8
-PLL_B = 0x4
-PLL_C = 0x1
-
-def set_adc_sampling_rate(rftcmd, adc_sampling_rate):
-    """
-    Set ADC sampling rates
-
-    Parameters
-    ----------
-    type : RftoolCommand
-        RftoolCommand object for sending rftool commands
-    adc_sampling_rate : float
-        ADC sampling rate (Msps)
-    """
-    # lmx2594 の設定パターン.  2 を指定すると lmx2594 の出力するクロックの周波数が 245.76 MHz になる.
-    lmx2594_config = 2 
-    # RF Data Converter に設定する ref clock の周波数 (MHz).
-    ref_clock_freq = 245.76
-    # ADC タイル0 と タイル1 の ref clock を出力する lmx2594 は PLL_A
-    rftcmd.SetExtPllClkRate(0, PLL_A, lmx2594_config)
-    # ADC タイル2 と タイル3 の ref clock を出力する lmx2594 は PLL_B
-    rftcmd.SetExtPllClkRate(0, PLL_B, lmx2594_config)
-    # サンプリングレート設定 (Msps)
-    for tile in [0, 1, 2, 3]:
-        rftcmd.DynamicPLLConfig(ADC, tile, USE_INTERNAL_PLL, ref_clock_freq, adc_sampling_rate)
-    return
-
-
-def set_dac_sampling_rate(rftcmd, dac_sampling_rate):
-    """
-    Set DAC sampling rates
-
-    Parameters
-    ----------
-    type : RftoolCommand
-        RftoolCommand object for sending rftool commands
-    dac_sampling_rate : float
-        DAC sampling rate (Msps)
-    """
-    # lmx2594 の設定パターン.  3 を指定すると lmx2594 の出力するクロックの周波数が 409.6 MHz になる.
-    lmx2594_config = 3
-    # RF Data Converter に設定する ref clock の周波数 (MHz).
-    ref_clock_freq = 409.6
-    # DAC タイル0 と タイル1 の ref clock を出力する lmx2594 は PLL_C
-    rftcmd.SetExtPllClkRate(0, PLL_C, lmx2594_config)
-    # サンプリングレート設定 (Msps)
-    for tile in [0, 1]:
-        rftcmd.DynamicPLLConfig(DAC, tile, USE_INTERNAL_PLL, ref_clock_freq, dac_sampling_rate)
-    return
-
-def shutdown_all_tiles(rftcmd):
-    """
-    DAC と ADC の全タイルをシャットダウンする
-    """
-    rftcmd.Shutdown(DAC, -1)
-    rftcmd.Shutdown(ADC, -1)
-
-
-def startup_all_tiles(rftcmd):
-    """
-    DAC と ADC の全タイルを起動する
-    """
-    rftcmd.StartUp(DAC, -1)
-    rftcmd.StartUp(ADC, -1)
-
-
-def wait_for_sequence_to_finish(awg_sa_cmd, *awg_id_list):
+def wait_for_sequence_to_finish(awg_sa_cmd, awg_id_list):
     """
     波形シーケンスの出力とキャプチャが終了するまで待つ
     """
@@ -377,32 +271,33 @@ def wait_for_sequence_to_finish(awg_sa_cmd, *awg_id_list):
     raise("AWG busy timed out.")
 
 
-def check_skipped_step(awg_sa_cmd, awg_id_to_wave_sequence):
+def check_skipped_step(awg_sa_cmd):
     """
     スキップされたキャプチャステップが無いかチェックする.
     キャプチャディレイや先行するキャプチャのキャプチャ時間などにより,
     キャプチャが出来なかった場合, そのキャプチャはスキップされる.
     """
-    for awg_id, wave_sequence in awg_id_to_wave_sequence.items():
-        for step_id in wave_sequence.get_step_id_list():
+    for awg_id in awg_list:
+        for step_id in range(2):
             if awg_sa_cmd.is_capture_step_skipped(awg_id, step_id):
                 print("The Step id {} in AWG {} has been skipped!!".format(step_id, awg_id))
 
 
-def check_capture_data_fifo_oevrflow(awg_sa_cmd, awg_id_to_wave_sequence):
+def check_capture_data_fifo_oevrflow(awg_sa_cmd):
     """
     ADC から送られる波形データを格納する FIFO で, オーバーフローが発生していないかチェックする.
-    PL 上の DRAM の帯域の制限などにより, ADC から送信されるデータの処理が間に合わない場合, 
+    PL 上の BRAM の帯域の制限などにより, ADC から送信されるデータの処理が間に合わない場合, 
     波形データを格納する FIFO のオーバーフローが発生する.
     """
-    for awg_id, wave_sequence in awg_id_to_wave_sequence.items():
-        for step_id in wave_sequence.get_step_id_list():
+    for awg_id in awg_list:
+        for step_id in range(2):
             if awg_sa_cmd.is_capture_data_fifo_overflowed(awg_id, step_id):
                 print("The ADC data FIFO in AWG {} has overflowed at step id {}!!".format(awg_id, step_id))
 
 
 def output_graphs(*id_and_data_list):
 
+    os.makedirs(PLOT_DIR, exist_ok = True)
     color = 0
     for id_and_data in id_and_data_list:
         awg_id = id_and_data[0]
@@ -477,13 +372,13 @@ def calibrate_adc(awg_sa_cmd):
             frequency = awg_to_freq[awg_id],
             phase = 0,
             amplitude = 30000,
-            num_cycles = int(awg_to_freq[awg_id] * 1e4)) #10ms
+            num_cycles = int(awg_to_freq[awg_id] * 1e5)) #10ms
         calib_wave_sequence = (awgsa.WaveSequence(DAC_FREQ)
             .add_step(step_id = 0, wave = calib_wave, post_blank = 0))
         awg_sa_cmd.set_wave_sequence(awg_id, calib_wave_sequence, num_repeats = 1)
 
     awg_sa_cmd.start_wave_sequence()
-    wait_for_sequence_to_finish(awg_sa_cmd, *awg_list)
+    wait_for_sequence_to_finish(awg_sa_cmd, awg_list)
 
 
 def set_wave_sequence(awg_sa_cmd):
@@ -492,21 +387,30 @@ def set_wave_sequence(awg_sa_cmd):
     """
     awg_id_to_wave_sequence = {}
 
-    for awg_id, freq in awg_to_freq.items():
-        wave_sequence = awgsa.WaveSequence(DAC_FREQ)
-        for step_id, cycles in enumerate(awg_to_cycles[awg_id]):
-            # 波形の定義
-            wave = awgsa.AwgWave(
-                wave_type = awgsa.AwgWave.SINE,
-                frequency = freq,
-                phase = 0,
-                amplitude = 30000,
-                num_cycles = cycles)
-            # 波形シーケンスの定義
-            wave_sequence.add_step(step_id, wave, post_blank = awg_to_post_blank[awg_id])
-        num_repeats = num_trigger_wave_repeats if (awg_id == awgsa.AwgId.AWG_0) else 1
+    for awg_id in awg_list:
+        # 波形の定義
+        wave_0 = awgsa.AwgWave(
+            wave_type = awgsa.AwgWave.SINE,
+            frequency = awg_to_freq[awg_id],
+            phase = 0,
+            amplitude = 30000,
+            num_cycles = 15)
+
+        wave_1 = awgsa.AwgWave(
+            wave_type = awgsa.AwgWave.SINE,
+            frequency = awg_to_freq[awg_id],
+            phase = 0,
+            amplitude = 30000,
+            num_cycles = int(8.5 * awg_to_freq[awg_id])) # 10us
+
+        # 波形シーケンスの定義
+        # 波形ステップの開始から終了までの期間は, キャプチャの終了処理にかかるオーバーヘッドを考慮し, 波形出力期間 + 2000 ns を設定する.
+        wave_sequence = (awgsa.WaveSequence(DAC_FREQ)
+            .add_step(step_id = 0, wave = wave_0, post_blank = 2000)
+            .add_step(step_id = 1, wave = wave_1, post_blank = 2000))
+
         # AWG に波形シーケンスをセットする
-        awg_sa_cmd.set_wave_sequence(awg_id, wave_sequence, num_repeats = num_repeats)
+        awg_sa_cmd.set_wave_sequence(awg_id = awg_id, wave_sequence = wave_sequence, num_repeats = 1)
         awg_id_to_wave_sequence[awg_id] = wave_sequence
 
     return awg_id_to_wave_sequence
@@ -514,63 +418,32 @@ def set_wave_sequence(awg_sa_cmd):
 
 def set_capture_sequence(awg_sa_cmd, awg_id_to_wave_sequence):
     """
-    キャプチャシーケンスをキャプチャモジュールにセットする
+    キャプチャシーケンスを AWG にセットする
     """
     capture_config = awgsa.CaptureConfig()
+
     for awg_id, wave_sequence in awg_id_to_wave_sequence.items():
-        capture_sequence = awgsa.CaptureSequence(ADC_FREQ)
-        for step_id in wave_sequence.get_step_id_list():
-            # delay が波形ステップの開始から終了までの時間を超えないように注意.
-            capture = awgsa.AwgCapture(
-                time = wave_sequence.get_wave(step_id).get_duration(),
-                delay = CAPTURE_DELAY,
-                do_accumulation = True)
-            # キャプチャシーケンスへのキャプチャステップの追加
-            capture_sequence.add_step(step_id, capture)
+        # キャプチャ時間は, キャプチャする波形の長さ + 35 ns とする.
+        # delay が波形ステップの開始から終了までの時間を超えないように注意.
+        capture_0 = awgsa.AwgCapture(
+            time = wave_sequence.get_wave(step_id = 0).get_duration() + 35,
+            delay = CAPTURE_DELAY,
+            do_accumulation = False)
+        capture_1 = awgsa.AwgCapture(
+            time = wave_sequence.get_wave(step_id = 1).get_duration() + 35,
+            delay = CAPTURE_DELAY,
+            do_accumulation = False)
+
+        # キャプチャシーケンスの定義
+        capture_sequence = (awgsa.CaptureSequence(ADC_FREQ)
+            .add_step(step_id = 0, capture = capture_0)
+            .add_step(step_id = 1, capture = capture_1))
+        
         # キャプチャシーケンスとキャプチャモジュールを対応付ける
         capture_config.add_capture_sequence(awg_id, capture_sequence)
+
     # キャプチャモジュールにキャプチャシーケンスを設定する
     awg_sa_cmd.set_capture_config(capture_config)
-
-
-def start_awg_and_capture(awg_sa_cmd):
-    """
-    波形の出力とキャプチャを開始する
-    """
-    print("start AWG 0")
-    awg_sa_cmd.start_wave_sequence()
-    wait_for_sequence_to_finish(awg_sa_cmd, *awg_list)
-
-
-def set_external_trigger_condition(awg_sa_cmd, external_trig_id):
-    """
-    外部トリガのトリガ条件を設定する
-    """
-    LEVEL_LESS_THAN_EQ    = 0 # 閾値以下になったとき
-    LEVEL_GREATER_THAN_EQ = 1 # 閾値以上になったとき
-    EDGE_LESS_THAN_EQ     = 2 # 閾値を上から下に跨いだ時
-    EDGE_GREATER_THAN_EQ  = 3 # 閾値を下から上に跨いだ時
-
-    awg_sa_cmd.set_external_trigger_param(external_trig_id, 0, EDGE_GREATER_THAN_EQ)
-    THRESHOLD = 1000 # トリガ条件の閾値
-    awg_sa_cmd.set_external_trigger_param(external_trig_id, 1, THRESHOLD)
-
-    #awg_sa_cmd.set_external_trigger_param(external_trig_id, 0, EDGE_LESS_THAN_EQ)
-    #THRESHOLD = -200 # トリガ条件の閾値
-    #awg_sa_cmd.set_external_trigger_param(external_trig_id, 1, THRESHOLD)
-
-
-def setup_external_trigger(awg_sa_cmd):
-    """
-    外部トリガの発行に必要な設定を行う
-    """
-    # 各 AWG のトリガモードを設定
-    for awg_id, trigger_mode in awg_to_trigger_mode.items():
-        awg_sa_cmd.set_trigger_mode(awg_id, trigger_mode)
-    # 外部トリガモジュール 0 にトリガ条件を設定
-    set_external_trigger_condition(awg_sa_cmd, awgsa.ExternalTriggerId.EXT_TRIG_0)
-    # 外部トリガモジュール 0 を起動
-    awg_sa_cmd.external_trigger_on(awgsa.ExternalTriggerId.EXT_TRIG_0, oneshot = False)
 
 
 def main():
@@ -582,80 +455,67 @@ def main():
 
         print("Configure Bitstream.")
         config_bitstream(rft.command, BITSTREAM)
-        shutdown_all_tiles(rft.command)
-        set_adc_sampling_rate(rft.command, ADC_FREQ)
-        set_dac_sampling_rate(rft.command, DAC_FREQ)
-        startup_all_tiles(rft.command)
         setup_dac(rft.command)
         setup_adc(rft.command)
-        
+
         # 初期化
         rft.awg_sa_cmd.initialize_awg_sa()
         # AWG 有効化
         rft.awg_sa_cmd.enable_awg(*awg_list)
+        # Multi Tile Synchronization
+        rft.awg_sa_cmd.sync_dac_tiles()
+        rft.awg_sa_cmd.sync_adc_tiles()
         # ADC キャリブレーション
         calibrate_adc(rft.awg_sa_cmd)
-        # AWG の波形シーケンス設定
+        # 波形シーケンス設定
         awg_id_to_wave_sequence = set_wave_sequence(rft.awg_sa_cmd)
         # キャプチャシーケンス設定
         set_capture_sequence(rft.awg_sa_cmd, awg_id_to_wave_sequence)
-        # 外部トリガ設定 & 起動
-        setup_external_trigger(rft.awg_sa_cmd)
-        # AWG 0 にマニュアルトリガを発行.
-        # AWG 0 が波形生成を開始して, それを外部トリガモジュール 0 が受け取り, 外部トリガを発行する.
-        # その結果, AWG 1, 4 ～ 7 が起動して波形の出力とキャプチャが始まる.
-        start_awg_and_capture(rft.awg_sa_cmd)
-
+        # 波形出力 & キャプチャスタート
+        rft.awg_sa_cmd.start_wave_sequence()
+        # 終了待ち
+        wait_for_sequence_to_finish(rft.awg_sa_cmd, awg_list)
         # エラーチェック
-        check_skipped_step(rft.awg_sa_cmd, awg_id_to_wave_sequence)
-        check_capture_data_fifo_oevrflow(rft.awg_sa_cmd, awg_id_to_wave_sequence)
+        print("Check for errors")
+        check_skipped_step(rft.awg_sa_cmd)
+        check_capture_data_fifo_oevrflow(rft.awg_sa_cmd)
         for ch in range(8):
             check_intr_flags(rft.command, ADC, ch)
         for ch in range(8):
             check_intr_flags(rft.command, DAC, ch)
-
+    
         # キャプチャデータ取得
         print("Get capture data.")
         nu = ndarrayutil.NdarrayUtil
         awg_id_to_wave_samples = {}
-        for awg_id, wave_sequence in awg_id_to_wave_sequence.items():
-            step_id_list = wave_sequence.get_step_id_list()
-            wave_data = rft.awg_sa_cmd.read_capture_data(awg_id, step_id = step_id_list[0])
+        for awg_id in awg_list:
+            wave_data = rft.awg_sa_cmd.read_capture_data(awg_id, step_id = 0)
             awg_id_to_wave_samples[awg_id] = nu.bytes_to_real_32(wave_data)
 
         # キャプチャデータ出力
         print("Output capture data.")
         for awg_id, wave_samples in awg_id_to_wave_samples.items():
-            num_samples = min(len(wave_samples), int(2 * ADC_FREQ / awg_to_freq[awg_id]))
-            output_graphs((awg_id, 0, wave_samples[0:num_samples]))
+            output_graphs((awg_id, 0, wave_samples))
 
         # スペクトラム取得
         print("Get spectrums.")
         num_frames = 1
+        start_sample_idx = 1024 # FFT 開始サンプルのインデックス
         fft_size = rft.awg_sa_cmd.get_fft_size()
         awg_id_to_spectrum = {}
-        for awg_id, wave_sequence in awg_id_to_wave_sequence.items():
-            if awg_id != awgsa.AwgId.AWG_0:
-                step_id_list = wave_sequence.get_step_id_list()
-                awg_id_to_spectrum[awg_id] = rft.awg_sa_cmd.get_spectrum(
-                    awg_id, step_id = step_id_list[0],
-                    start_sample_idx = 0, num_frames = num_frames, is_iq_data = False)
+        for awg_id in awg_list:
+            awg_id_to_spectrum[awg_id] = rft.awg_sa_cmd.get_spectrum(
+                awg_id, step_id = 1,
+                start_sample_idx = start_sample_idx, num_frames = num_frames, is_iq_data = False)
 
-        # スペクトラム出力
         print("Output spectrums.")
+        # スペクトラム出力
         output_spectrum_data(awg_id_to_spectrum, num_frames, 1, fft_size)
 
         # 送信波形をグラフ化
         for awg_id in awg_list:
            rft.awg_sa_cmd.get_waveform_sequence(awg_id).save_as_img(PLOT_DIR + "waveform/awg_{}_waveform.png".format(awg_id))
-        
-        # AWG へのトリガ入力回数を表示する
-        print()
-        for awg_id in awg_list:
-            print('AWG {} : The number of {} trigger inputs   {}'.format(
-                awg_id, 
-                'manual' if awg_to_trigger_mode[awg_id] == awgsa.TriggerMode.MANUAL else 'external',
-                rft.awg_sa_cmd.get_num_wave_sequence_completed(awg_id) - 1)) # - 1 -> ADC キャリブレーションの分
+
     print("Done.")
     return
 
@@ -666,4 +526,5 @@ if __name__ == "__main__":
     handler.setLevel(LOG_LEVEL)
     logger.setLevel(LOG_LEVEL)
     logger.addHandler(handler)
+
     main()

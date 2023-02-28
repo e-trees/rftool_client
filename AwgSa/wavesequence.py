@@ -8,7 +8,7 @@ import copy
 
 class WaveSequence(object):
     """波形ステップのシーケンスを保持する"""
-    __MIN_SAMPLING_RATE = 1000.0
+    __MIN_SAMPLING_RATE = 500.0
     __MAX_SAMPLING_RATE = 6554.0
     __MAX_WAVE_STEPS = 32
 

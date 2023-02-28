@@ -23,22 +23,22 @@ AWG 0 から出力される波形
 python mts_awg_x8_send_recv.py
 ```
 
-8つの AWG に対応するキャプチャ波形とスペクトルのグラフが，カレントディレクトリの下の `plot_mts_awg_x8_send_recv_prv_cap_ram` ディレクトリ以下に8枚ずつ作成されます．
+8つの AWG に対応するキャプチャ波形とスペクトルのグラフが，カレントディレクトリの下の `plot_mts_awg_x8_send_recv_prv_cap_ram` ディレクトリ以下に作成されます．
 
-LPF 内蔵ポート (AWG 0 と AWG 1 の DAC ポート) の波形をキャプチャした例  
-![LPF 内蔵ポートのキャプチャの波形例](images/AWG_0_step_0_captured.png)
+AWG 0 (LPF 内蔵ポート) の波形のキャプチャデータ  
+![AWG 0 の波形のキャプチャデータ](images/AWG_0_step_0_captured.png)
 
-HPF 内蔵ポート (AWG 2 と AWG 3 の DAC ポート) の波形をキャプチャした例  
-![HPF 内蔵ポートのキャプチャの波形例](images/AWG_2_step_0_captured.png)
+AWG 2 (HPF 内蔵ポート) の波形のキャプチャデータ  
+![AWG 2 の波形のキャプチャデータ](images/AWG_2_step_0_captured.png)
 
-差動入出力ポート (AWG 4 〜 AWG 7 の DAC ポート) の波形をキャプチャした例  
-![差動入出力ポートのキャプチャの波形例](images/AWG_5_step_0_captured.png)
+AWG 5 (差動入出力ポート) の波形のキャプチャデータ  
+![AWG 5 の波形のキャプチャデータ  ](images/AWG_5_step_0_captured.png)
 
-LPF 内蔵ポート (AWG 0 と AWG 1 の DAC ポート) のキャプチャ波形のスペクトル例  
-![LPF 内蔵ポートのキャプチャ波形のスペクトル例](images/AWG_0_step_1_frame_0_FFT_abs.png)
+AWG 0 (LPF 内蔵ポート) の波形のスペクトル  
+![AWG 0 の波形のスペクトル](images/AWG_0_step_1_frame_0_FFT_abs.png)
 
-HPF 内蔵ポート (AWG 2 と AWG 3 の DAC ポート) のキャプチャ波形のスペクトル例  
-![HPF 内蔵ポートのキャプチャ波形のスペクトル例](images/AWG_2_step_1_frame_0_FFT_abs.png)
+AWG 2 (HPF 内蔵ポート) の波形のスペクトル  
+![AWG 2 の波形のスペクトル](images/AWG_2_step_1_frame_0_FFT_abs.png)
 
-差動入出力ポート (AWG 4 〜 AWG 7 の DAC ポート) のキャプチャ波形のスペクトル例  
-![差動入出力ポートのキャプチャ波形のスペクトル例](images/AWG_5_step_1_frame_0_FFT_abs.png)
+AWG 5 (差動入出力ポート) の波形のスペクトル  
+![AWG 5 の波形のスペクトル](images/AWG_5_step_1_frame_0_FFT_abs.png)
