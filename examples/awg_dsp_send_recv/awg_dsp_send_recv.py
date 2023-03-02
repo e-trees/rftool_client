@@ -518,7 +518,7 @@ def main():
         dc_gain = 1473  # FIR フィルタの直流成分の増幅率.
         for awg_id in awg_list:
             wave_data = rft.awg_sa_cmd.read_capture_data(awg_id, step_id = 0)
-            if not no_dsp:
+            if no_dsp:
                 wave_sample = nu.bytes_to_real_32(wave_data)
             else:
                 # FIR フィルタを通さない場合と比較しやすいようにスケーリングする

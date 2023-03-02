@@ -12,7 +12,7 @@ ADCとDACを以下のように接続します．
 
 差動入出力を接続する際は，付属の BPF を取り付けた SMA ケーブルで接続します．
 
-## DRAM利用
+## DRAM キャプチャ版 Non-MTS AWG SA を使用する場合
 
 ```
 python awg_x8_iq_send_iq_recv.py
@@ -28,7 +28,7 @@ python awg_x8_iq_send_iq_recv.py
 キャプチャモジュール1のQデータスペクトル  
 ![キャプチャモジュール1のQデータスペクトル](images/awg-x8-iq-send-iq-recv-spectrum-q.png)
 
-## BRAM利用
+## BRAM キャプチャ版 Non-MTS AWG SA を使用する場合
 
 ```
 python awg_x8_iq_send_iq_recv.py prv_cap_ram

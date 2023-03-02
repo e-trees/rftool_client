@@ -484,8 +484,7 @@ def main():
             check_intr_flags(rft.command, ADC, ch)
         for ch in range(8):
             check_intr_flags(rft.command, DAC, ch)
-        return
-        
+
         # キャプチャデータ取得
         print("Get capture data.")
         nu = ndarrayutil.NdarrayUtil
