@@ -5,6 +5,7 @@ import sys
 import time
 import logging
 import pathlib
+import os
 from labrad.server import LabradServer, setting
 from twisted.internet.defer import inlineCallbacks
 

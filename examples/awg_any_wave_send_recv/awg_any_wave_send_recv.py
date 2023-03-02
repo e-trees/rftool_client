@@ -56,7 +56,6 @@ DUC_DDC_FACTOR = 1
 ADC = 0
 DAC = 1
 
-
 def plot_graph(freq, sample, color, title, filename):
     
     time = np.linspace(0, len(sample) / freq, len(sample), endpoint=False)

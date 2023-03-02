@@ -520,14 +520,14 @@ class WaveSequencePlotter(object):
         グラフに描画する垂直線の外形パラメータのリストを返す.
         [(linestyle, linewidth), ...]
         """
-        vline_props_list = [("dashed", 0.0)]
+        vline_props_list = [("dashed", 0.0, 'black')]
         step_id_list = sorted(self.__step_id_to_waveform.keys())
         for step_id in step_id_list:
             if self.__step_has_blank(step_id):
-                vline_props_list.append(("dashed", 0.0))
-                vline_props_list.append(("dashdot", 0.8))
+                vline_props_list.append(("dashed", 0.0, 'black'))
+                vline_props_list.append(("dashdot", 0.8, 'black'))
             else:
-                vline_props_list.append(("dashdot", 0.8))
+                vline_props_list.append(("dashdot", 0.8, 'black'))
         
         return vline_props_list
 
@@ -578,7 +578,7 @@ class WaveSequencePlotter(object):
 
         extension = 0.06 * (ymax - ymin)
         axes.annotate(
-            s = '', 
+            text = '', 
             xy = (vpos_start, ymin - extension),
             xytext = (vpos_end, ymin - extension),
             arrowprops = dict(arrowstyle = '<->'))
@@ -595,8 +595,12 @@ class WaveSequencePlotter(object):
         extension = 0.06 * (ymax - ymin)
         for i in range(len(vline_pos_list)):
             axes.vlines(
-                vline_pos_list[i], ymin = ymin - extension, ymax = ymax,
-                linestyles = vline_props_list[i][0], linewidth = vline_props_list[i][1])
+                vline_pos_list[i],
+                ymin = ymin - extension,
+                ymax = ymax,
+                linestyles = vline_props_list[i][0],
+                linewidth = vline_props_list[i][1],
+                color = vline_props_list[i][2])
 
         axes.grid(which = "both")
         axes.grid(which = "major", alpha = 0.5)
