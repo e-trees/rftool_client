@@ -13,7 +13,7 @@ AWG 0 の出力波形
 
 ## 実行手順と結果
 
-### DRAM をキャプチャ RAM として 使う場合
+## DRAM キャプチャ版 Non-MTS AWG SA を使用する場合
 
 以下のコマンドを実行します．
 
@@ -29,7 +29,7 @@ python awg_accum_send_recv.py
 キャプチャモジュール 0 がキャプチャした波形 2  
 ![キャプチャモジュール 0 がキャプチャした波形 2](images/AWG_0_step_1_dram_captured.png)
 
-### BRAM をキャプチャ RAM として 使う場合
+## BRAM キャプチャ版 Non-MTS AWG SA を使用する場合
 
 以下のコマンドを実行します．
 

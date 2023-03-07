@@ -100,15 +100,15 @@ def set_wave_sequence(awg_sa_cmd):
     wave_6 = awgsa.AwgIQWave(wave_2, wave_0)
 
     wave_sequence_0 = (awgsa.WaveSequence(DAC_FREQ)
-        .add_step(step_id = 0, wave = wave_0, post_blank = 2000)
-        .add_step(step_id = 1, wave = wave_1, post_blank = 1500)
+        .add_step(step_id = 0, wave = wave_0, post_blank = 1500)
+        .add_step(step_id = 1, wave = wave_1, post_blank = 0)
         .add_step(step_id = 2, wave = wave_2, post_blank = 0)
-        .add_step(step_id = 3, wave = wave_3, post_blank = 3000))
+        .add_step(step_id = 3, wave = wave_3, post_blank = 0))
         
     wave_sequence_1 = (awgsa.WaveSequence(DAC_FREQ, is_iq_data = True)
         .add_step(step_id = 0, wave = wave_4, post_blank = 1000)
-        .add_step(step_id = 1, wave = wave_5, post_blank = 2000)
-        .add_step(step_id = 2, wave = wave_6, post_blank = 1500))
+        .add_step(step_id = 1, wave = wave_5, post_blank = 0)
+        .add_step(step_id = 2, wave = wave_6, post_blank = 0))
 
     awg_sa_cmd.set_wave_sequence(awgsa.AwgId.AWG_0, wave_sequence_0, num_repeats = 1)
     awg_sa_cmd.set_wave_sequence(awgsa.AwgId.AWG_1, wave_sequence_1, num_repeats = 1)
