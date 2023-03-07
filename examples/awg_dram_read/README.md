@@ -1,9 +1,7 @@
 # DRAM からデータを読み出す
 
 AWG SA 制御 API には，ユーザによるデザインの拡張用に，通常の波形生成と ADC データのキャプチャでは使用しないメソッドが含まれています．
-[awg_dram_read.py](./awg_dram_read.py) では，そのようなメソッドのうち，DRAM からデータを読み取るメソッド (AwgSaCommand.read_dram) と，
-キャプチャデータの格納先アドレスとデータサイズを取得するメソッド (AwgSaCommand.get_capture_section_info) を使用して，
-キャプチャデータを取得します．
+[awg_dram_read.py](./awg_dram_read.py) では，そのようなメソッドのうち DRAM からデータを読み取るメソッド (AwgSaCommand.read_dram) と，キャプチャデータの格納先アドレスとデータサイズを取得するメソッド (AwgSaCommand.get_capture_section_info) を使用してキャプチャデータを取得します．
 
 ## セットアップ
 

@@ -1605,9 +1605,9 @@ class RftoolCommand(object):
                 0x00000001 : XRFDC_IXR_FIFOUSRDAT_OF_MASK
             RF-ADC/RF-DAC FIFO underflow
                 0x00000002 : XRFDC_IXR_FIFOUSRDAT_UF_MASK
-            RF-ADC/RF-DAC FIFO merginal overflow
+            RF-ADC/RF-DAC FIFO marginal overflow
                 0x00000004 : XRFDC_IXR_FIFOMRGNIND_OF_MASK
-            RF-ADC/RF-DAC FIFO merginal underflow
+            RF-ADC/RF-DAC FIFO marginal underflow
                 0x00000008 : XRFDC_IXR_FIFOMRGNIND_UF_MASK
         """
         self.cmd = self._joinargs("GetIntrStatus", [type, tile_id, block_id])

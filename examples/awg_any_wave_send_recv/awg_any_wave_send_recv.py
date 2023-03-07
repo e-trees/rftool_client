@@ -56,7 +56,6 @@ DUC_DDC_FACTOR = 1
 ADC = 0
 DAC = 1
 
-
 def plot_graph(freq, sample, color, title, filename):
     
     time = np.linspace(0, len(sample) / freq, len(sample), endpoint=False)
@@ -210,9 +209,9 @@ def check_intr_flags(rftcmd, type, ch):
     if (flags & 0x00000002):
         details.append("RFDC FIFO underflow detected.")
     if (flags & 0x00000004):
-        details.append("RFDC FIFO merginal overflow detected.")
+        details.append("RFDC FIFO marginal overflow detected.")
     if (flags & 0x00000008):
-        details.append("RFDC FIFO merginal underflow detected.")
+        details.append("RFDC FIFO marginal underflow detected.")
     for d in details:
         print(" - " + d)
     return
