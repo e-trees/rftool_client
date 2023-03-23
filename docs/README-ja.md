@@ -55,7 +55,7 @@ ZCU111を利用して任意の波形出力とその応答波形のキャプチ�
 - [波形ステップの空白期間を計測する](../examples/awg_measure_wave_gap/README.md)
 - [信号処理を適用したデータをキャプチャする](../examples/awg_dsp_send_recv/README.md)
 - [キャプチャデータに対し信号処理を適用する](../examples/awg_dsp_binalization/README.md)
-- [他の波形ステップを参照する波形ステップを追加する](../examples/awg_ref_step/README.md)
+- [他の波形ステップを参照する波形ステップを定義する](../examples/awg_ref_step/README.md)
 - [DAC の最大サンプリングレートでの波形データの送信](../examples/bram_send_max_sampling_rate/README.md)
 - [2つの ZCU111 の DAC を同期させる](../examples/mts_external_clock/README.md)
 - [BRAM を使った波形データの送受信](../examples/bram_send_recv/README.md)
