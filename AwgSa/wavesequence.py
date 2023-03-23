@@ -11,6 +11,7 @@ class WaveSequence(object):
     __MIN_SAMPLING_RATE = 500.0
     __MAX_SAMPLING_RATE = 6554.0
     __MAX_WAVE_STEPS = 32
+    __INVALID_REF_STEP_ID = 0xFFFFFFFF
 
     def __init__(self, sampling_rate, *, is_iq_data = False):
         """
@@ -35,6 +36,7 @@ class WaveSequence(object):
         self.__is_iq_data = 1 if is_iq_data else 0
         self.__step_id_to_wave = {}
         self.__step_id_to_post_blank = {}
+        self.__step_id_to_ref_step_id = {}
         return
 
 
@@ -67,7 +69,6 @@ class WaveSequence(object):
         self.__check_wave_type(wave)
         wave = copy.deepcopy(wave)
         self.__set_sampling_rate_to_wave(wave)
-        self.__step_id_to_wave[step_id] = wave
 
         if wave.get_duration() != float('inf'):
             interval = float(wave.get_duration() + post_blank)
@@ -76,7 +77,42 @@ class WaveSequence(object):
         else:
             post_blank = 0
 
+        self.__step_id_to_wave[step_id] = wave
         self.__step_id_to_post_blank[step_id] = post_blank
+        self.__step_id_to_ref_step_id[step_id] = self.__INVALID_REF_STEP_ID
+        return self
+
+
+    def add_ref_step(self, step_id, ref_step_id):
+        """
+        ref_step_id で指定した波形ステップ ID と同じ波形ステップを追加する
+
+        Parameters
+        ----------
+        step_id : int
+            波形ステップID.  波形シーケンスの波形は, 波形ステップID が小さい順に出力される.
+        ref_step_id : int
+            追加する波形ステップの ID
+        """
+        if (not isinstance(step_id, int) or (step_id < 0 or 0x7FFFFFFF < step_id)):
+            raise ValueError("invalid step_id " + str(step_id))
+
+        if (step_id in self.__step_id_to_wave):
+            raise ValueError("The step id (" + str(step_id) + ") is already registered.")
+
+        if (ref_step_id not in self.__step_id_to_wave):
+            raise ValueError("The wave step for id (" + str(ref_step_id) + ") is not registered.")
+        
+        if (len(self.__step_id_to_wave) == self.__MAX_WAVE_STEPS):
+            raise ValueError("No more steps can be added. (max=" + str(self.__MAX_WAVE_STEPS) + ")")
+
+        if (self.__step_id_to_ref_step_id[ref_step_id] != self.__INVALID_REF_STEP_ID):
+            raise ValueError(
+                "'ref_step_id' must be the id of non-reference wave step.\n'{}' is the ID of reference wave step".format(ref_step_id))
+
+        self.__step_id_to_wave[step_id] = self.__step_id_to_wave[ref_step_id]
+        self.__step_id_to_post_blank[step_id] = self.__step_id_to_post_blank[ref_step_id]
+        self.__step_id_to_ref_step_id[step_id] = ref_step_id
         return self
 
 
@@ -109,7 +145,6 @@ class WaveSequence(object):
 
 
     def serialize(self):
-        
         data = bytearray()
         data += "WSEQ".encode('utf-8')
         data += struct.pack("<d", self.__sampling_rate)
@@ -119,6 +154,7 @@ class WaveSequence(object):
         for step_id, wave in wave_list:
             post_blank = self.__step_id_to_post_blank[step_id]
             data += step_id.to_bytes(4, 'little')
+            data += self.__step_id_to_ref_step_id[step_id].to_bytes(4, 'little')
             data += struct.pack("<d", post_blank)
             data += wave.serialize()
 
