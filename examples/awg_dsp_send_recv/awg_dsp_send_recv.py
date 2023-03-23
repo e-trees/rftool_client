@@ -401,7 +401,7 @@ def calibrate_adc(awg_sa_cmd):
             frequency = freq_list[0],
             phase = 0,
             amplitude = 30000,
-            num_cycles = int(freq_list[0] * 1e5))
+            num_cycles = int(freq_list[0] * 1e4))
         calib_wave_sequence = (awgsa.WaveSequence(DAC_FREQ)
             .add_step(step_id = 0, wave = calib_wave, post_blank = 0))
         awg_sa_cmd.set_wave_sequence(awg_id, calib_wave_sequence, num_repeats = 1)

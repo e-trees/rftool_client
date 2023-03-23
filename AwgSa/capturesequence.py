@@ -81,3 +81,10 @@ class CaptureSequence(object):
 
     def num_capture_steps(self):
         return len(self.__capture_list)
+
+
+    def get_step_id_list(self):
+        """
+        このキャプチャシーケンスに登録されたステップの ID を出力順に並べてリストにして返す.
+        """
+        return sorted(self.__capture_list.keys())
