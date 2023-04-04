@@ -32,7 +32,7 @@ LOG_LEVEL = logging.INFO
 
 # Constants
 BITSTREAM = 11  # AWG DSP SHARED RAM
-PLOT_DIR = "plot_awg_dsp_binalization/"
+PLOT_DIR = "plot_awg_dsp_binarization/"
 DAC_FREQ = 4096.0
 ADC_FREQ = 3440.64
 CAPTURE_DELAY = 380
