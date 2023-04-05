@@ -420,13 +420,15 @@ class RftoolCommand(object):
         self.res = self.rft_if.put(self.cmd)
         returns = self._splitargs(self.res)
         index = 0
-        status = {}
+        status = {
+            "dac" : [],
+            "adc" : []
+        }
         items = ["is_enabled", "block_status_mask", "tile_state",
                  "power_up_state", "pll_state"]
-
-        for type in ["dac", "adc"]:
-            status[type] = []
-            for tile_id in [0, 1, 2, 3]:
+        
+        for tile_id in [0, 1, 2, 3]:
+            for type in ["dac", "adc"]:
                 status[type].append({})
                 for item in items:
                     status[type][-1][item] = returns[index]
