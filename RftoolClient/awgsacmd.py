@@ -582,13 +582,6 @@ class AwgSaCommand(object):
         self.__rft_ctrl_if.put(command)
 
 
-    def sync_nco_phases(self):
-        """
-        DAC, ADC の全ての NCO の位相を揃える
-        """
-        self.__rft_ctrl_if.put("SyncNcoPhases")
-
-
     def external_trigger_on(self, *ext_trig_id_list, oneshot = True):
         """
         引数で指定した外部トリガモジュールを起動する.
