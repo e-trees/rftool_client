@@ -225,20 +225,28 @@ def check_intr_flags(rftcmd, type, ch):
         print(" - " + d)
     return
 
+
 def calibrate_adc(awg_sa_cmd):
     """
     ADC をキャリブレーションする
     """
-    calib_wave = awgsa.AwgWave(
+    i_wave = awgsa.AwgWave(
         wave_type = awgsa.AwgWave.SINE,
         frequency = 10.0,
         phase = 0,
-        amplitude = 30000,
-        num_cycles = 100000)
+        amplitude = 15000,
+        num_cycles = int(1e5))
+    q_wave = awgsa.AwgWave(
+        wave_type = awgsa.AwgWave.SINE,
+        frequency = 10.0,
+        phase = 0,
+        amplitude = 15000,
+        num_cycles = int(1e5))
+    iq_wave = awgsa.AwgIQWave(i_wave, q_wave)
 
-    calib_wave_sequence = (awgsa.WaveSequence(DAC_FREQ)
-        .add_step(step_id = 0, wave = calib_wave, post_blank = 0))
-
+    calib_wave_sequence = (awgsa.WaveSequence(DAC_FREQ, is_iq_data = True)
+        .add_step(step_id = 0, wave = iq_wave, post_blank = 2000))
+    
     awg_sa_cmd.set_wave_sequence(awgsa.AwgId.AWG_0, calib_wave_sequence, num_repeats = 1)
     awg_sa_cmd.set_wave_sequence(awgsa.AwgId.AWG_1, calib_wave_sequence, num_repeats = 1)
     awg_sa_cmd.start_wave_sequence()

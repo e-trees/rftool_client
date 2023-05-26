@@ -220,18 +220,14 @@ def check_intr_flags(rftcmd, type, ch):
         print(" - " + d)
     return
 
-
 def setup_dac(rftcmd):
     print("Setup DAC.")
     for tile in [0, 1]:
-        for block in [0, 1, 2, 3]:
-            rftcmd.SetMixerSettings(DAC, tile, block, 0.0, 0.0, 2, 1, 16, 4, 0)
-            rftcmd.ResetNCOPhase(DAC, tile, block)
-            rftcmd.UpdateEvent(DAC, tile, block, 1)
         rftcmd.SetupFIFO(DAC, tile, 0)
         for block in [0, 1, 2, 3]:
+            rftcmd.SetMixerSettings(DAC, tile, block, 0.0, 0.0, 2, 1, 16, 4, 0)
+            rftcmd.UpdateEvent(DAC, tile, block, 1)
             rftcmd.SetInterpolationFactor(tile, block, DUC_DDC_FACTOR)
-        for block in [0, 1, 2, 3]:
             rftcmd.IntrClr(DAC, tile, block, 0xFFFFFFFF)
         rftcmd.SetupFIFO(DAC, tile, 1)
 
@@ -239,15 +235,12 @@ def setup_dac(rftcmd):
 def setup_adc(rftcmd):
     print("Setup ADC.")
     for tile in [0, 1, 2, 3]:
-        for block in [0, 1]:
-            rftcmd.SetMixerSettings(ADC, tile, block, 0.0, 0.0, 2, 1, 16, 4, 0)
-            rftcmd.ResetNCOPhase(ADC, tile, block)
-            rftcmd.UpdateEvent(ADC, tile, block, 1)
         rftcmd.SetupFIFO(ADC, tile, 0)
         for block in [0, 1]:
+            rftcmd.SetMixerSettings(ADC, tile, block, 0.0, 0.0, 2, 1, 16, 4, 0)
+            rftcmd.UpdateEvent(ADC, tile, block, 1)
             rftcmd.SetDither(tile, block, 1 if ADC_FREQ > 3000. else 0)
             rftcmd.SetDecimationFactor(tile, block, DUC_DDC_FACTOR)
-        for block in [0, 1]:
             rftcmd.IntrClr(ADC, tile, block, 0xFFFFFFFF)
         rftcmd.SetupFIFO(ADC, tile, 1)
 
@@ -447,7 +440,6 @@ def set_capture_sequence(awg_sa_cmd, awg_id_to_wave_sequence):
 
 
 def main():
-
     with client.RftoolClient(logger=logger) as rft:
         print("Connect to RFTOOL Server.")
         rft.connect(ZCU111_IP_ADDR)
@@ -457,14 +449,13 @@ def main():
         config_bitstream(rft.command, BITSTREAM)
         setup_dac(rft.command)
         setup_adc(rft.command)
+        rft.awg_sa_cmd.sync_dac_tiles()
+        rft.awg_sa_cmd.sync_adc_tiles()
 
         # 初期化
         rft.awg_sa_cmd.initialize_awg_sa()
         # AWG 有効化
         rft.awg_sa_cmd.enable_awg(*awg_list)
-        # Multi Tile Synchronization
-        rft.awg_sa_cmd.sync_dac_tiles()
-        rft.awg_sa_cmd.sync_adc_tiles()
         # ADC キャリブレーション
         calibrate_adc(rft.awg_sa_cmd)
         # 波形シーケンス設定
@@ -508,8 +499,8 @@ def main():
                 awg_id, step_id = 1,
                 start_sample_idx = start_sample_idx, num_frames = num_frames, is_iq_data = False)
 
-        print("Output spectrums.")
         # スペクトラム出力
+        print("Output spectrums.")
         output_spectrum_data(awg_id_to_spectrum, num_frames, 1, fft_size)
 
         # 送信波形をグラフ化

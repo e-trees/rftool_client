@@ -247,19 +247,18 @@ def main():
         print("Configure Bitstream.")
         config_bitstream(rft.command, BITSTREAM)
         shutdown_all_tiles(rft.command)
+        # ソースクロックの選択
+        rft.awg_sa_cmd.select_src_clk(clk_setting)
         startup_all_tiles(rft.command)
         setup_dac(rft.command)
         setup_adc(rft.command)
+        rft.awg_sa_cmd.sync_dac_tiles()
+        rft.awg_sa_cmd.sync_adc_tiles()
 
         # 初期化
         rft.awg_sa_cmd.initialize_awg_sa()
-        # ソースクロックの選択
-        rft.awg_sa_cmd.select_src_clk(clk_setting)
         # AWG 有効化
         rft.awg_sa_cmd.enable_awg(*awg_list)
-        # Multi Tile Synchronization
-        rft.awg_sa_cmd.sync_dac_tiles()
-        rft.awg_sa_cmd.sync_adc_tiles()
         # 波形シーケンス設定
         set_wave_sequence(rft.awg_sa_cmd)
         # 波形出力スタート

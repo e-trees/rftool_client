@@ -468,14 +468,14 @@ def main():
 
         setup_dac(rft.command)
         setup_adc(rft.command)
+        if fpga_design == MTS:
+            rft.awg_sa_cmd.sync_dac_tiles()
+            rft.awg_sa_cmd.sync_adc_tiles()
+
         # 初期化    
         rft.awg_sa_cmd.initialize_awg_sa()
         # AWG 有効化
         rft.awg_sa_cmd.enable_awg(awgsa.AwgId.AWG_0, awgsa.AwgId.AWG_1)
-        # Multi Tile Synchronization
-        if fpga_design == MTS:
-            rft.awg_sa_cmd.sync_dac_tiles()
-            rft.awg_sa_cmd.sync_adc_tiles()
         # ADC キャリブレーション
         calibrate_adc(rft.awg_sa_cmd)
         # 波形シーケンス設定
