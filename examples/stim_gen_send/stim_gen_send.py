@@ -120,7 +120,7 @@ def set_digital_out_data(digital_out_ctrl):
     # ディジタル出力データの作成
     dout_data_list = sg.DigitalOutputDataList()
     (dout_data_list
-        .add(0x01, 0xFFFFFFFF)
+        .add(0x01, 100)
         .add(0x02, 100)
         .add(0x04, 100)
         .add(0x08, 100)
