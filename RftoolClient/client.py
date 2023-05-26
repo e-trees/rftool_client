@@ -6,10 +6,9 @@ client.py
     - A Client for command/data interface of Xilinx ZCU111 TRD 2019.1 RFTOOL
 """
 
-from RftoolClient import rftcmd, awgsacmd, rftinterface, rfterr
+from RftoolClient import rftcmd, awgsacmd, rftinterface, commoncmd, stimgenctrl, digitaloutctrl
 import socket
 import logging
-
 
 class RftoolClient(object):
     def __init__(self, logger=None, timeout=10.0):
@@ -21,7 +20,11 @@ class RftoolClient(object):
         self.if_ctrl = rftinterface.RftoolInterface(self._logger)
         self.if_data = rftinterface.RftoolInterface(self._logger)
         self.command = rftcmd.RftoolCommand(self.if_ctrl, self._logger)
-        self.awg_sa_cmd = awgsacmd.AwgSaCommand(self.if_ctrl, self.if_data, self._logger)
+        common_cmd = commoncmd.CommonCommand(self.if_ctrl, self.if_data, self._logger)
+        self.awg_sa_cmd = awgsacmd.AwgSaCommand(
+            self.if_ctrl, self.if_data, common_cmd, self._logger)
+        self.stg_ctrl = stimgenctrl.StimGenCtrl(common_cmd, self.command, self._logger)
+        self.digital_out_ctrl = digitaloutctrl.DigitalOutCtrl(common_cmd, self._logger)
 
         self.address = ""
         self.port_ctrl = 0
@@ -33,9 +36,7 @@ class RftoolClient(object):
 
         self.if_ctrl.attach_socket(self.sock_ctrl)
         self.if_data.attach_socket(self.sock_data)
-
         self.settimeout(timeout)
-
         self._logger.debug("RftoolClient __init__")
 
     def __enter__(self):

@@ -400,7 +400,7 @@ def set_capture_sequence(awg_sa_cmd, awg_id_to_wave_sequence):
         time = awg_id_to_wave_sequence[awg_list[1]].get_whole_duration() - POST_BLANK + 100,
         delay = CAPTURE_DELAY,
         do_accumulation = False)
-
+    
     # キャプチャシーケンスの定義
     capture_sequence_0 = awgsa.CaptureSequence(ADC_FREQ).add_step(step_id = 0, capture = capture_0)
     capture_sequence_1 = awgsa.CaptureSequence(ADC_FREQ).add_step(step_id = 0, capture = capture_1)
@@ -438,14 +438,14 @@ def main():
 
         setup_dac(rft.command)
         setup_adc(rft.command)
-        # 初期化    
-        rft.awg_sa_cmd.initialize_awg_sa()
-        # AWG 有効化
-        rft.awg_sa_cmd.enable_awg(*awg_list)        
-        # Multi Tile Synchronization
         if fpga_design == MTS:
             rft.awg_sa_cmd.sync_dac_tiles()
             rft.awg_sa_cmd.sync_adc_tiles()
+
+        # 初期化
+        rft.awg_sa_cmd.initialize_awg_sa()
+        # AWG 有効化
+        rft.awg_sa_cmd.enable_awg(*awg_list)        
         # ADC キャリブレーション
         calibrate_adc(rft.awg_sa_cmd)
         # 波形シーケンス設定
