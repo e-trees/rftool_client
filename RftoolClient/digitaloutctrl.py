@@ -132,10 +132,10 @@ class DigitalOutCtrl:
 
 
     def terminate_douts(self, *dout_id_list):
-        """引数で指定したディジタル出力モジュールを強制終了する.
+        """引数で指定したディジタル出力モジュールを強制停止させる.
 
         Args:
-            *dout_id_list (list of DigitalOut): 強制終了するデジタル出力モジュールの ID
+            *dout_id_list (list of DigitalOut): 強制停止させるデジタル出力モジュールの ID
         """
         try:
             self.__validate_dout_id(*dout_id_list)

@@ -121,10 +121,10 @@ class StimGenCtrl(object):
 
 
     def terminate_stgs(self, *stg_id_list):
-        """引数で指定した Stimulus Generator を強制終了する.
+        """引数で指定した Stimulus Generator を強制停止させるする.
 
         Args:
-            *stg_id_list (list of STG): 強制終了する STG の ID
+            *stg_id_list (list of STG): 強制停止させる STG の ID
         """
         try:
             self.__validate_stg_id(*stg_id_list)

@@ -103,5 +103,6 @@ with client.RftoolClient(logger) as rft:
     dout_ctrl.enable_start_trigger(sg.DigitalOut.U0, sg.DigitalOut.U1)
 ```
 
-このスタートトリガは, 何れかの STG の波形出力開始と同時にアサートされます．
+このスタートトリガは，何れかの STG の波形出力開始と同時にアサートされます．
 StimGenCtrl クラスの start_stgs メソッドで複数の STG をスタートしてもスタートトリガは 1 度しかアサートされません．
+STG に連動させずディジタル出力モジュールだけを動作させたい場合，**DigitalOutCtrl クラスの start_douts メソッド**を使用してください．このメソッドの引数に指定したディジタル出力モジュールは，スタートトリガの有効/無効に関係なく動作を開始します．
