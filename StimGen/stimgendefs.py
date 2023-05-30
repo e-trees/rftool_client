@@ -65,3 +65,12 @@ class StgErr(Enum):
     def includes(cls, *vals):
         errs = cls.all()
         return all([val in errs for val in vals])
+
+    @classmethod
+    def to_msg(cls, err):
+        if err == cls.MEM_RD:
+            return 'Failed to read waveform.'
+        if err == cls.SAMPLE_SHORTAGE:
+            return 'Wave samples were not sent to a DAC in time.'
+        
+        raise ValueError('unknown stg error {}'.format(err))

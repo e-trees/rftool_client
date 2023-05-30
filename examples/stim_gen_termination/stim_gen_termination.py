@@ -67,7 +67,7 @@ def set_stimulus(stg_ctrl):
             samples,
             num_blank_words = 0,
             num_wait_words = 0,
-            num_repeats = 2)
+            num_repeats = 0xFFFFFFFF)
 
     # 波形情報を Stimulus Generator に送信する.
     stg_ctrl.set_stimulus(stg_to_stimulus)
@@ -89,14 +89,7 @@ def set_digital_out_data(digital_out_ctrl):
     # ディジタル出力データの作成
     dout_data_list = sg.DigitalOutputDataList()
     (dout_data_list
-        .add(0x01, 100)
-        .add(0x02, 100)
-        .add(0x04, 100)
-        .add(0x08, 100)
-        .add(0x10, 100)
-        .add(0x20, 100)
-        .add(0x40, 100)
-        .add(0x80, 100))
+        .add(0xFF, 0xFFFFFFFF))
     # 出力データをディジタル出力モジュールに設定
     digital_out_ctrl.set_output_data(dout_data_list, *dout_list)
 
@@ -126,10 +119,11 @@ def main(logger):
         setup_digital_output_modules(rft.digital_out_ctrl)
         # 波形出力スタート
         rft.stg_ctrl.start_stgs(*stg_list)
-        # 波形出力完了待ち
-        rft.stg_ctrl.wait_for_stgs_to_stop(5, *stg_list)
-        # ディジタル出力モジュール動作完了待ち
-        rft.digital_out_ctrl.wait_for_douts_to_stop(5, *dout_list)
+        input('press Enter to stop STGs.')
+        # 波形出力強制停止
+        rft.stg_ctrl.terminate_stgs(*stg_list)
+        # ディジタル値出力強制停止
+        rft.digital_out_ctrl.terminate_douts(*dout_list)
         # 波形出力完了フラグクリア
         rft.stg_ctrl.clear_stg_stop_flags(*stg_list)
         # ディジタル出力モジュール動作完了フラグクリア

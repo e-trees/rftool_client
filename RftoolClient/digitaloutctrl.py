@@ -146,7 +146,7 @@ class DigitalOutCtrl:
         for dout_id in dout_id_list:
             addr = DigitalOutCtrlRegs.Addr.dout(dout_id) + DigitalOutCtrlRegs.Offset.CTRL
             self.__reg_access.write_bits(addr, DigitalOutCtrlRegs.Bit.CTRL_TERMINATE, 1, 1)
-            self.__wait_for_douts_idle(3, dout_id)
+            self.__wait_for_douts_idle(5, dout_id)
             self.__reg_access.write_bits(addr, DigitalOutCtrlRegs.Bit.CTRL_TERMINATE, 1, 0)
 
 
