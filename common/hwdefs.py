@@ -44,6 +44,47 @@ class RfdcInterrupt(Enum):
     ADC_FIFO_MARGINAL_OVERFLOW  = 16
     ADC_FIFO_MARGINAL_UNDERFLOW = 17
 
+    @classmethod
+    def to_msg(cls, interrupt):
+        if interrupt == cls.DAC_INTERPOLATION_OVERFLOW:
+            return 'Overflow detected in DAC Interpolation stage datapath.'
+        if interrupt == cls.ADC_DECIMATION_OVERFLOW:
+            return 'Overflow detected in ADC decimation stage datapath.'
+        if interrupt == cls.DAC_QMC_GAIN_PHASE_OVERFLOW:
+            return 'Overflow detected in DAC QMC Gain/Phase.'
+        if interrupt == cls.DAC_QMC_OFFSET_OVERFLOW: 
+            return 'Overflow detected in DAC QMC offset.'
+        if interrupt == cls.ADC_QMC_GAIN_PHASE_OVERFLOW:
+            return 'Overflow detected in ADC QMC Gain/Phase.'
+        if interrupt == cls.ADC_QMC_OFFSET_OVERFLOW:
+            return 'Overflow detected in ADC QMC offset.'
+        if interrupt == cls.DAC_INV_SINC_OVERFLOW:
+            return 'Overflow detected in DAC Inverse Sinc Filter.'
+        if interrupt == cls.SUB_ADC_OVER_RANGE:
+            return 'Sub ADC over/under range detected.'
+        if interrupt == cls.ADC_OVER_VOLTAGE:
+            return 'ADC over voltage detected.'
+        if interrupt == cls.ADC_OVER_RANGE:
+            return 'ADC over range detected.'
+        if interrupt == cls.DAC_FIFO_OVERFLOW:
+            return 'DAC FIFO overflow detected.'
+        if interrupt == cls.DAC_FIFO_UNDERFLOW:
+            return 'DAC FIFO underflow detected.'
+        if interrupt == cls.DAC_FIFO_MARGINAL_OVERFLOW:
+            return 'DAC FIFO marginal overflow detected.'
+        if interrupt == cls.DAC_FIFO_MARGINAL_UNDERFLOW:
+            return 'DAC FIFO marginal underflow detected.'
+        if interrupt == cls.ADC_FIFO_OVERFLOW:
+            return 'ADC FIFO overflow detected.'
+        if interrupt == cls.ADC_FIFO_UNDERFLOW:
+            return 'ADC FIFO underflow detected.'
+        if interrupt == cls.ADC_FIFO_MARGINAL_OVERFLOW:
+            return 'ADC FIFO marginal overflow detected.'
+        if interrupt == cls.ADC_FIFO_MARGINAL_UNDERFLOW:
+            return 'ADC FIFO marginal underflow detected.'
+        
+        raise ValueError('unknown rfdc interrupt {}'.format(interrupt))
+
 
 class RfdcIntrpMask(IntEnum):
     """Rfdc 割り込みマスク一覧"""

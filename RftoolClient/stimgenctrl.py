@@ -121,7 +121,7 @@ class StimGenCtrl(object):
 
 
     def terminate_stgs(self, *stg_id_list):
-        """引数で指定した Stimulus Generator を強制停止させるする.
+        """引数で指定した Stimulus Generator を強制停止させる.
 
         Args:
             *stg_id_list (list of STG): 強制停止させる STG の ID
@@ -135,7 +135,7 @@ class StimGenCtrl(object):
         for stg_id in stg_id_list:
             addr = StgCtrlRegs.Addr.stg(stg_id) + StgCtrlRegs.Offset.CTRL
             self.__reg_access.write_bits(addr, StgCtrlRegs.Bit.CTRL_TERMINATE, 1, 1)
-            self.__wait_for_stgs_idle(3, stg_id)
+            self.__wait_for_stgs_idle(5, stg_id)
             self.__reg_access.write_bits(addr, StgCtrlRegs.Bit.CTRL_TERMINATE, 1, 0)
 
 
