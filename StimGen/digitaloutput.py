@@ -3,7 +3,7 @@ import copy
 class DigitalOutputDataList:
     """デジタル出力モジュールが出力するビットパターンを保持するクラス"""
 
-    MAX_PATTERNS = 256 #: デジタル出力モジュールに設定可能な最大パターン数
+    MAX_PATTERNS = 512 #: デジタル出力モジュールに設定可能な最大パターン数
     MIN_TIME = 2
     MAX_TIME = 0xFFFFFFFF
 
