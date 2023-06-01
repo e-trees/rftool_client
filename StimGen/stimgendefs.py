@@ -14,12 +14,12 @@ class STG(IntEnum):
     @classmethod
     def all(cls):
         """全 STG の ID をリストとして返す"""
-        return [item for item in STG]
+        return list(STG)
 
     @classmethod
     def of(cls, val):
         if not cls.includes(val):
-            raise ValueError("connot convert {} to STG".format(val))
+            raise ValueError("cannot convert {} to STG".format(val))
         return cls.all()[val]
 
     @classmethod
@@ -30,18 +30,32 @@ class STG(IntEnum):
 
 class DigitalOut(IntEnum):
     """Digital Output の ID"""
-    U0  = 0 
-    U1  = 1 
+    U0  = 0
+    U1  = 1
+    U2  = 2
+    U3  = 3
+    U4  = 4
+    U5  = 5
+    U6  = 6
+    U7  = 7
+    U8  = 8
+    U9  = 9
+    U10 = 10
+    U11 = 11
+    U12 = 12
+    U13 = 13
+    U14 = 14
+    U15 = 15
 
     @classmethod
     def all(cls):
         """全 Digital Output の ID をリストとして返す"""
-        return [item for item in DigitalOut]
+        return list(DigitalOut)
 
     @classmethod
     def of(cls, val):
         if not cls.includes(val):
-            raise ValueError("connot convert {} to DigitalOut".format(val))
+            raise ValueError("cannot convert {} to DigitalOut".format(val))
         return cls.all()[val]
 
     @classmethod
@@ -59,7 +73,7 @@ class StgErr(Enum):
     @classmethod
     def all(cls):
         """全 STG エラーの列挙子をリストとして返す"""
-        return [item for item in StgErr]
+        return list(StgErr)
 
     @classmethod
     def includes(cls, *vals):

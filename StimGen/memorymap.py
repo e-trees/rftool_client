@@ -27,12 +27,13 @@ class StgMasterCtrlRegs(object):
         STG_5  = 5
         STG_6  = 6
         STG_7  = 7
+        __stgs = [
+            STG_0, STG_1, STG_2, STG_3,
+            STG_4, STG_5, STG_6, STG_7]
 
         @classmethod
         def stg(cls, idx):
-            stgs = [cls.STG_0,  cls.STG_1,  cls.STG_2,  cls.STG_3,
-                    cls.STG_4,  cls.STG_5,  cls.STG_6,  cls.STG_7]
-            return stgs[idx]
+            return cls.__stgs[idx]
 
 
 class StgCtrlRegs(object):
@@ -46,12 +47,13 @@ class StgCtrlRegs(object):
         STG_5  = 0x300
         STG_6  = 0x380
         STG_7  = 0x400
-    
+        __stgs = [
+            STG_0, STG_1, STG_2, STG_3,
+            STG_4, STG_5, STG_6, STG_7]
+        
         @classmethod
-        def stg(cls, idx):
-            stgs = [cls.STG_0,  cls.STG_1,  cls.STG_2,  cls.STG_3,
-                    cls.STG_4,  cls.STG_5,  cls.STG_6,  cls.STG_7]
-            return stgs[idx]
+        def stg(cls, idx): 
+            return cls.__stgs[idx]
 
     class Offset(object):
         CTRL   = 0x0
@@ -83,12 +85,13 @@ class WaveParamRegs(object):
         STG_5  = 0x2400
         STG_6  = 0x2800
         STG_7  = 0x2C00
+        __stgs = [
+            STG_0, STG_1, STG_2, STG_3,
+            STG_4, STG_5, STG_6, STG_7]
 
         @classmethod
         def stg(cls, idx):
-            stgs = [cls.STG_0,  cls.STG_1,  cls.STG_2,  cls.STG_3,
-                    cls.STG_4,  cls.STG_5,  cls.STG_6,  cls.STG_7]
-            return stgs[idx]
+            return cls.__stgs[idx]
 
     class Offset(object):
         CHUNK_0  = 0x40
@@ -107,14 +110,15 @@ class WaveParamRegs(object):
         CHUNK_13 = 0x110
         CHUNK_14 = 0x120
         CHUNK_15 = 0x130
+        __chunks = [
+            CHUNK_0,  CHUNK_1,  CHUNK_2,  CHUNK_3,
+            CHUNK_4,  CHUNK_5,  CHUNK_6,  CHUNK_7,
+            CHUNK_8,  CHUNK_9,  CHUNK_10, CHUNK_11,
+            CHUNK_12, CHUNK_13, CHUNK_14, CHUNK_15]
         
         @classmethod
         def chunk(cls, idx):
-            chunks = [cls.CHUNK_0,  cls.CHUNK_1,  cls.CHUNK_2,  cls.CHUNK_3,
-                      cls.CHUNK_4,  cls.CHUNK_5,  cls.CHUNK_6,  cls.CHUNK_7,
-                      cls.CHUNK_8,  cls.CHUNK_9,  cls.CHUNK_10, cls.CHUNK_11,
-                      cls.CHUNK_12, cls.CHUNK_13, cls.CHUNK_14, cls.CHUNK_15]
-            return chunks[idx]
+            return cls.__chunks[idx]
 
         NUM_WAIT_WORDS                = 0x0
         NUM_REPEATS                   = 0x4
@@ -143,11 +147,29 @@ class DigitalOutMasterCtrlRegs(object):
         CTRL_DONE_CLR  = 3
         DOUT_0  = 0
         DOUT_1  = 1
+        DOUT_2  = 2
+        DOUT_3  = 3
+        DOUT_4  = 4
+        DOUT_5  = 5
+        DOUT_6  = 6
+        DOUT_7  = 7
+        DOUT_8  = 8
+        DOUT_9  = 9
+        DOUT_10 = 10
+        DOUT_11 = 11
+        DOUT_12 = 12
+        DOUT_13 = 13
+        DOUT_14 = 14
+        DOUT_15 = 15
+        __douts = [
+            DOUT_0,  DOUT_1,  DOUT_2,  DOUT_3,
+            DOUT_4,  DOUT_5,  DOUT_6,  DOUT_7,
+            DOUT_8,  DOUT_9,  DOUT_10, DOUT_11,
+            DOUT_12, DOUT_13, DOUT_14, DOUT_15]
 
         @classmethod
         def dout(cls, idx):
-            douts = [cls.DOUT_0, cls.DOUT_1]
-            return douts[idx]
+            return cls.__douts[idx]
 
 
 class DigitalOutCtrlRegs(object):
@@ -155,11 +177,29 @@ class DigitalOutCtrlRegs(object):
     class Addr(object):
         DOUT_0  = 0x5080
         DOUT_1  = 0x5100
-    
+        DOUT_2  = 0x5180
+        DOUT_3  = 0x5200
+        DOUT_4  = 0x5280
+        DOUT_5  = 0x5300
+        DOUT_6  = 0x5380
+        DOUT_7  = 0x5400
+        DOUT_8  = 0x5480
+        DOUT_9  = 0x5500
+        DOUT_10 = 0x5580
+        DOUT_11 = 0x5600
+        DOUT_12 = 0x5680
+        DOUT_13 = 0x5700
+        DOUT_14 = 0x5780
+        DOUT_15 = 0x5800
+        __douts = [
+            DOUT_0,  DOUT_1,  DOUT_2,  DOUT_3,
+            DOUT_4,  DOUT_5,  DOUT_6,  DOUT_7,
+            DOUT_8,  DOUT_9,  DOUT_10, DOUT_11,
+            DOUT_12, DOUT_13, DOUT_14, DOUT_15]
+
         @classmethod
         def dout(cls, idx):
-            douts = [cls.DOUT_0, cls.DOUT_1]
-            return douts[idx]
+            return cls.__douts[idx]
 
     class Offset(object):
         CTRL         = 0x0
@@ -180,13 +220,31 @@ class DigitalOutCtrlRegs(object):
 class DigitalOutputDataListRegs(object):
     #### digital output data params ####
     class Addr(object):
-        DOUT_0  = 0x6000
-        DOUT_1  = 0x7000
+        DOUT_0   = 0x10_0000
+        DOUT_1   = 0x14_0000
+        DOUT_2   = 0x18_0000
+        DOUT_3   = 0x1C_0000
+        DOUT_4   = 0x20_0000
+        DOUT_5   = 0x24_0000
+        DOUT_6   = 0x28_0000
+        DOUT_7   = 0x2C_0000
+        DOUT_8   = 0x30_0000
+        DOUT_9   = 0x34_0000
+        DOUT_10  = 0x38_0000
+        DOUT_11  = 0x3C_0000
+        DOUT_12  = 0x40_0000
+        DOUT_13  = 0x44_0000
+        DOUT_14  = 0x48_0000
+        DOUT_15  = 0x4C_0000
+        __douts = [
+            DOUT_0,  DOUT_1,  DOUT_2,  DOUT_3,
+            DOUT_4,  DOUT_5,  DOUT_6,  DOUT_7,
+            DOUT_8,  DOUT_9,  DOUT_10, DOUT_11,
+            DOUT_12, DOUT_13, DOUT_14, DOUT_15]
 
         @classmethod
-        def dout(cls, idx):
-            douts = [cls.DOUT_0, cls.DOUT_1]
-            return douts[idx]
+        def dout(cls, idx):    
+            return cls.__douts[idx]
 
     class Offset(object):        
         @classmethod

@@ -13,7 +13,7 @@ ZCU111_IP_ADDR = os.environ.get('ZCU111_IP_ADDR', "192.168.1.3")
 DAC_FREQ = 614.4 # Msps
 
 stg_list = sg.STG.all()
-dout_list = sg.DigitalOut.all()
+dout_list = [sg.DigitalOut.U0, sg.DigitalOut.U1]
 stg_to_freq = {
     sg.STG.U0 : 1.0,
     sg.STG.U1 : 1.5,
