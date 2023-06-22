@@ -12,7 +12,7 @@ import time
 import logging
 import numpy as np
 import pathlib
-from scipy import fftpack
+
 try:
     import matplotlib
     matplotlib.use("Agg")
@@ -22,7 +22,7 @@ finally:
 
 lib_path = str(pathlib.Path(__file__).resolve().parents[2])
 sys.path.append(lib_path)
-from RftoolClient import client, rfterr, wavegen, ndarrayutil
+from RftoolClient import client, ndarrayutil
 import AwgSa as awgsa
 
 # Parameters
@@ -222,20 +222,20 @@ def check_intr_flags(rftcmd, type, ch):
 def setup_dac(rftcmd):
     print("Setup DAC.")
     for tile in [0, 1]:
-        rftcmd.__rft_cmd.SetupFIFO(DAC, tile, 0)
+        rftcmd.SetupFIFO(DAC, tile, 0)
         for block in [0, 1, 2, 3]:
             rftcmd.SetMixerSettings(DAC, tile, block, 0.0, 0.0, 2, 1, 16, 4, 0)
             rftcmd.ResetNCOPhase(DAC, tile, block)
             rftcmd.UpdateEvent(DAC, tile, block, 1)
             rftcmd.SetInterpolationFactor(tile, block, DUC_DDC_FACTOR)
             rftcmd.IntrClr(DAC, tile, block, 0xFFFFFFFF)
-        rftcmd.__rft_cmd.SetupFIFO(DAC, tile, 1)
+        rftcmd.SetupFIFO(DAC, tile, 1)
 
 
 def setup_adc(rftcmd):
     print("Setup ADC.")
     for tile in [0, 1, 2, 3]:
-        rftcmd.__rft_cmd.SetupFIFO(ADC, tile, 0)
+        rftcmd.SetupFIFO(ADC, tile, 0)
         for block in [0, 1]:
             rftcmd.SetMixerSettings(ADC, tile, block, 0.0, 0.0, 2, 1, 16, 4, 0)
             rftcmd.ResetNCOPhase(ADC, tile, block)
@@ -243,7 +243,7 @@ def setup_adc(rftcmd):
             rftcmd.SetDither(tile, block, 1 if ADC_FREQ > 3000. else 0)
             rftcmd.SetDecimationFactor(tile, block, DUC_DDC_FACTOR)
             rftcmd.IntrClr(ADC, tile, block, 0xFFFFFFFF)
-        rftcmd.__rft_cmd.SetupFIFO(ADC, tile, 1)
+        rftcmd.SetupFIFO(ADC, tile, 1)
 
 
 def wait_for_sequence_to_finish(awg_sa_cmd, *awg_id_list):

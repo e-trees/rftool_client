@@ -2,8 +2,6 @@ import sys
 import pathlib
 import time
 
-from RftoolClient import cmdutil, rfterr
-
 lib_path = str(pathlib.Path(__file__).resolve().parents[2])
 sys.path.append(lib_path)
 import StimGen as sg

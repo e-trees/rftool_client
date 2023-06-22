@@ -31,7 +31,7 @@ import time
 import logging
 import numpy as np
 import pathlib
-from scipy import fftpack
+
 try:
     import matplotlib
     matplotlib.use("Agg")
@@ -41,7 +41,7 @@ finally:
 
 lib_path = str(pathlib.Path(__file__).resolve().parents[2])
 sys.path.append(lib_path)
-from RftoolClient import client, rfterr, wavegen, ndarrayutil
+from RftoolClient import client, ndarrayutil
 import AwgSa as awgsa
 
 # FPGA design

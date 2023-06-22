@@ -17,7 +17,6 @@ import pathlib
 
 lib_path = str(pathlib.Path(__file__).resolve().parents[2])
 sys.path.append(lib_path)
-from RftoolClient import client, rfterr
 
 # Parameters
 LABRAD_HOST = "localhost"
