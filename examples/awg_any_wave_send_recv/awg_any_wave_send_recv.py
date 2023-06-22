@@ -23,7 +23,6 @@ import time
 import logging
 import numpy as np
 import pathlib
-from scipy import fftpack
 try:
     import matplotlib
     matplotlib.use("Agg")
@@ -33,7 +32,7 @@ finally:
 
 lib_path = str(pathlib.Path(__file__).resolve().parents[2])
 sys.path.append(lib_path)
-from RftoolClient import client, rfterr, wavegen, ndarrayutil
+from RftoolClient import client, ndarrayutil
 import AwgSa as awgsa
 
 # Parameters
@@ -239,6 +238,8 @@ def calibrate_adc(awg_sa_cmd):
 def setup_dac(rftcmd):
     print("Setup DAC.")
     for tile in [0, 1]:
+        rftcmd.SetupFIFO(DAC, tile, 0)
+        rftcmd.SetFabClkOutDiv(DAC, tile, 2 + int(np.log2(DUC_DDC_FACTOR)))
         for block in [0, 1, 2, 3]:
             if block == 3:
                 rftcmd.SetMixerSettings(DAC, tile, block, DAC_MIXER_FREQ_1, 0.0, 2, 2, 16, 2, 0)
@@ -246,12 +247,8 @@ def setup_dac(rftcmd):
                 rftcmd.SetMixerSettings(DAC, tile, block, 0.0, 0.0, 2, 1, 16, 4, 0)
             rftcmd.ResetNCOPhase(DAC, tile, block)
             rftcmd.UpdateEvent(DAC, tile, block, 1)
-        rftcmd.SetupFIFO(DAC, tile, 0)
-        for block in [0, 1, 2, 3]:
             interpolation_factor = DUC_DDC_FACTOR + 1 if (block == 3) else DUC_DDC_FACTOR
             rftcmd.SetInterpolationFactor(tile, block, interpolation_factor)
-        rftcmd.SetFabClkOutDiv(DAC, tile, 2 + int(np.log2(DUC_DDC_FACTOR)))
-        for block in [0, 1, 2, 3]:
             rftcmd.IntrClr(DAC, tile, block, 0xFFFFFFFF)
         rftcmd.SetupFIFO(DAC, tile, 1)
 
@@ -259,16 +256,14 @@ def setup_dac(rftcmd):
 def setup_adc(rftcmd):
     print("Setup ADC.")
     for tile in [0, 1, 2, 3]:
+        rftcmd.SetupFIFO(ADC, tile, 0)
+        rftcmd.SetFabClkOutDiv(ADC, tile, 2 + int(np.log2(DUC_DDC_FACTOR)))
         for block in [0, 1]:
             rftcmd.SetMixerSettings(ADC, tile, block, 0.0, 0.0, 2, 1, 16, 4, 0)
             rftcmd.ResetNCOPhase(ADC, tile, block)
             rftcmd.UpdateEvent(ADC, tile, block, 1)
-        rftcmd.SetupFIFO(ADC, tile, 0)
-        for block in [0, 1]:
             rftcmd.SetDither(tile, block, 1 if ADC_FREQ > 3000. else 0)
             rftcmd.SetDecimationFactor(tile, block, DUC_DDC_FACTOR)
-        rftcmd.SetFabClkOutDiv(ADC, tile, 2 + int(np.log2(DUC_DDC_FACTOR)))
-        for block in [0, 1]:
             rftcmd.IntrClr(ADC, tile, block, 0xFFFFFFFF)
         rftcmd.SetupFIFO(ADC, tile, 1)
 
