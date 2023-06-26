@@ -13,7 +13,6 @@ import time
 import logging
 import numpy as np
 import pathlib
-from scipy import fftpack
 try:
     import matplotlib
     matplotlib.use("Agg")
@@ -23,7 +22,7 @@ finally:
 
 lib_path = str(pathlib.Path(__file__).resolve().parents[2])
 sys.path.append(lib_path)
-from RftoolClient import client, rfterr, wavegen, ndarrayutil
+from RftoolClient import client, ndarrayutil
 import AwgSa as awgsa
 
 # Parameters
@@ -34,8 +33,7 @@ LOG_LEVEL = logging.INFO
 # Constants
 BITSTREAM = 7  # AWG SA DRAM CAPTURE
 PLOT_DIR = "plot_awg_windowed_capture/"
-DAC_FREQ = 1228.8
-ADC_FREQ = 1228.8
+AD_DA_FREQ = 1228.8
 CAPTURE_DELAY = 500
 POST_BLANK = 2000
 
@@ -129,15 +127,13 @@ def check_intr_flags(rftcmd, type, ch):
 def setup_dac(rftcmd):
     print("Setup DAC.")
     for tile in [0, 1]:
+        rftcmd.SetupFIFO(DAC, tile, 0)
+        rftcmd.SetFabClkOutDiv(DAC, tile, 2 + int(np.log2(DUC_DDC_FACTOR)))
         for block in [0, 1, 2, 3]:
             rftcmd.SetMixerSettings(DAC, tile, block, 0.0, 0.0, 2, 1, 16, 4, 0)
             rftcmd.ResetNCOPhase(DAC, tile, block)
             rftcmd.UpdateEvent(DAC, tile, block, 1)
-        rftcmd.SetupFIFO(DAC, tile, 0)
-        for block in [0, 1, 2, 3]:
             rftcmd.SetInterpolationFactor(tile, block, DUC_DDC_FACTOR)
-        rftcmd.SetFabClkOutDiv(DAC, tile, 2 + int(np.log2(DUC_DDC_FACTOR)))
-        for block in [0, 1, 2, 3]:
             rftcmd.IntrClr(DAC, tile, block, 0xFFFFFFFF)
         rftcmd.SetupFIFO(DAC, tile, 1)
 
@@ -145,16 +141,14 @@ def setup_dac(rftcmd):
 def setup_adc(rftcmd):
     print("Setup ADC.")
     for tile in [0, 1, 2, 3]:
+        rftcmd.SetupFIFO(ADC, tile, 0)
+        rftcmd.SetFabClkOutDiv(ADC, tile, 2 + int(np.log2(DUC_DDC_FACTOR)))
         for block in [0, 1]:
             rftcmd.SetMixerSettings(ADC, tile, block, 0.0, 0.0, 2, 1, 16, 4, 0)
             rftcmd.ResetNCOPhase(ADC, tile, block)
             rftcmd.UpdateEvent(ADC, tile, block, 1)
-        rftcmd.SetupFIFO(ADC, tile, 0)
-        for block in [0, 1]:
-            rftcmd.SetDither(tile, block, 1 if ADC_FREQ > 3000. else 0)
+            rftcmd.SetDither(tile, block, 1 if AD_DA_FREQ > 3000. else 0)
             rftcmd.SetDecimationFactor(tile, block, DUC_DDC_FACTOR)
-        rftcmd.SetFabClkOutDiv(ADC, tile, 2 + int(np.log2(DUC_DDC_FACTOR)))
-        for block in [0, 1]:
             rftcmd.IntrClr(ADC, tile, block, 0xFFFFFFFF)
         rftcmd.SetupFIFO(ADC, tile, 1)
 
@@ -293,10 +287,10 @@ def output_graphs(*id_and_data_list):
         out_dir = PLOT_DIR + "AWG_{}/".format(awg_id)
         os.makedirs(out_dir, exist_ok = True)
         plot_graph(
-            ADC_FREQ, 
+            AD_DA_FREQ, 
             samples, 
             "C{}".format(color), 
-            "AWG_{} step_{} captured waveform {} samples, {} Msps".format(awg_id, step_id, len(samples), ADC_FREQ),
+            "AWG_{} step_{} captured waveform {} samples, {} Msps".format(awg_id, step_id, len(samples), AD_DA_FREQ),
             out_dir + "AWG_{}_step_{}_captured.png".format(awg_id, step_id))
         color += 1
 
@@ -313,7 +307,7 @@ def calibrate_adc(awg_sa_cmd):
             phase = 0,
             amplitude = 30000,
             num_cycles = int(1e4)) #10ms
-        calib_wave_sequence = (awgsa.WaveSequence(DAC_FREQ)
+        calib_wave_sequence = (awgsa.WaveSequence(AD_DA_FREQ)
             .add_step(step_id = 0, wave = calib_wave, post_blank = 0))
         awg_sa_cmd.set_wave_sequence(awg_id, calib_wave_sequence, num_repeats = 1)
 
@@ -341,9 +335,9 @@ def set_wave_sequence(awg_sa_cmd):
         num_cycles = NUM_CYCLES)
 
     # 波形シーケンスの定義
-    wave_sequence_0 = (awgsa.WaveSequence(DAC_FREQ)
+    wave_sequence_0 = (awgsa.WaveSequence(AD_DA_FREQ)
         .add_step(step_id = 0, wave = wave_0, post_blank = 0))
-    wave_sequence_1 = (awgsa.WaveSequence(DAC_FREQ)
+    wave_sequence_1 = (awgsa.WaveSequence(AD_DA_FREQ)
         .add_step(step_id = 0, wave = wave_1, post_blank = 0))
     # AWG に波形シーケンスをセットする
     awg_sa_cmd.set_wave_sequence(awg_id = awg_list[0], wave_sequence = wave_sequence_0, num_repeats = 1)
@@ -360,14 +354,14 @@ def set_capture_sequence(awg_sa_cmd, awg_id_to_wave_sequence):
 
     for awg_id, wave_sequence in awg_id_to_wave_sequence.items():
         # DAC から出力する波形の NUM_CYCLES_IN_WINDOW サイクル分の期間をキャプチャ時間とする
-        num_dac_wave_samples = int(DAC_FREQ / wave_sequence.get_wave(0).get_frequency())
+        num_dac_wave_samples = int(AD_DA_FREQ / wave_sequence.get_wave(0).get_frequency())
         capture = awgsa.AwgWindowedCapture(
-            time = 1000 * NUM_CYCLES_IN_WINDOW * num_dac_wave_samples / ADC_FREQ,
+            time = 1000 * NUM_CYCLES_IN_WINDOW * num_dac_wave_samples / AD_DA_FREQ,
             num_windows = NUM_WINDOWS,
             delay = CAPTURE_DELAY)
 
         # キャプチャシーケンスの定義
-        capture_sequence = (awgsa.CaptureSequence(ADC_FREQ)
+        capture_sequence = (awgsa.CaptureSequence(AD_DA_FREQ)
             .add_step(step_id = 0, capture = capture))
         
         # キャプチャシーケンスとキャプチャモジュールを対応付ける
@@ -402,8 +396,8 @@ def main():
         print("Configure Bitstream.")
         config_bitstream(rft.command, BITSTREAM)
         shutdown_all_tiles(rft.command)
-        set_adc_sampling_rate(rft.command, ADC_FREQ)
-        set_dac_sampling_rate(rft.command, DAC_FREQ)
+        set_adc_sampling_rate(rft.command, AD_DA_FREQ)
+        set_dac_sampling_rate(rft.command, AD_DA_FREQ)
         startup_all_tiles(rft.command)
         setup_dac(rft.command)
         setup_adc(rft.command)

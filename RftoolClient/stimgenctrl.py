@@ -291,13 +291,13 @@ class StimGenCtrl(object):
         全ての DAC を Stimulus Generator 用にセットアップする
         """
         for tile in [0, 1]:
-            self.__rft_cmd.SetupFIFO(cmn.DAC, tile, 0)
+            self.SetupFIFO(cmn.DAC, tile, 0)
             for block in [0, 1, 2, 3]:
                 self.__rft_cmd.SetMixerSettings(cmn.DAC, tile, block, 0.0, 0.0, 2, 1, 16, 4, 0)
                 self.__rft_cmd.UpdateEvent(cmn.DAC, tile, block, 1)
                 self.__rft_cmd.SetInterpolationFactor(tile, block, 1)
                 self.__rft_cmd.IntrClr(cmn.DAC, tile, block, 0xFFFFFFFF)
-            self.__rft_cmd.SetupFIFO(cmn.DAC, tile, 1)
+            self.SetupFIFO(cmn.DAC, tile, 1)
 
 
     def sync_dac_tiles(self):
