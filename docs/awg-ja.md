@@ -55,7 +55,7 @@ wave_0 = awgsa.AwgAnyWave(samples = samples, num_cyles = 10)
 
 波形シーケンスの定義には，`awgsa` パッケージの `WaveSequence` クラスとそのメソッド `add_step` を使用します．
 この API により `AwgWave` で定義した波形にステップ ID を割り当て、シーケンス内の出力順序と出力間隔を決定します．
-`post_blank` は，波形ステップの波形に続く空白期間となります．引数を省略した場合は 0 となります．
+`post_blank` は波形ステップの波形に続く空白期間となり，引数を省略した場合は 0 となります．
 
 たとえば，次のように波形シーケンスを定義します．
 
@@ -68,6 +68,31 @@ wave_sequence_0 = (awgsa.WaveSequence(DAC_FREQ)
 定義される波形シーケンスは次の通りです．
 
 ![定義される波形シーケンスの例](images/awg-defined-wave-sequence-example.png)
+
+### 他の波形ステップを参照する波形ステップの追加
+
+波形シーケンスの定義には `WaveSequence` クラスの `add_step` メソッドのほかに，同クラスの `add_ref_step` メソッドを用いても可能です．
+このメソッドは，波形シーケンスの特定の波形ステップと同じ波形およびポストブランクを持つ波形ステップを追加する際に使用します．
+
+`add_ref_step` を用いて波形ステップを追加する例を以下に示します．
+まず，`WaveSequence` クラスの `add_step` メソッドを用いて波形ステップ (ステップ ID 0) を追加してから，
+`add_ref_step` メソッドを用いてもう 1 つ波形ステップ (ステップ ID 1) を追加しています．
+`add_ref_step` メソッドによって追加された波形ステップは，引数 `ref_step_id` で指定した ID の波形ステップと同じ波形になります．
+なお，`ref_step_id` には `add_step` で追加した波形ステップの ID のみ指定できます．
+
+```
+wave_sequence = (awgsa.WaveSequence(DAC_FREQ)
+    .add_step(step_id = 0, wave = wave, post_blank = 0)
+    .add_ref_step(step_id = 1, ref_step_id = 0))
+```
+
+定義される波形シーケンスは次の通りです．
+
+![定義される波形シーケンスの例](images/awg-defined-wave-sequence-example-2.png)
+
+通常，波形のサンプルデータは FPGA の波形 RAM (波形を構成するサンプルデータが格納される RAM) に波形ステップごとに格納されますが，
+`add_ref_step` メソッドによって追加された波形ステップのサンプルデータは，参照元の波形ステップのものと同じであるため，波形 RAM に格納されません．
+よって，同じ波形を異なる波形ステップで出力したい場合は，`add_ref_step` で波形を定義すると波形 RAM の節約になります．
 
 ## 波形シーケンスのAWGへの登録
 

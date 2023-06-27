@@ -35,4 +35,4 @@ class AwgId(IntEnum):
             return AwgId.AWG_6
         if value == 7 or value == '7':
             return AwgId.AWG_7
-        raise ValueError("connot convert {} to AWG ID".format(value))
+        raise ValueError("cannot convert {} to AWG ID".format(value))

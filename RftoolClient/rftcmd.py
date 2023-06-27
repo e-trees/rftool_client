@@ -2,7 +2,7 @@
 # coding: utf-8
 
 from RftoolClient import cmdutil
-import logging
+import logging, time
 
 """
 rftcmd.py
@@ -420,13 +420,15 @@ class RftoolCommand(object):
         self.res = self.rft_if.put(self.cmd)
         returns = self._splitargs(self.res)
         index = 0
-        status = {}
+        status = {
+            "dac" : [],
+            "adc" : []
+        }
         items = ["is_enabled", "block_status_mask", "tile_state",
                  "power_up_state", "pll_state"]
-
-        for type in ["dac", "adc"]:
-            status[type] = []
-            for tile_id in [0, 1, 2, 3]:
+        
+        for tile_id in [0, 1, 2, 3]:
+            for type in ["dac", "adc"]:
                 status[type].append({})
                 for item in items:
                     status[type][-1][item] = returns[index]
@@ -1540,6 +1542,70 @@ class RftoolCommand(object):
         self.res = self.rft_if.put(self.cmd)
         return
 
+    def IntrEnable(self, type, tile_id, block_id, interrupt_mask):
+        """Enable interrupt status of ADC/DAC.
+
+        Parameters
+        ----------
+        type : int
+            Type (ADC=0, DAC=1)
+        tile_id : int
+            ADC/DAC Tile ID number
+        block_id : int
+            ADC/DAC Block ID number
+        interrupt_mask : int
+            Mask to clear interrupt flag (set bit to clear)
+            in ADC
+             3- 0 bit : IXR_FIFOUSRDAT_MASK
+            11- 4 bit : ADC_IXR_DATAPATH_MASK
+            23-16 bit : SUBADC_IXR_DCDR_MASK
+               26 bit : ADC_OVR_VOLTAGE_MASK
+               27 bit : ADC_OVR_RANGE_MASK
+               28 bit : ADC_CMODE_OVR_MASK
+               29 bit : ADC_CMODE_UNDR_MASK
+               30 bit : ADC_DAT_OVR_MASK
+               31 bit : ADC_FIFO_OVR_MASK
+            in DAC
+             3- 0 bit : IXR_FIFOUSRDAT_MASK
+            12- 4 bit : DAC_IXR_DATAPATH_MASK
+        """
+        self.cmd = self._joinargs(
+            "IntrEnable", [type, tile_id, block_id, interrupt_mask])
+        self.res = self.rft_if.put(self.cmd)
+        return
+
+    def IntrDisable(self, type, tile_id, block_id, interrupt_mask):
+        """Enable interrupt status of ADC/DAC.
+
+        Parameters
+        ----------
+        type : int
+            Type (ADC=0, DAC=1)
+        tile_id : int
+            ADC/DAC Tile ID number
+        block_id : int
+            ADC/DAC Block ID number
+        interrupt_mask : int
+            Mask to clear interrupt flag (set bit to clear)
+            in ADC
+             3- 0 bit : IXR_FIFOUSRDAT_MASK
+            11- 4 bit : ADC_IXR_DATAPATH_MASK
+            23-16 bit : SUBADC_IXR_DCDR_MASK
+               26 bit : ADC_OVR_VOLTAGE_MASK
+               27 bit : ADC_OVR_RANGE_MASK
+               28 bit : ADC_CMODE_OVR_MASK
+               29 bit : ADC_CMODE_UNDR_MASK
+               30 bit : ADC_DAT_OVR_MASK
+               31 bit : ADC_FIFO_OVR_MASK
+            in DAC
+             3- 0 bit : IXR_FIFOUSRDAT_MASK
+            12- 4 bit : DAC_IXR_DATAPATH_MASK
+        """
+        self.cmd = self._joinargs(
+            "IntrDisable", [type, tile_id, block_id, interrupt_mask])
+        self.res = self.rft_if.put(self.cmd)
+        return
+    
     def GetIntrStatus(self, type, tile_id, block_id):
         """Get interrupt status of ADC/DAC.
 
@@ -1830,150 +1896,22 @@ class RftoolCommand(object):
 
         return type, tile_id, fab_clk_div
 
-    def SetTriggerLatency(self, type, latency):
-        """Set latency of Trigger system. (e-trees)
+    def ConfigFpga(self, design_id, timeout):
+        """指定されたデザインで FPGA をコンフィギュレーションする
 
-        Parameters
-        ----------
-        type : int
-            Type (ADC=0, DAC=1)
-        latency : int
-            trigger latency (0-32767)
+        Args:
+            design_id (FpgaDesign): FPGA デザインの ID
+            timeout (int): タイムアウト時間 (秒)
         """
-        self.cmd = self._joinargs("SetTriggerLatency", [type, latency])
-        self.res = self.rft_if.put(self.cmd)
-        return
-
-    def SetTriggerInfo(self, type, channels, num_of_samples, data_format):
-        """Set parameters of Trigger system. (e-trees)
-
-        Parameters
-        ----------
-        type : int
-            Type (ADC=0, DAC=1)
-        channels : int
-            Mask bit corresponding to the channel to use
-            e.g. when masking channnel 0 and channel 2, specify 0x5(=0b0101).
-        num_of_samples : int
-            Number of samples
-        data_format : int
-            Real data or I/Q interleaved data (Real=0, I/Q interleaved=1)
-        """
-        self.cmd = self._joinargs("SetTriggerInfo", [type, channels, num_of_samples, data_format])
-        self.res = self.rft_if.put(self.cmd)
-        return
-
-    def SetTriggerCycle(self, num_of_cycle, cycle_period):
-        """Set Num of trigger / period. (e-trees)
-
-        Parameters
-        ----------
-        num_of_cycle : int
-            Num of trigger cycles
-        cycle_period : int
-            Trigger cycle period
-        """
-        self.cmd = self._joinargs("SetTriggerCycle", [num_of_cycle, cycle_period])
-        self.res = self.rft_if.put(self.cmd)
-        return
-
-    def StartTrigger(self):
-        """Start Trigger system. (e-trees)
-        """
-        self.cmd = "StartTrigger"
-        self.res = self.rft_if.put(self.cmd)
-        return
-
-    def GetTriggerStatus(self):
-        """Get Trigger status. (e-trees)
-
-        Returns
-        -------
-        busy : int
-            Trigger system is standby/busy (standby=0, busy=1)
-        """
-        self.cmd = "GetTriggerStatus"
-        self.res = self.rft_if.put(self.cmd)
-        [busy] = self._splitargs(self.res)
-
-        return busy
-
-    def SetAccumulateMode(self, enable):
-        """Set Accumulation mode for BRAM Accumulation design. (e-trees)
-
-        Parameters
-        ----------
-        enable : int
-            Accumulation enable (disable=0, enable=1)
-        """
-        self.cmd = self._joinargs("SetAccumulateMode", [enable])
-        self.res = self.rft_if.put(self.cmd)
-        return
-
-    def GetAccumulateOverrange(self):
-        """Get Accumulator overrange flag. (e-trees)
-
-        Returns
-        -------
-        accum_ovr : int
-            Accumulator overrange flag per ADC channel
-        """
-        self.cmd = "GetAccumulateOverrange"
-        self.res = self.rft_if.put(self.cmd)
-        [accum_ovr] = self._splitargs(self.res)
-
-        return accum_ovr
-
-    def SetMACConfig(self, adc_bwidth_mode, ignore_mac_overrange):
-        """Set Multiply-Accumulator configuration for BRAM Feedback design. (e-trees)
-
-        Parameters
-        ----------
-        adc_bwidth_mode : int
-            Multiply-Accumulator input bit width select (16bit=0, 12bit=1, per ADC channel)
-        ignore_mac_overrange : int
-            Ignore Multiply-Accumulator overrange then DAC trigger
-            (do not trigger=0, ignore overrange then trigger=1, per ADC channel)
-        """
-        self.cmd = self._joinargs("SetMACConfig", [adc_bwidth_mode, ignore_mac_overrange])
-        self.res = self.rft_if.put(self.cmd)
-        return
-
-    def SetPMODConfig(self, bit_to_enable, num_samples, latency, divratio, polarity):
-        """Set parameters of PL PMOD 0 logic.
-        Parameters
-        ----------
-        bit_to_enable : int
-            Mask bits corresponding to the PL PMOD 0 logic output to be enabled.
-            e.g. when masking pin 0 and pin 2, specify 0x5(=0b00000101).
-        num_samples : int
-            Number of samples for PMOD (max. 4096samples).
-        latency : int
-            Trigger latency for PL PMOD 0 logic output.
-        divratio : int
-            Division ratio for PL PMOD 0 logic output.
-            The logic output depends on DAC Tile 1 Fabric clock.
-            Higher this value, slower output data rate.
-        polarity : int
-            Logic output polarity per bits for PL PMOD 0.
-            0: Positive (0 to 0V, 1 to 3.3V, 0V output during standby)
-            1: Negative (0 to 3.3V, 1 to 0V, 3.3V output during standby)
-            e.g. when polarity of pin 0 and pin 2 negative, specify 0x5(=0b00000101).
-        """
-        self.cmd = self._joinargs("SetPMODConfig", [bit_to_enable, num_samples, latency, divratio, polarity])
-        self.res = self.rft_if.put(self.cmd)
-        return
-
-    def ClearBRAM(self):
-        """Clear All BRAM. (e-trees)
-        """
-        self.cmd = "ClearBRAM"
-        self.res = self.rft_if.put(self.cmd)
-        return
-
-    def ClearDRAM(self, type):
-        """Clear a DRAM block.
-        """
-        self.cmd = self._joinargs("ClearDRAM", [type])
-        self.res = self.rft_if.put(self.cmd)
-        return
+        if self.GetBitstream() != design_id:
+            self.SetBitstream(int(design_id))
+            time.sleep(0.5)
+            start = time.time()
+            while True:
+                if self.GetBitstreamStatus() == 1:                
+                    return
+                elapsed_time = time.time() - start
+                if elapsed_time > timeout:
+                    raise Exception(
+                        'Failed to configure bitstream, please reboot ZCU111.')
+                time.sleep(0.5)

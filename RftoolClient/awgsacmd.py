@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 # coding: utf-8
 
+from AwgSa.awgsaerror import DspTimeoutError
 from RftoolClient import cmdutil, rfterr
-import logging, struct
+import logging, time
 from AwgSa import WaveSequence
+from AwgSa import hardwareinfo as hwi
 from AwgSa import AwgId
 from AwgSa import AwgSaCmdResult
 from AwgSa import CaptureConfig
@@ -14,22 +16,23 @@ from AwgSa import FlattenedIQWaveformSequence
 from AwgSa import ExternalTriggerId
 from AwgSa import TriggerMode
 from AwgSa import ClockSrc
-from AwgSa import PL_DDR4_RAM_SIZE, MAX_BINARIZATION_RESULTS
+from AwgSa import DspParamId
+from AwgSa import MAX_BINARIZATION_RESULTS
 
 class AwgSaCommand(object):
     """AWG SA 制御用のコマンドを定義するクラス"""
 
-    def __init__(self, ctrl_interface, data_interface, logger=None):
+    def __init__(self, ctrl_interface, data_interface, common_cmd, logger=None):
         self.__logger = logging.getLogger(__name__)
         self.__logger.addHandler(logging.NullHandler())
         self.__logger = logger or self.__logger
 
         self.__rft_ctrl_if = ctrl_interface
         self.__rft_data_if = data_interface
+        self.__common_cmd = common_cmd
         self.__joinargs = cmdutil.CmdUtil.joinargs
         self.__splitargs = cmdutil.CmdUtil.splitargs
         self.__split_response = cmdutil.CmdUtil.split_response
-        self.__logger.debug("RftoolCommand __init__")
         self.__awg_to_adc_tile = {
             AwgId.AWG_0 : 0,
             AwgId.AWG_1 : 0,
@@ -242,18 +245,20 @@ class AwgSaCommand(object):
         res = self.__rft_data_if.recv_response() # キャプチャデータの前のコマンド成否レスポンス  [AWG_SUCCESS/AWG_FAILURE, data size]
         [result, data_size] = self.__split_response(res, ",")
         if (result == "AWG_SUCCESS"):
-            data = self.__rft_data_if.recv_data(data_size)
+            data = self.__rft_data_if.recv_data(data_size, show_progress = True)
             self.__rft_data_if.recv_response() # end of capture data
 
         res = self.__rft_data_if.recv_response() # end of 'ReadCaptureData' command
         if res[:5] == "ERROR":
             raise rfterr.RftoolExecuteCommandError(res)
-        self.__logger.debug(res)
+
         return data
 
 
     def get_capture_data_size(self, awg_id, step_id):
-        
+        """
+        キャプチャモジュール ID とキャプチャステップから, キャプチャデータサイズ (Bytes) を取得する
+        """
         if (not AwgId.has_value(awg_id)):
             raise ValueError("invalid awg_id  " + str(awg_id))
         
@@ -353,18 +358,21 @@ class AwgSaCommand(object):
             raise ValueError("invalid step_id " + str(step_id))
 
         command = self.__joinargs("IsCaptureDataFifoOverflowed", [int(awg_id), step_id])
-        res = self.__rft_ctrl_if.put(command)
-        return False if int(res) == 0 else True
+        fifo_overflow = int(self.__rft_ctrl_if.put(command))
+        # キャプチャ中のクロック変換モジュールの ADC データ取りこぼしもこのメソッドで取得する
+        command = self.__joinargs("IsAdcClockConvMissed", [int(awg_id), step_id])
+        cdc_missed = int(self.__rft_ctrl_if.put(command))
+        return False if (fifo_overflow == 0) and (cdc_missed == 0) else True
 
 
     def get_spectrum(self, awg_id, step_id, start_sample_idx, num_frames, *, is_iq_data = False):
         """
-        キャプチャしたデータの FFT スペクトラムを取得する
+        キャプチャデータの FFT スペクトラムを取得する
         
         Parameters
         ----------
         awg_id : AwgId
-            スペクトラムを取得したいデータをキャプチャした AWG の ID
+            スペクトラムを取得したいデータをキャプチャしたキャプチャモジュールの ID
         step_id : int
             スペクトラムを取得したいキャプチャステップのID
         start_sample_idx : int
@@ -396,10 +404,12 @@ class AwgSaCommand(object):
         if (not isinstance(is_iq_data, bool)):
             raise ValueError("invalid is_iq_data " + str(is_iq_data))
 
-        if (is_iq_data and start_sample_idx % 8 != 0):
+        if (is_iq_data and
+            start_sample_idx % hwi.NUM_IQ_SAMPLES_IN_CAPTURE_WORD != 0):
            raise ValueError("'start_sample_idx' must be a multiple of 8 for I/Q data.  " + str(start_sample_idx))
 
-        if ((not is_iq_data) and start_sample_idx % 16 != 0):
+        if ((not is_iq_data) and
+            start_sample_idx % hwi.NUM_REAL_SAMPLES_IN_CAPTURE_WORD != 0):
             raise ValueError("'start_sample_idx' must be a multiple of 16 for Real data.  " + str(start_sample_idx))
 
         is_iq_data = 1 if is_iq_data else 0
@@ -410,13 +420,13 @@ class AwgSaCommand(object):
         [result, data_size] = self.__split_response(res, ",")
 
         if (result == "SA_SUCCESS"):
-            spectrum = self.__rft_data_if.recv_data(data_size)
+            spectrum = self.__rft_data_if.recv_data(data_size, show_progress = True)
             self.__rft_data_if.recv_response() # end of spectrum data
 
         res = self.__rft_data_if.recv_response() # end of 'GetSpectrum' command
         if res[:5] == "ERROR":
             raise rfterr.RftoolExecuteCommandError(res)
-        self.__logger.debug(res)
+
         return spectrum
 
 
@@ -508,8 +518,7 @@ class AwgSaCommand(object):
         res = self.__rft_data_if.recv_response() # end of 'GetWaveRAM' command
         if res[:5] == "ERROR":
             raise rfterr.RftoolExecuteCommandError(res)
-        self.__logger.debug(res)
-        
+
         if wave_seq_params.is_iq_data:
             return FlattenedIQWaveformSequence.build_from_wave_ram(wave_seq_params, wave_ram_data)
         else:
@@ -535,7 +544,7 @@ class AwgSaCommand(object):
         res = self.__rft_data_if.recv_response() # end of 'GetWaveSequenceParams' command
         if res[:5] == "ERROR":
             raise rfterr.RftoolExecuteCommandError(res)
-        self.__logger.debug(res)
+        
         return WaveSequenceParams.build_from_bytes(seq_params_bytes)
 
 
@@ -560,17 +569,17 @@ class AwgSaCommand(object):
     def sync_dac_tiles(self):
         """
         全ての DAC タイルを同期させる.
+        このメソッドを呼ぶ前に, DAC データパスの設定 (I/Q ミキサ, 補間など) の設定を完了させておくこと.
         """
-        command = self.__joinargs("SyncMultiTiles", [1])
-        self.__rft_ctrl_if.put(command)
+        self.__common_cmd.sync_dac_tiles()
 
 
     def sync_adc_tiles(self):
         """
         全ての ADC タイルを同期させる.
+        このメソッドを呼ぶ前に, ADC データパスの設定 (I/Q ミキサ, 間引きなど) の設定を完了させておくこと.
         """
-        command = self.__joinargs("SyncMultiTiles", [0])
-        self.__rft_ctrl_if.put(command)
+        self.__common_cmd.sync_adc_tiles()
 
 
     def external_trigger_on(self, *ext_trig_id_list, oneshot = True):
@@ -803,49 +812,11 @@ class AwgSaCommand(object):
         self.__rft_ctrl_if.put("TerminateAllAwgs")
 
 
-    def read_dram(self, offset, size):
-        """
-        PL に接続された外部 DRAM の任意のアドレスからデータを読み取る.
-        
-        Parameters
-        ----------
-        offset : int
-            データを取得するアドレス
-        size : int
-            読み取るサイズ (Bytes)
-        
-        Returns
-        -------
-        data : bytes
-            DRAM のデータ
-        """
-        if (not isinstance(offset, int) or (offset < 0 or 0xFFFFFFFF < offset)):
-            raise ValueError("invalid offset " + str(offset))
-
-        if (not isinstance(size, int) or (size <= 0 or PL_DDR4_RAM_SIZE < (size + offset))):
-            raise ValueError(
-                "invalid read addr range  ({} - {})\n".format(offset, size + offset - 1) + 
-                "The valid one is 0 to {}.".format(PL_DDR4_RAM_SIZE - 1))
-
-        command = self.__joinargs("ReadDram", [offset, size])
-        self.__rft_data_if.send_command(command)
-        res = self.__rft_data_if.recv_response().rstrip('\r\n') # キャプチャデータの前のコマンド成否レスポンス  AWG_SUCCESS/AWG_FAILURE
-        if (res == "AWG_SUCCESS"):
-            data = self.__rft_data_if.recv_data(size)
-            res = self.__rft_data_if.recv_response() # end of capture data
-
-        res = self.__rft_data_if.recv_response() # end of 'ReadDram' command
-        if res[:5] == "ERROR":
-            raise rfterr.RftoolExecuteCommandError(res)
-        self.__logger.debug(res)
-        return data
-
-
     def get_capture_section_info(self, awg_id, step_id):
         """
         キャプチャモジュールの ID とキャプチャステップから, 
-        対応するキャプチャデータの格納先の RAM のアドレスとデータサイズ (Bytes) を取得する.
-        set_capture_config でキャプチャシーケンスをキャプチャモジュールにセットしてから呼ぶこと.
+        対応するキャプチャデータが格納される ZCU111 上の物理アドレスとデータサイズ (Bytes) を取得する.
+        set_capture_config でキャプチャシーケンスをキャプチャモジュールにセットしてから呼ぶこと.        
 
         Parameters
         ----------
@@ -857,7 +828,7 @@ class AwgSaCommand(object):
         Returns
         -------
         (addr, data_size) : (int, int)
-            引数で指定したキャプチャデータの格納先である RAM のアドレスとデータサイズ
+            引数で指定したキャプチャデータの格納先のアドレスとデータサイズ.
         """
         if (not AwgId.has_value(awg_id)):
             raise ValueError("invalid awg_id  " + str(awg_id))
@@ -869,6 +840,37 @@ class AwgSaCommand(object):
         res = self.__rft_ctrl_if.put(command)
         [addr, data_size] = self.__split_response(res, ",")
         return (int(addr), int(data_size))
+
+
+    def get_dram_addr_offset(self):
+        """
+        ZCU111 内部で DRAM がマップされている物理アドレスを返す
+
+        Returns
+        -------
+        addr : int
+            ZCU111 システム全体で DRAM がマップされている物理アドレス
+        """
+        res = self.__rft_ctrl_if.put("GetDramAddrOffset")
+        return int(res)
+
+
+    def get_capture_sample_size(self, iq):
+        """
+        キャプチャデータ 1 サンプル分のバイト数を取得する.
+        I/Q データは I と Q をまとめて 1 サンプルとカウントする.
+
+        Parameters
+        ----------
+        iq: bool
+            I/Q データのバイト数を取得する場合 True.
+        
+        Returns
+        -------
+        size : int
+            キャプチャデータ 1 サンプル分のバイト数
+        """
+        return (hwi.CAPTURE_WAVE_SAMPLE_SIZE * 2) if iq else hwi.CAPTURE_WAVE_SAMPLE_SIZE
 
 
     def select_src_clk(self, clk_sel):
@@ -910,6 +912,264 @@ class AwgSaCommand(object):
         command = self.__joinargs("GetNumWaveSequencesCompleted", [int(awg_id)])
         res = self.__rft_ctrl_if.put(command)
         return int(res)
+
+
+    def start_dsp(self):
+        """
+        DSP モジュールの動作を開始する
+        """
+        self.__rft_ctrl_if.put("StartDsp")
+
+
+    def reset_dsp(self):
+        """
+        DSP モジュールをリセットする
+        """
+        self.__rft_ctrl_if.put("ResetDsp")
+
+
+    def is_dsp_complete(self):
+        """
+        DSP モジュールの処理が完了しているか調べる
+
+        Returns
+        -------
+        status : int
+            DSP_NOT_COMPLETE -> DSP 未完了
+            DSP_COMPLETE -> DSP 完了
+            DSP_ERROR -> DSP にエラーが発生
+        """
+        res = self.__rft_ctrl_if.put("IsDspComplete")
+        res = int(res)
+        if res == 0:
+            return AwgSaCmdResult.DSP_NOT_COMPLETE
+        elif res == 1:
+            return AwgSaCmdResult.DSP_COMPLETE
+        elif res == 2:
+            return AwgSaCmdResult.DSP_ERROR
+        
+        return AwgSaCmdResult.UNKNOWN
+
+
+    def is_dsp_ready(self):
+        """
+        DSP モジュールが処理を開始できる状態かどうか調べる
+
+        Returns
+        -------
+        status : bool
+            True -> 開始可能
+            False -> 開始不可能
+        """
+        res = self.__rft_ctrl_if.put("IsDspReady")
+        return False if int(res) == 0 else True
+
+
+    def set_dsp_param(self, param_id, param):
+        """
+        DSP 制御パラメータを設定する
+
+        Parameters
+        ----------
+        param_id : DspParamId
+            値を設定するパラメータの ID
+        param : signed int (4 bytes) or unsigned int (4 bytes)
+            設定するパラメータ
+        """
+        if not isinstance(param_id, DspParamId):
+            raise ValueError("invalid param_id " + str(param_id))
+
+        if not isinstance(param, int):
+            raise ValueError("invalid param " + str(param))
+
+        if (param_id == DspParamId.SRC_ADDR) or (param_id == DspParamId.DEST_ADDR):
+            if (param < 0) or (0xFFFFFFFFFFFFFFFF < param):
+                raise ValueError(
+                    "The DSP parameters of SRC_ADDR and DEST_ADDR must be an integer between 0x{:X} and 0x{:X}".format(0, 0xFFFFFFFFFFFFFFFF))
+
+        if param_id == DspParamId.NUM_SAMPLES:
+            if (param < 0) or (0xFFFFFFFF < param):
+                raise ValueError(
+                    "The DSP parameter of NUM_SAMPLES must be an integer between {} and {}".format(0, 0xFFFFFFFF))
+
+        if ((param_id == DspParamId.GENERAL_0) or
+            (param_id == DspParamId.GENERAL_1) or
+            (param_id == DspParamId.GENERAL_2) or
+            (param_id == DspParamId.GENERAL_3)):
+            if (param < -0x80000000) or (0xFFFFFFFF < param):
+                raise ValueError("The DSP parameter of GENERAL_* must be an integer between {} and {}".format(-0xFFFFFFFF, 0xFFFFFFFF))
+            if param < 0:
+                param = param + (1 << 32) # to unsigned
+
+        if param_id == DspParamId.SRC_ADDR:
+            command = self.__joinargs("SetDspSrcAddr", [param])
+        elif param_id == DspParamId.DEST_ADDR:
+            command = self.__joinargs("SetDspDestAddr", [param])
+        elif param_id == DspParamId.NUM_SAMPLES:
+            command = self.__joinargs("SetDspNumSamples", [param])
+        elif param_id == DspParamId.IQ_FLAG:
+            command = self.__joinargs("SetDspIqFlag", [param])
+        elif param_id == DspParamId.GENERAL_0:
+            command = self.__joinargs("SetGeneralDspParam", [0, param])
+        elif param_id == DspParamId.GENERAL_1:
+            command = self.__joinargs("SetGeneralDspParam", [1, param])
+        elif param_id == DspParamId.GENERAL_2:
+            command = self.__joinargs("SetGeneralDspParam", [2, param])
+        elif param_id == DspParamId.GENERAL_3:
+            command = self.__joinargs("SetGeneralDspParam", [3, param])
+
+        self.__rft_ctrl_if.put(command)
+
+
+    def get_dsp_param(self, param_id, to_signed = False):
+        """
+        DSP 制御パラメータを設定する
+
+        Parameters
+        ----------
+        param_id : int
+            値を取得するパラメータの ID
+        to_signed : bool
+            取得したパラメータ (4 bytes) を符号付き整数で返す場合 true, 符号無し整数で返す場合 false
+        
+        Returns
+        -------
+        param : int
+            取得したパラメータ値
+        """
+        if not isinstance(param_id, DspParamId):
+            raise ValueError("invalid param_id " + str(param_id))
+
+        if param_id == DspParamId.SRC_ADDR:
+            command = "GetDspSrcAddr"
+        elif param_id == DspParamId.DEST_ADDR:
+            command = "GetDspDestAddr"
+        elif param_id == DspParamId.NUM_SAMPLES:
+            command = "GetDspNumSamples"
+        elif param_id == DspParamId.IQ_FLAG:
+            command = "GetDspIqFlag"
+        elif param_id == DspParamId.GENERAL_0:
+            command = self.__joinargs("GetGeneralDspParam", [0])
+        elif param_id == DspParamId.GENERAL_1:
+            command = self.__joinargs("GetGeneralDspParam", [1])
+        elif param_id == DspParamId.GENERAL_2:
+            command = self.__joinargs("GetGeneralDspParam", [2])
+        elif param_id == DspParamId.GENERAL_3:
+            command = self.__joinargs("GetGeneralDspParam", [3])
+
+        res = self.__rft_ctrl_if.put(command)
+        param = int(res) # コマンドの戻り値は unsigned
+        if to_signed and (param & 0x80000000):
+            param = param - 0x100000000
+        
+        return param
+
+
+    def wait_for_dsp_to_stop(self, timeout):
+        """
+        DSP モジュールの処理が完了するのを待つ
+        エラーが発生した場合も, このメソッドを抜ける.
+
+        Parameters
+        ----------
+        timeout : int or float
+            タイムアウト値 (単位: 秒). タイムアウトした場合, 例外を発生させる.
+        
+        Raises
+        ------
+        DspTimeoutError
+            タイムアウトした場合
+        """
+        if (not isinstance(timeout, (int, float))) or (timeout < 0):
+            raise ValueError('Invalid timeout {}'.format(timeout))
+
+        start = time.time()
+        while True:
+            res = self.is_dsp_complete()
+            if (res == AwgSaCmdResult.DSP_COMPLETE) or (res == AwgSaCmdResult.DSP_ERROR):
+                return
+                
+            elapsed_time = time.time() - start
+            if elapsed_time > timeout:
+                msg = 'DSP stop timeout'
+                raise DspTimeoutError(msg)
+            time.sleep(0.1)
+
+
+    def awg_to_dac_tile_block(self, awg_id):
+        """引数で指定した AWG ID に対応する DAC のタイル ID とブロック ID を取得する
+
+        Parameters
+        ----------
+        awg_id : AwgId
+            この AWG ID に対応する DAC のタイル ID とブロック ID を取得する
+        
+        Returns
+        -------
+        id_list : (int, int)
+            (タイル ID, ブロック ID)
+        """
+        if (not AwgId.has_value(awg_id)):
+           raise ValueError("invalid awg_id  " + str(awg_id))
+        
+        if awg_id == AwgId.AWG_0:
+            return (1, 2)
+        if awg_id == AwgId.AWG_1:
+            return (1, 3)
+        if awg_id == AwgId.AWG_2:
+            return (1, 1)
+        if awg_id == AwgId.AWG_2:
+            return (1, 2)
+        if awg_id == AwgId.AWG_4:
+            return (0, 0)
+        if awg_id == AwgId.AWG_5:
+            return (0, 1)
+        if awg_id == AwgId.AWG_6:
+            return (0, 2)
+        if awg_id == AwgId.AWG_7:
+            return (0, 3)
+
+
+    def awg_to_adc_tile_block(self, awg_id):
+        """引数で指定した AWG ID に対応する ADC のタイル ID とブロック ID を取得する
+
+        Parameters
+        ----------
+        awg_id : AwgId
+            この AWG ID に対応する ADC のタイル ID とブロック ID を取得する
+        
+        Returns
+        -------
+        id_list : (int, int)
+            (タイル ID, ブロック ID)
+        """
+        if (not AwgId.has_value(awg_id)):
+           raise ValueError("invalid awg_id  " + str(awg_id))
+        
+        if awg_id == AwgId.AWG_0:
+            return (0, 0)
+        if awg_id == AwgId.AWG_1:
+            return (0, 1)
+        if awg_id == AwgId.AWG_2:
+            return (1, 0)
+        if awg_id == AwgId.AWG_2:
+            return (1, 1)
+        if awg_id == AwgId.AWG_4:
+            return (2, 0)
+        if awg_id == AwgId.AWG_5:
+            return (2, 1)
+        if awg_id == AwgId.AWG_6:
+            return (3, 0)
+        if awg_id == AwgId.AWG_7:
+            return (3, 1)
+        
+
+    def read_dram(self, offset, size):
+        return self.__common_cmd.read_dram(offset, size)
+    
+
+    def write_dram(self, offset, data):
+        return self.__common_cmd.write_dram(offset, data)
 
 
     def get_binarization_result(self, awg_id):
@@ -1015,3 +1275,4 @@ class AwgSaCommand(object):
         command = self.__joinargs("ReadUserStatusReg", [idx])
         val = self.__rft_ctrl_if.put(command)
         return int(val)
+
