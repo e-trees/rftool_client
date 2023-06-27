@@ -3,6 +3,8 @@ rftool_clinet
 
 ## Overview
 
+Script for https://e-trees.jp/rfsoc_adda_refket/
+
 ## Description
 
 See [docs/README.md](docs/README.md) for details.

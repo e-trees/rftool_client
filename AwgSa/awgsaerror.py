@@ -4,3 +4,6 @@
 class InvalidOperationError(Exception):
     """ AWG SA API の意図しない使用を知らせる例外クラス """
     pass
+
+class DspTimeoutError(Exception):
+    pass

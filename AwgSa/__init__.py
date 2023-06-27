@@ -42,3 +42,6 @@ from .clocksrc import *
 
 from . import hardwareinfo
 from .hardwareinfo import *
+
+from . import dspctrl
+from .dspctrl import *
