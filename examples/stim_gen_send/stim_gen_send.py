@@ -1,7 +1,9 @@
 import sys
 import pathlib
-import os
 import logging
+import os
+import math
+from collections import namedtuple
 
 lib_path = str(pathlib.Path(__file__).resolve().parents[2])
 sys.path.append(lib_path)
@@ -11,19 +13,84 @@ import common as cmn
 
 ZCU111_IP_ADDR = os.environ.get('ZCU111_IP_ADDR', "192.168.1.3")
 DAC_FREQ = 614.4 # Msps
+WAVE_FREQ = DAC_FREQ / sg.Stimulus.MIN_UNIT_SAMPLES_FOR_WAVE_PART #MHz
 
 stg_list = sg.STG.all()
 dout_list = [sg.DigitalOut.U0, sg.DigitalOut.U1]
-stg_to_freq = {
-    sg.STG.U0 : 1.0,
-    sg.STG.U1 : 1.5,
-    sg.STG.U2 : 2.0,
-    sg.STG.U3 : 2.5,
-    sg.STG.U4 : 3.0,
-    sg.STG.U5 : 3.5,
-    sg.STG.U6 : 4.0,
-    sg.STG.U7 : 4.5
-} # MHz
+
+StimParams = namedtuple(
+    'StimParams',
+    ('num_wait_words', 'num_seq_repeats', 'num_chunk_repeats', 'num_blank_words', 'chunk_waves'))
+
+stg_to_params = {
+    # sin  (出力パターン)
+    sg.STG.U0 : StimParams(
+        num_wait_words = 0,
+        num_seq_repeats = 1,
+        num_chunk_repeats = 1,
+        num_blank_words = 0,
+        chunk_waves = ['sin']),
+
+    # sin  _  sin  _  sin  _  sin  _
+    sg.STG.U1 : StimParams(
+        num_wait_words = 0,
+        num_seq_repeats = 4,
+        num_chunk_repeats = 1,
+        num_blank_words = 64,
+        chunk_waves = ['sin']),
+
+    # sin
+    sg.STG.U2 : StimParams(
+        num_wait_words = 0,
+        num_seq_repeats = 1,
+        num_chunk_repeats = 1,
+        num_blank_words = 0,
+        chunk_waves = ['sin']),
+
+    # sin
+    sg.STG.U3 : StimParams(
+        num_wait_words = 0,
+        num_seq_repeats = 1,
+        num_chunk_repeats = 1,
+        num_blank_words = 0,
+        chunk_waves = ['sin']),
+
+    # sin  sin  saw  saw  squ  squ  sin  sin  saw  saw  squ  squ
+    sg.STG.U4 : StimParams(
+        num_wait_words = 0,
+        num_seq_repeats = 2,
+        num_chunk_repeats = 2,
+        num_blank_words = 0,
+        chunk_waves = ['sin', 'saw', 'squ']),
+
+    # sin  saw  squ  sin  sin  saw  saw  squ  squ  sin  saw  squ  sin  saw  sin  squ
+    sg.STG.U5 : StimParams(
+        num_wait_words = 0,
+        num_seq_repeats = 1,
+        num_chunk_repeats = 1,
+        num_blank_words = 0,
+        chunk_waves = [
+            'sin', 'saw', 'squ',
+            'sin', 'sin', 'saw', 'saw', 'squ', 'squ',
+            'sin', 'saw', 'squ',
+            'sin', 'saw', 'sin', 'squ']),
+
+    # squ  squ  squ  saw  saw  saw  squ  squ  squ  saw  saw  saw
+    sg.STG.U6 : StimParams(
+        num_wait_words = 0,
+        num_seq_repeats = 2,
+        num_chunk_repeats = 3,
+        num_blank_words = 0,
+        chunk_waves = ['squ', 'saw']),
+
+    # _  squ  squ  saw  saw  squ  squ  saw  saw  squ  squ  saw  saw
+    sg.STG.U7 : StimParams(
+        num_wait_words = 64,
+        num_seq_repeats = 3,
+        num_chunk_repeats = 2,
+        num_blank_words = 0,
+        chunk_waves = ['squ', 'saw']),
+}
 
 
 def output_rfdc_interrupt_details(stg_ctrl, stg_to_interrupts):
@@ -45,29 +112,38 @@ def output_stim_gen_err_details(stg_to_errs):
         print()
 
 
-def gen_example_sample_data(stg_id):
-    """出力サンプルデータの例として sin カーブを作る"""
-    wave = cmn.SinWave(3, stg_to_freq[stg_id] * 1e6, 30000)
-    samples = wave.gen_samples(DAC_FREQ * 1e6) # samples は 16-bit 符号付整数のリスト
-    # サンプル数を 1024 の倍数に調整する
-    rem = len(samples) % sg.Stimulus.MIN_UNIT_OF_SAMPLES
-    if rem != 0:
-        samples.extend([0] * (sg.Stimulus.MIN_UNIT_OF_SAMPLES - rem))
+def gen_wave_samples(type):
+    """引数に応じて「正弦波」「ノコギリ波」「矩形波」のいずれかを作る"""
+    if type == 'sin':
+        wave = cmn.SinWave(1, WAVE_FREQ * 1e6, 30000)
+    elif type == 'saw':
+        wave = cmn.SawtoothWave(1, WAVE_FREQ * 1e6, 30000, phase = math.pi, crest_pos = 0.0)
+    elif type == 'squ':
+        wave = cmn.SquareWave(1, WAVE_FREQ * 1e6, 30000)
     
+    # サンプル数を 1024 の倍数に調整する
+    samples = wave.gen_samples(DAC_FREQ * 1e6) # samples は 16-bit 符号付整数のリスト
+    rem = len(samples) % sg.Stimulus.MIN_UNIT_SAMPLES_FOR_WAVE_PART
+    if rem != 0:
+        samples.extend([0] * (sg.Stimulus.MIN_UNIT_SAMPLES_FOR_WAVE_PART - rem))
     return samples
 
 
 def set_stimulus(stg_ctrl):
+    wave_samples_cache = {
+        'sin' : gen_wave_samples('sin'),
+        'saw' : gen_wave_samples('saw'),
+        'squ' : gen_wave_samples('squ')
+    }
     stg_to_stimulus = {}
-    for stg_id in stg_list:
-        # 波形のサンプルデータを作成する
-        samples = gen_example_sample_data(stg_id)
-        # 波形サンプルを Stimulus オブジェクトにセットし, Stimulus オブジェクトを dict に格納する
-        stg_to_stimulus[stg_id] = sg.Stimulus(
-            samples,
-            num_blank_words = 0,
-            num_wait_words = 0,
-            num_repeats = 2)
+    for stg_id, params in stg_to_params.items():
+        stimulus = sg.Stimulus(params.num_wait_words, params.num_seq_repeats)
+        for wave in params.chunk_waves:
+            stimulus.add_chunk(
+                wave_samples_cache[wave],
+                params.num_blank_words,
+                params.num_chunk_repeats)
+        stg_to_stimulus[stg_id] = stimulus
 
     # 波形情報を Stimulus Generator に送信する.
     stg_ctrl.set_stimulus(stg_to_stimulus)
@@ -115,7 +191,7 @@ def setup_digital_output_modules(digital_out_ctrl):
 
 def main(logger):
     with client.RftoolClient(logger) as rft:
-        print("Connect to RFTOOL Server.")
+        print('Connect to RFTOOL Server.')
         rft.connect(ZCU111_IP_ADDR)
         rft.command.TermMode(0)
         # FPGA コンフィギュレーション

@@ -41,9 +41,9 @@ def gen_example_sample_data(stg_id):
     wave = cmn.SinWave(3, stg_to_freq[stg_id] * 1e6, 30000)
     samples = wave.gen_samples(DAC_FREQ * 1e6) # samples は 16-bit 符号付整数のリスト
     # サンプル数を 1024 の倍数に調整する
-    rem = len(samples) % sg.Stimulus.MIN_UNIT_OF_SAMPLES
+    rem = len(samples) % sg.Stimulus.MIN_UNIT_SAMPLES_FOR_WAVE_PART
     if rem != 0:
-        samples.extend([0] * (sg.Stimulus.MIN_UNIT_OF_SAMPLES - rem))
+        samples.extend([0] * (sg.Stimulus.MIN_UNIT_SAMPLES_FOR_WAVE_PART - rem))
     
     return samples
 
@@ -54,11 +54,9 @@ def set_stimulus(stg_ctrl):
         # 波形のサンプルデータを作成する
         samples = gen_example_sample_data(stg_id)
         # 波形サンプルを Stimulus オブジェクトにセットし, Stimulus オブジェクトを dict に格納する
-        stg_to_stimulus[stg_id] = sg.Stimulus(
-            samples,
-            num_blank_words = 0,
-            num_wait_words = 0,
-            num_repeats = 2)
+        stimulus = sg.Stimulus(num_wait_words = 0, num_seq_repeats = 1)
+        stimulus.add_chunk(samples = samples, num_blank_words = 0, num_repeats = 1)
+        stg_to_stimulus[stg_id] = stimulus
 
     # 波形情報を Stimulus Generator に送信する.
     stg_ctrl.set_stimulus(stg_to_stimulus)

@@ -1,19 +1,16 @@
 import sys
 import pathlib
 import time
-from RftoolClient import cmdutil
 
 lib_path = str(pathlib.Path(__file__).resolve().parents[2])
 sys.path.append(lib_path)
 import StimGen as sg
 import common as cmn
 from StimGen.memorymap import StgMasterCtrlRegs, StgCtrlRegs, WaveParamRegs
+from StimGen.stghwparam import WAVE_RAM_WORD_SIZE, WAVE_RAM_SIZE
 
 class StimGenCtrl(object):
     """Stimulus Generator を制御するクラス"""
-
-    __NUM_SAMPLES_IN_STG_WORD = 16
-    MAX_WAVE_PART_SAMPLES = 0x80000000 # 各 STG の波形パート 1 つ当たりに含まれるサンプル数を STG の数足した値の最大値
 
     def __init__(self, common_cmd, rft_cmd, logger=None):
         self.__logger = logger or cmn.get_null_logger()
@@ -40,8 +37,9 @@ class StimGenCtrl(object):
             self.__reg_access.write(addr, 0)
 
         self.__reset_stgs(*stg_id_list)        
-        samples = [30000] * sg.Stimulus.MIN_UNIT_OF_SAMPLES
-        stimulus = sg.Stimulus(samples, 0, 0, 1)
+        samples = [0] * sg.Stimulus.MIN_UNIT_SAMPLES_FOR_WAVE_PART
+        stimulus = sg.Stimulus(0, 1)
+        stimulus.add_chunk(samples, 0, 1)
         stg_to_stim = {stg_id : stimulus for stg_id in stg_id_list}
         self.set_stimulus(stg_to_stim)
 
@@ -61,34 +59,16 @@ class StimGenCtrl(object):
             if not isinstance(stg_to_stim, dict):
                 raise('Invalid stg_to_stim')
             self.__validate_stg_id(*stg_to_stim.keys())
+            self.__check_stimulus(stg_to_stim.values())
+            
             addr = 0
-
-            num_all_samples = sum([len(stimulus.samples) for stimulus in stg_to_stim.values()])
-            if num_all_samples > self.MAX_WAVE_PART_SAMPLES:
-                raise ValueError('The total number of samples in the wave parts is too large ({} samples). (MAX = {} samples)'
-                                 .format(num_all_samples, self.MAX_WAVE_PART_SAMPLES))
-
             for stg_id, stimulus in stg_to_stim.items():
-                if len(stimulus.samples) == 0:
-                    raise ValueError(
-                        "The length of 'samples' must be greater than 0.   (STG = {})"
-                        .format(stg_id))
-                if len(stimulus.samples) % sg.Stimulus.MIN_UNIT_OF_SAMPLES != 0:
-                    raise ValueError(
-                        "The length of 'samples' must be a multiple of {}.   (STG = {})"
-                        .format(sg.Stimulus.MIN_UNIT_OF_SAMPLES, stg_id))
-
-                self.__set_wave_seq_params(stg_id, stimulus.num_wait_words)
-                sample_data = stimulus.serialized_samples
-                num_sample_words = len(stimulus.samples) // self.__NUM_SAMPLES_IN_STG_WORD
-                self.__common_cmd.write_dram(addr, sample_data, show_progress = True)
-                self.__set_chunk_params(
-                    stg_id,
-                    addr,
-                    num_sample_words,
-                    stimulus.num_blank_words,
-                    stimulus.num_repeats)
-                addr += len(sample_data)
+                self.__set_wave_seq_params(stg_id, stimulus)
+                for chunk_no, chunk in enumerate(stimulus.chunk_list):
+                    sample_data = chunk.wave_data.serialize()
+                    self.__common_cmd.write_dram(addr, sample_data, show_progress = True)
+                    self.__set_chunk_params(stg_id, addr, chunk_no, chunk)
+                    addr += self.__calc_wave_chunk_data_size(chunk)
 
         except Exception as e:
             cmn.log_error(e, self.__logger)
@@ -433,29 +413,56 @@ class StimGenCtrl(object):
             time.sleep(0.01)
 
 
-    def __set_wave_seq_params(self, stg_id, num_wait_words):
+    def __set_wave_seq_params(self, stg_id, stimulus):
         base = WaveParamRegs.Addr.stg(stg_id)
         addr = base + WaveParamRegs.Offset.NUM_WAIT_WORDS
-        self.__reg_access.write(addr, num_wait_words)
+        self.__reg_access.write(addr, stimulus.num_wait_words)
         addr = base + WaveParamRegs.Offset.NUM_REPEATS
-        self.__reg_access.write(addr, 1)
+        self.__reg_access.write(addr, stimulus.num_seq_repeats)
         addr = base + WaveParamRegs.Offset.NUM_CHUNKS
-        self.__reg_access.write(addr, 1)
+        self.__reg_access.write(addr, stimulus.num_chunks)
 
 
-    def __set_chunk_params(
-        self,
-        stg_id,
-        sample_data_addr,
-        num_wave_part_words,
-        num_blank_words,
-        num_repeats):
-        base_addr = WaveParamRegs.Addr.stg(stg_id) + WaveParamRegs.Offset.CHUNK_0
+    def __set_chunk_params(self, stg_id, chunk_start_addr, chunk_no, chunk):
+        base_addr = WaveParamRegs.Addr.stg(stg_id) + WaveParamRegs.Offset.chunk(chunk_no)
         addr = base_addr + WaveParamRegs.Offset.CHUNK_START_ADDR
-        self.__reg_access.write(addr, sample_data_addr // 16) # レジスタにセットするのは 16 で割った値
+        self.__reg_access.write(addr, chunk_start_addr // 16) # レジスタにセットするのは 16 で割った値
         addr = base_addr + WaveParamRegs.Offset.NUM_WAVE_PART_WORDS
-        self.__reg_access.write(addr, num_wave_part_words)
+        self.__reg_access.write(addr, chunk.num_wave_words)
         addr = base_addr + WaveParamRegs.Offset.NUM_BLANK_WORDS
-        self.__reg_access.write(addr, num_blank_words)
+        self.__reg_access.write(addr, chunk.num_blank_words)
         addr = base_addr + WaveParamRegs.Offset.NUM_CHUNK_REPEATS
-        self.__reg_access.write(addr, num_repeats)
+        self.__reg_access.write(addr, chunk.num_repeats)
+
+
+    def __check_stimulus(self, stimulus_list):
+        for stimulus in stimulus_list:
+            if not isinstance(stimulus, sg.Stimulus):
+                raise ValueError('Invalid stimulus data type {}'.format(stimulus))
+            
+            if stimulus.num_chunks <= 0:
+                raise ValueError('A stimulus for STGs must have at least one chunk.')
+        
+        self.__check_stimulus_size(stimulus_list)
+
+
+    def __check_stimulus_size(self, stimulus_list):
+        """ユーザ定義波形のサンプルデータが格納領域に収まるかチェックする"""
+        size = sum([self.__calc_stimulus_data_size(stimulus) for stimulus in stimulus_list])
+        if size > WAVE_RAM_SIZE:
+            msg = ("Too much RAM space is required for the stimuli for STGs.  ({} bytes)\n".format(size) +
+                   "The maximum RAM size for stimuli is {} bytes.".format(WAVE_RAM_SIZE))
+            cmn.log_error(msg, self.__logger)
+            raise ValueError(msg)
+
+
+    def __calc_stimulus_data_size(self, stimulus):
+        size = 0
+        for chunk in stimulus.chunk_list:
+            size += self.__calc_wave_chunk_data_size(chunk)
+        return size
+
+
+    def __calc_wave_chunk_data_size(self, chunk):
+        return (chunk.wave_data.num_bytes + WAVE_RAM_WORD_SIZE - 1) \
+                // WAVE_RAM_WORD_SIZE * WAVE_RAM_WORD_SIZE

@@ -24,25 +24,31 @@ STG の制御には専用の Python API を用います．
 
 STG が出力可能な波形の構造と制約について説明します．
 
-STG が出力する波形を **ユーザ定義波形** と言います．
-**ユーザ定義波形** は **wait word** とそれに続く **波形サイクル** の繰り返しで構成されます．
-**波形サイクル** は 4294967295 回繰り返すことが可能です．**wait word** は無くても問題ありません．
+ユーザが各 STG に対して設定した出力波形全体を**ユーザ定義波形**と言います．
+**ユーザ定義波形**は **wait word** と，その後に続く**波形シーケンス**の繰り返しで構成されます．
+**波形シーケンス**は，最大 4294967295 回繰り返すことが可能です．
+**wait word** は無くても問題ありません．
 
-![ユーザ定義波形](images/user_def_wave.png)
+![user_def_wave](./images/user_def_wave.png)
 
 **wait word** は値が 0 のサンプルが並んだ波形です．
-16 サンプルを 1 つの単位とする STG ワード単位で指定可能で，最大長は 4294967295 STG ワードとなります．
+16 サンプルを 1 つの単位とする **STG ワード**単位で指定可能で，最大長は 4294967295 **STG ワード**となります
 
-![wait word](images/wait_word.png)
+![wait_word](./images/wait_word.png)
 
-**波形サイクル** は **波形パート** と **ポストブランク** で構成されます．
-**ポストブランク** は無くても問題ありません．
+**波形シーケンス**は**波形チャンク**の繰り返しを並べたもので構成されます．
+**波形チャンク**は最大 16 個まで定義でき，各チャンクは 4294967295 回まで繰り返すことが可能です．
 
-![wave cycle](images/wave_cycle.png)
+![wave_seq](./images/wave_seq.png)
 
-**波形パート** は任意の 16-bit 符号付整数値のサンプルが並んでおり，そのサンプル数は 1024 の倍数でなければなりません．
+**波形チャンク**は**波形パート**と**ポストブランク**で構成されます．
+**ポストブランク**は無くても問題ありません．
 
-![wave part](images/wave_part.png)
+![wave_chunk](./images/wave_chunk.png)
+
+**波形パート**は任意の値のサンプルが並んでおり，そのサンプル数は 1024 の倍数でなければなりません．
+
+![wave_chunk](./images/wave_part.png)
 
 また，波形パートのサンプル数はストレージ (DDR4 SDRAM) 容量の都合上，以下の制約も満たさなければなりません． 
 
@@ -51,9 +57,10 @@ STG が出力する波形を **ユーザ定義波形** と言います．
 <!--
 $$
 \begin{align*}
-&W(i) : STG \; i \; に設定するユーザ定義波形の波形パート 1 つ当たりに含まれるサンプル数. \\
-& \;\;\;\;\;\;\;\;\;\;(STG \;i\; を使用しない場合は 0) \\[1ex]
-&\displaystyle \sum_{i=0}^{7} W(i) \leqq 2147483648
+N_i &: STG \;i\; が出力する波形シーケンスを構成する波形チャンクの数  \\[1ex]
+W_{i,j} &: STG \;i\; が出力する波形チャンク \;j\; の波形パートのサンプル数 \\
+& \;\;(STG \;i\; を使用しない場合は \; 0) \\[1ex]
+&\displaystyle \sum_{i=0}^{7} \sum_{j=0}^{N_i} W_{i,j} \leqq 2147483648
 \end{align*}
 $$
 -->
@@ -61,7 +68,7 @@ $$
 ポストブランクは値が 0 のサンプルが並んだ波形です．
 16 サンプルを 1 つの単位とする STG ワード単位で指定可能で，最大長は 4294967295 STG ワードとなります．
 
-![wave part constraint](images/post_blank.png)
+![post blank](images/post_blank.png)
 
 ## 4. STG 制御用 API の詳細
 
@@ -103,14 +110,18 @@ with client.RftoolClient(logger) as rft:
 ### 4.2. 波形データの設定
 
 STG に設定する波形データは，StimGen パッケージの Stimulus クラスを用いて作成します．
-このクラスのコンストラクタには 2 章で説明したユーザ定義波形の
+2 章で説明したユーザ定義波形の
 
-- 波形サイクルの繰り返し回数
+- 波形シーケンスの繰り返し回数
 - wait word の長さ
-- 波形パートのサンプル値
-- ポストブランクの長さ
 
-を指定できます．
+をコンストラクタで指定し
+
+- 波形パートのサンプル値
+- 波形チャンクの繰り返し回数
+- ポストブランク長
+
+を add_chunk メソッドで指定します．
 
 波形データを作成するコードの例を以下に示します．
 
@@ -118,11 +129,25 @@ STG に設定する波形データは，StimGen パッケージの Stimulus ク�
 import StimGen as sg
 
 stimulus = sg.Stimulus(
-    samples,                # サンプル値のリスト
-    num_blank_words = 0,    # ポストブランクの STG ワード数
-    num_wait_words = 0,     # wait word の STG ワード数
-    num_repeats = 2)        # 波形サイクルを繰り返す回数
+    num_wait_words = 10,  # wiat word の STG ワード数
+    num_seq_repeats = 2)  # 波形シーケンスの繰り返し回数
+
+# 波形チャンク 0 の定義
+stimulus.add_chunk(
+    samples = samples_0,  # サンプル値のリスト
+    num_blank_words = 0,  # ポストブランクの STG ワード数
+    num_repeats = 1)      # 波形チャンクの繰り返し回数
+
+# 波形チャンク 1 の定義
+stimulus.add_chunk(
+    samples = samples_1,  # サンプル値のリスト
+    num_blank_words = 3,  # ポストブランクの STG ワード数
+    num_repeats = 2)      # 波形チャンクの繰り返し回数
 ```
+
+上記のコードで定義されるユーザ定義波形は以下のようになります.
+
+![user define wave](images/user_defined_wave.png)
 
 定義した波形を STG に設定するには StimGenCtrl クラスの set_stimulus メソッドを使用します．
 set_stimulus メソッドは，呼び出すと以前設定した波形データが消えるので，使用する STG とその波形データを Python の Dict にまとめて一度に設定しなければなりません．
