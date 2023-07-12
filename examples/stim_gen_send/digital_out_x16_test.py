@@ -85,10 +85,19 @@ def set_digital_out_data(digital_out_ctrl):
         digital_out_ctrl.set_output_data(dout_data_list, dout_id)
 
 
+def set_default_digital_out_data(digital_out_ctrl):
+    # デフォルトのディジタル出力データの設定
+    for dout_id in dout_list:
+        bit_pattern = dout_id + 2
+        digital_out_ctrl.set_default_output_data(bit_pattern, dout_id)
+
+
 def setup_digital_output_modules(digital_out_ctrl):
     """ディジタル出力に必要な設定を行う"""
     # ディジタル出力モジュール初期化
     digital_out_ctrl.initialize(*dout_list)
+    # デフォルトのディジタル出力データの設定
+    set_default_digital_out_data(digital_out_ctrl)
     # ディジタル出力データの設定
     set_digital_out_data(digital_out_ctrl)
     # Stimulus Generator からのスタートトリガを受け付けるように設定.

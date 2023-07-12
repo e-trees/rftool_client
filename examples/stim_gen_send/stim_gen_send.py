@@ -181,6 +181,8 @@ def setup_digital_output_modules(digital_out_ctrl):
     """ディジタル出力に必要な設定を行う"""
     # ディジタル出力モジュール初期化
     digital_out_ctrl.initialize(*dout_list)
+    # デフォルトのディジタル出力データの設定
+    digital_out_ctrl.set_default_output_data(0x36, *dout_list)
     # ディジタル出力データの設定
     set_digital_out_data(digital_out_ctrl)
     # Stimulus Generator からのスタートトリガを受け付けるように設定.
