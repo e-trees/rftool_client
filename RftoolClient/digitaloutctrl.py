@@ -70,6 +70,31 @@ class DigitalOutCtrl:
             self.__reg_access.write(addr, 0)
 
 
+    def set_default_output_data(self, bits, *dout_id_list):
+        """引数で指定したディジタル出力モジュールにデフォルトの出力データ設定する.
+
+        | このメソッドで指定した出力値は, ディジタル出力モジュールが動作していないときに常に出力される.
+        | initialize メソッドでディジタルモジュールを初期化してもこの値は変わらない.
+        | このメソッドを複数回呼び出すと, ディジタル出力モジュールは最後の呼び出しで設定した値を出力する.
+
+        Args:
+            bits (int) : デフォルトで出力されるビットデータ.  0 ~ 7 ビット目がデジタル出力ポートの電圧値に対応する.  0 が Lo で 1 が Hi.
+            dout_id_list (DigitalOut): 出力パターンを設定するディジタル出力モジュールの ID の リスト
+        """
+        try:
+            self.__validate_dout_id(*dout_id_list)
+            if not isinstance(bits, int):
+                raise ValueError("'bits' must be an integer.")
+        except Exception as e:
+            cmn.log_error(e, self.__logger)
+            raise
+
+        for dout_id in dout_id_list:
+            base_addr = DigitalOutputDataListRegs.Addr.dout(dout_id)
+            addr = base_addr + DigitalOutputDataListRegs.Offset.DEFAULT_BIT_PATTERN
+            self.__reg_access.write(addr, bits)
+
+
     def enable_start_trigger(self, *dout_id_list):
         """引数で指定したディジタル出力モジュールのスタートトリガを有効化する.
 

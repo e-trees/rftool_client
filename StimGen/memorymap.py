@@ -253,3 +253,4 @@ class DigitalOutputDataListRegs(object):
 
         BIT_PATTERN = 0x0
         OUTPUT_TIME = 0x4
+        DEFAULT_BIT_PATTERN = 0x1000
