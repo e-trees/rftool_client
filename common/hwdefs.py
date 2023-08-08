@@ -11,6 +11,7 @@ class FpgaDesign(IntEnum):
     AWG_DSP = 11
     MTS_AWG_SA_LOW_SAMPLING_RATE = 12
     STIM_GEN = 13
+    STIM_GEN_ALL_SYNC = 14
 
 
 class RfdcInterrupt(Enum):
