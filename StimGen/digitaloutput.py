@@ -16,7 +16,10 @@ class DigitalOutputDataList:
 
         Args:
             bits (int): 出力されるビットデータ.  0 ~ 7 ビット目がデジタル出力ポートの電圧値に対応する.  0 が Lo で 1 が Hi.
-            time (int): bits の出力時間.  指定値 * 10 [ns] の間 bits が出力される.  2 以上を指定すること.
+            time (int):
+                | bits の出力時間.  2 以上を指定すること.
+                | 出力時間の単位は，独立クロックバージョンの場合 10 [ns] で，同一クロックバージョンの場合 26.0417 [ns].
+                | バージョンの違いについては https://github.com/e-trees/rftool_client/blob/master/docs/stg/digital_output.md を参照.
         """
         if (len(self.__patterns) == self.MAX_PATTERNS):
             raise ValueError("No more output patterns can be added. (max=" + str(self.MAX_PATTERNS) + ")")

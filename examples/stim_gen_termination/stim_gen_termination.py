@@ -9,8 +9,19 @@ from RftoolClient import client
 import StimGen as sg
 import common as cmn
 
+try:
+    is_all_sync_design = (sys.argv[1] == "sync_all")
+except Exception:
+    is_all_sync_design = False
+
+
 ZCU111_IP_ADDR = os.environ.get('ZCU111_IP_ADDR', "192.168.1.3")
 DAC_FREQ = 614.4 # Msps
+
+if is_all_sync_design:
+    BITSTREAM = cmn.FpgaDesign.STIM_GEN_ALL_SYNC
+else:
+    BITSTREAM = cmn.FpgaDesign.STIM_GEN
 
 stg_list = sg.STG.all()
 dout_list = [sg.DigitalOut.U0, sg.DigitalOut.U1]
@@ -110,7 +121,7 @@ def main(logger):
         rft.connect(ZCU111_IP_ADDR)
         rft.command.TermMode(0)
         # FPGA コンフィギュレーション
-        rft.command.ConfigFpga(cmn.FpgaDesign.STIM_GEN, 10)
+        rft.command.ConfigFpga(BITSTREAM, 10)
         # Stimulus Generator のセットアップ
         setup_stim_gens(rft.stg_ctrl)
         # ディジタル出力モジュールのセットアップ
