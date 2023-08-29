@@ -132,19 +132,26 @@ class WaveParamRegs(object):
 
 
 class DigitalOutMasterCtrlRegs(object):
-    ADDR = 0x5000
+    ADDR = 0x8000
 
     class Offset(object):
-        VERSION         = 0x0
-        CTRL_TARGET_SEL = 0x4
-        CTRL            = 0x8
-        EXT_TRIG_MASK   = 0xC
+        VERSION             = 0x0
+        CTRL_TARGET_SEL_0   = 0x4
+        CTRL_TARGET_SEL_1   = 0x8
+        CTRL                = 0xC
+        START_TRIG_MASK_0   = 0x10
+        START_TRIG_MASK_1   = 0x14
+        RESTART_TRIG_MASK_0 = 0x18
+        RESTART_TRIG_MASK_1 = 0x1C
 
     class Bit(object):
         CTRL_RESET     = 0
         CTRL_START     = 1
         CTRL_TERMINATE = 2
         CTRL_DONE_CLR  = 3
+        CTRL_PAUSE     = 4
+        CTRL_RESUME    = 5
+        CTRL_RESTART   = 6
         DOUT_0  = 0
         DOUT_1  = 1
         DOUT_2  = 2
@@ -161,11 +168,34 @@ class DigitalOutMasterCtrlRegs(object):
         DOUT_13 = 13
         DOUT_14 = 14
         DOUT_15 = 15
+        DOUT_16 = 16
+        DOUT_17 = 17
+        DOUT_18 = 18
+        DOUT_19 = 19
+        DOUT_20 = 20
+        DOUT_21 = 21
+        DOUT_22 = 22
+        DOUT_23 = 23
+        DOUT_24 = 24
+        DOUT_25 = 25
+        DOUT_26 = 26
+        DOUT_27 = 27
+        DOUT_28 = 28
+        DOUT_29 = 29
+        DOUT_30 = 30
+        DOUT_31 = 31
+        DOUT_32 = 0
+        DOUT_33 = 1
         __douts = [
             DOUT_0,  DOUT_1,  DOUT_2,  DOUT_3,
             DOUT_4,  DOUT_5,  DOUT_6,  DOUT_7,
             DOUT_8,  DOUT_9,  DOUT_10, DOUT_11,
-            DOUT_12, DOUT_13, DOUT_14, DOUT_15]
+            DOUT_12, DOUT_13, DOUT_14, DOUT_15,
+            DOUT_16, DOUT_17, DOUT_18, DOUT_19,
+            DOUT_20, DOUT_21, DOUT_22, DOUT_23,
+            DOUT_24, DOUT_25, DOUT_26, DOUT_27,
+            DOUT_28, DOUT_29, DOUT_30, DOUT_31,
+            DOUT_32, DOUT_33]
 
         @classmethod
         def dout(cls, idx):
@@ -175,27 +205,50 @@ class DigitalOutMasterCtrlRegs(object):
 class DigitalOutCtrlRegs(object):
 
     class Addr(object):
-        DOUT_0  = 0x5080
-        DOUT_1  = 0x5100
-        DOUT_2  = 0x5180
-        DOUT_3  = 0x5200
-        DOUT_4  = 0x5280
-        DOUT_5  = 0x5300
-        DOUT_6  = 0x5380
-        DOUT_7  = 0x5400
-        DOUT_8  = 0x5480
-        DOUT_9  = 0x5500
-        DOUT_10 = 0x5580
-        DOUT_11 = 0x5600
-        DOUT_12 = 0x5680
-        DOUT_13 = 0x5700
-        DOUT_14 = 0x5780
-        DOUT_15 = 0x5800
+        DOUT_0  = 0x8080
+        DOUT_1  = 0x8100
+        DOUT_2  = 0x8180
+        DOUT_3  = 0x8200
+        DOUT_4  = 0x8280
+        DOUT_5  = 0x8300
+        DOUT_6  = 0x8380
+        DOUT_7  = 0x8400
+        DOUT_8  = 0x8480
+        DOUT_9  = 0x8500
+        DOUT_10 = 0x8580
+        DOUT_11 = 0x8600
+        DOUT_12 = 0x8680
+        DOUT_13 = 0x8700
+        DOUT_14 = 0x8780
+        DOUT_15 = 0x8800
+        DOUT_16 = 0x8880
+        DOUT_17 = 0x8900
+        DOUT_18 = 0x8980
+        DOUT_19 = 0x8A00
+        DOUT_20 = 0x8A80
+        DOUT_21 = 0x8B00
+        DOUT_22 = 0x8B80
+        DOUT_23 = 0x8C00
+        DOUT_24 = 0x8C80
+        DOUT_25 = 0x8D00
+        DOUT_26 = 0x8D80
+        DOUT_27 = 0x8E00
+        DOUT_28 = 0x8E80
+        DOUT_29 = 0x8F00
+        DOUT_30 = 0x8F80
+        DOUT_31 = 0x9000
+        DOUT_32 = 0x9080
+        DOUT_33 = 0x9100
         __douts = [
             DOUT_0,  DOUT_1,  DOUT_2,  DOUT_3,
             DOUT_4,  DOUT_5,  DOUT_6,  DOUT_7,
             DOUT_8,  DOUT_9,  DOUT_10, DOUT_11,
-            DOUT_12, DOUT_13, DOUT_14, DOUT_15]
+            DOUT_12, DOUT_13, DOUT_14, DOUT_15,
+            DOUT_16, DOUT_17, DOUT_18, DOUT_19,
+            DOUT_20, DOUT_21, DOUT_22, DOUT_23,
+            DOUT_24, DOUT_25, DOUT_26, DOUT_27,
+            DOUT_28, DOUT_29, DOUT_30, DOUT_31,
+            DOUT_32, DOUT_33]
 
         @classmethod
         def dout(cls, idx):
@@ -208,39 +261,66 @@ class DigitalOutCtrlRegs(object):
         START_IDX    = 0xC
 
     class Bit(object):
-        CTRL_RESET          = 0
-        CTRL_START          = 1
-        CTRL_TERMINATE      = 2
-        CTRL_DONE_CLR       = 3
-        STATUS_WAKEUP       = 0
-        STATUS_BUSY         = 1
-        STATUS_DONE         = 2
+        CTRL_RESET     = 0
+        CTRL_START     = 1
+        CTRL_TERMINATE = 2
+        CTRL_DONE_CLR  = 3
+        CTRL_PAUSE     = 4
+        CTRL_RESUME    = 5
+        CTRL_RESTART   = 6
+        STATUS_WAKEUP  = 0
+        STATUS_BUSY    = 1
+        STATUS_DONE    = 2
+        STATUS_PAUSED  = 3
 
 
 class DigitalOutputDataListRegs(object):
     #### digital output data params ####
     class Addr(object):
-        DOUT_0   = 0x10_0000
-        DOUT_1   = 0x14_0000
-        DOUT_2   = 0x18_0000
-        DOUT_3   = 0x1C_0000
-        DOUT_4   = 0x20_0000
-        DOUT_5   = 0x24_0000
-        DOUT_6   = 0x28_0000
-        DOUT_7   = 0x2C_0000
-        DOUT_8   = 0x30_0000
-        DOUT_9   = 0x34_0000
-        DOUT_10  = 0x38_0000
-        DOUT_11  = 0x3C_0000
-        DOUT_12  = 0x40_0000
-        DOUT_13  = 0x44_0000
-        DOUT_14  = 0x48_0000
-        DOUT_15  = 0x4C_0000
+        DOUT_0  = 0x10_0000
+        DOUT_1  = 0x14_0000
+        DOUT_2  = 0x18_0000
+        DOUT_3  = 0x1C_0000
+        DOUT_4  = 0x20_0000
+        DOUT_5  = 0x24_0000
+        DOUT_6  = 0x28_0000
+        DOUT_7  = 0x2C_0000
+        DOUT_8  = 0x30_0000
+        DOUT_9  = 0x34_0000
+        DOUT_10 = 0x38_0000
+        DOUT_11 = 0x3C_0000
+        DOUT_12 = 0x40_0000
+        DOUT_13 = 0x44_0000
+        DOUT_14 = 0x48_0000
+        DOUT_15 = 0x4C_0000
+        DOUT_16 = 0x50_0000
+        DOUT_17 = 0x54_0000
+        DOUT_18 = 0x58_0000
+        DOUT_19 = 0x5C_0000
+        DOUT_20 = 0x60_0000
+        DOUT_21 = 0x64_0000
+        DOUT_22 = 0x68_0000
+        DOUT_23 = 0x6C_0000
+        DOUT_24 = 0x70_0000
+        DOUT_25 = 0x74_0000
+        DOUT_26 = 0x78_0000
+        DOUT_27 = 0x7C_0000
+        DOUT_28 = 0x80_0000
+        DOUT_29 = 0x84_0000
+        DOUT_30 = 0x88_0000
+        DOUT_31 = 0x8C_0000
+        DOUT_32 = 0x90_0000
+        DOUT_33 = 0x94_0000
         __douts = [
             DOUT_0,  DOUT_1,  DOUT_2,  DOUT_3,
             DOUT_4,  DOUT_5,  DOUT_6,  DOUT_7,
             DOUT_8,  DOUT_9,  DOUT_10, DOUT_11,
-            DOUT_12, DOUT_13, DOUT_14, DOUT_15]
+            DOUT_12, DOUT_13, DOUT_14, DOUT_15,
+            DOUT_16, DOUT_17, DOUT_18, DOUT_19,
+            DOUT_20, DOUT_21, DOUT_22, DOUT_23,
+            DOUT_24, DOUT_25, DOUT_26, DOUT_27,
+            DOUT_28, DOUT_29, DOUT_30, DOUT_31,
+            DOUT_32, DOUT_33]
 
         @classmethod
         def dout(cls, idx):    

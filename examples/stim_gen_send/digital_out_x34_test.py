@@ -89,7 +89,7 @@ def set_digital_out_data(digital_out_ctrl):
     for dout_id in dout_list:
         dout_data_list = sg.DigitalOutputDataList()
         for i in range(10):
-            bits = (dout_id << 12) + (i + 1)
+            bits = (dout_id << 8) + (i + 1)
             dout_data_list.add(bits, 2)
         # 出力データをディジタル出力モジュールに設定
         digital_out_ctrl.set_output_data(dout_data_list, dout_id)
@@ -122,7 +122,7 @@ def main(logger):
         rft.connect(ZCU111_IP_ADDR)
         rft.command.TermMode(0)
         # FPGA コンフィギュレーション
-        rft.command.ConfigFpga(cmn.FpgaDesign.STIM_GEN, 10)
+        rft.command.ConfigFpga(BITSTREAM, 10)
         # Stimulus Generator のセットアップ
         setup_stim_gens(rft.stg_ctrl)
         # ディジタル出力モジュールのセットアップ
