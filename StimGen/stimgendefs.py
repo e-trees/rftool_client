@@ -46,6 +46,24 @@ class DigitalOut(IntEnum):
     U13 = 13
     U14 = 14
     U15 = 15
+    U16 = 16
+    U17 = 17
+    U18 = 18
+    U19 = 19
+    U20 = 20
+    U21 = 21
+    U22 = 22
+    U23 = 23
+    U24 = 24
+    U25 = 25
+    U26 = 26
+    U27 = 27
+    U28 = 28
+    U29 = 29
+    U30 = 30
+    U31 = 31
+    U32 = 32
+    U33 = 33
 
     @classmethod
     def all(cls):

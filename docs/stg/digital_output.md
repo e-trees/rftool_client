@@ -20,11 +20,33 @@ STG およびディジタル出力モジュールを搭載したデザインに�
 
 ## 3. ディジタル出力モジュールの状態
 
-ディジタル出力モジュールには `Idle` と `Active` の 2 つの状態があります．
-初期状態は `Idle` で，モジュールの動作が開始されると `Active` 状態となり設定された出力値を順番に出力します．
-`Active` 状態でディジタル値の出力が終了すると `Idle` 状態に戻ります．
+ディジタル出力モジュールは下図の状態を持ち，次の 3 つのイベントで状態遷移します．
+ - STG の波形出力が開始される
+ - 全ディジタル出力値の出力が完了する
+ - 特定の Python API (図中の青字) が呼ばれる
 
-![システムオーバービュー](images/state.png)
+![ディジタル出力モジュールの状態](images/state.png)
+
+**状態の説明**
+
+| 状態名 | 説明 |
+| --- | --- |
+| Idle | 初期状態. |
+| Prepare | 現在設定されているディジタル出力値リストの値を最初から出力するための準備を行います． |
+| Active | ディジタル出力値リストから値を順に出力します．|
+| Pause | ディジタル出力モジュールの動作を一時停止します．|
+
+<br>
+
+**状態と出力値の関係**
+
+| 状態名 | 出力値 |
+| --- | --- |
+| Idle | Idle 状態専用の出力値. （詳細は 5.3 を参照）|
+| Prepare | この状態に遷移する直前の出力値. |
+| Active | ディジタル出力値リストの値. |
+| Pause | この状態に遷移する直前の出力値. |
+
 
 ## 4. 出力ポート
 
@@ -142,3 +164,115 @@ with client.RftoolClient(logger) as rft:
 このスタートトリガは，何れかの STG の波形出力開始と同時にアサートされます．
 StimGenCtrl クラスの start_stgs メソッドで複数の STG をスタートしてもスタートトリガは 1 度しかアサートされません．
 STG に連動させずディジタル出力モジュールだけを動作させたい場合，**DigitalOutCtrl クラスの start_douts メソッド**を使用してください．このメソッドの引数に指定したディジタル出力モジュールは，スタートトリガの有効/無効に関係なく動作を開始します．
+
+### 5.5. ディジタル値出力の一時停止
+
+ディジタル出力モジュールは，Active 状態のときに DigitalOutCtrl クラスの pause_douts メソッドを呼ぶと一時停止します．
+一時停止中は Active 状態のときに最後に出力していた値を出力し続けます．
+また，一時停止中は 5.2, 5.3 の手順でデフォルト出力値やディジタル出力データを更新することが可能です．
+一時停止中にディジタル出力データを更新した場合は，5.7, 5.8 の手順で **再スタート** をしてください．
+
+ディジタル値出力を一時停止するコード例を以下に示します．
+
+```
+from RftoolClient import client
+import StimGen as sg
+
+# RftoolClient オブジェクトを作成する
+with client.RftoolClient(logger) as rft:
+    
+    ### ディジタル出力モジュールの初期化 (省略) ###
+    ### ディジタル出力データの設定 (省略) ###
+
+    # ディジタル出力モジュール 0, 1 の動作開始
+    dout_ctrl.start_douts(sg.DigitalOut.U0, sg.DigitalOut.U1)
+
+    # ディジタル出力モジュール 0, 1 の一時停止
+    dout_ctrl.pause_douts(sg.DigitalOut.U0, sg.DigitalOut.U1)
+```
+
+### 5.6. ディジタル値出力の再開
+
+ディジタル出力モジュールは，Pause 状態のときに DigitalOutCtrl クラスの resume_douts メソッドを呼ぶと動作を再開します．
+
+ディジタル値出力を再開するコード例を以下に示します．
+
+```
+from RftoolClient import client
+import StimGen as sg
+
+# RftoolClient オブジェクトを作成する
+with client.RftoolClient(logger) as rft:
+    
+    ### ディジタル出力モジュールの初期化 (省略) ###
+    ### ディジタル出力データの設定 (省略) ###
+    ### ディジタル出力モジュールの動作開始 (省略) ###
+    ### ディジタル出力モジュールの一時停止 (省略) ###
+
+    # ディジタル出力モジュール 0, 1 の動作再開
+    dout_ctrl.resume_douts(sg.DigitalOut.U0, sg.DigitalOut.U1)
+```
+
+### 5.7. 再スタート
+
+ディジタル出力モジュールは，Pause 状態のときに DigitalOutCtrl クラスの restart_douts メソッドを呼ぶと，ディジタル値の出力を最初からやり直します (再スタート)．その際 Pause 状態でディジタル出力データを更新していると，更新したデータが出力されます．
+
+ディジタル出力モジュールを再スタートするコード例を以下に示します．
+
+```
+from RftoolClient import client
+import StimGen as sg
+
+# RftoolClient オブジェクトを作成する
+with client.RftoolClient(logger) as rft:
+    
+    ### ディジタル出力モジュールの初期化 (省略) ###
+    ### ディジタル出力データの設定 (省略) ###
+    ### ディジタル出力モジュールの動作開始 (省略) ###
+    ### ディジタル出力モジュールの一時停止 (省略) ###
+
+    # ディジタル出力データの作成
+    dout_data_list = sg.DigitalOutputDataList()
+    (dout_data_list
+        .add(0x0A, 100)
+        .add(0x06, 150))
+
+    # 出力データをディジタル出力モジュールに設定
+    dout_ctrl.set_output_data(dout_data_list, sg.DigitalOut.U0, sg.DigitalOut.U1)
+
+    # ディジタル出力モジュール 0, 1 の再スタート
+    dout_ctrl.restart_douts(sg.DigitalOut.U0, sg.DigitalOut.U1)
+```
+
+### 5.8. 再スタートトリガの有効化
+
+ディジタル出力モジュールの再スタートは，Python API (DigitalOutCtrl.restart_douts) を使わずに STG の波形出力開始に合わせて行うことが可能です．
+STG の波形出力開始に合わせて再スタートする場合，再スタートトリガを有効にしなければなりません． 再スタートトリガの有効化には DigitalOutCtrl クラスの enable_restart_trigger メソッドを使用します．
+
+再スタートトリガを有効化するコード例を以下に示します．
+
+```
+from RftoolClient import client
+import StimGen as sg
+
+# RftoolClient オブジェクトを作成する
+with client.RftoolClient(logger) as rft:
+    
+    ### ディジタル出力モジュールの初期化 (省略) ###
+    ### ディジタル出力データの設定 (省略) ###
+    ### ディジタル出力モジュールの動作開始 (省略) ###
+    ### ディジタル出力モジュールの一時停止 (省略) ###
+
+    # ディジタル出力データの作成
+    dout_data_list = sg.DigitalOutputDataList()
+    (dout_data_list
+        .add(0x0A, 100)
+        .add(0x06, 150))
+
+    # 出力データをディジタル出力モジュールに設定
+    dout_ctrl.set_output_data(dout_data_list, sg.DigitalOut.U0, sg.DigitalOut.U1)
+
+    # 再スタートトリガの有効化
+    # 以降 STG の波形出力開始に合わせてディジタル出力モジュール 0 と 1 が再スタートする
+    dout_ctrl.enable_restart_trigger(sg.DigitalOut.U0, sg.DigitalOut.U1)
+```
