@@ -110,17 +110,9 @@ class DigitalOutCtrl:
             cmn.log_error(e, self.__logger)
             raise
 
-        addr_0 = DigitalOutMasterCtrlRegs.ADDR + DigitalOutMasterCtrlRegs.Offset.START_TRIG_MASK_0
-        trig_mask_0, trig_mask_1 = self.__reg_access.read_multi(addr_0, 2)
-
-        for dout_id in dout_id_list:
-            bit_pos = DigitalOutMasterCtrlRegs.Bit.dout(dout_id)
-            if dout_id <= sg.DigitalOut.U31:
-                trig_mask_0 |= 1 << bit_pos
-            else:
-                trig_mask_1 |= 1 << bit_pos
-        
-        self.__reg_access.write_multi(addr_0, trig_mask_0, trig_mask_1)
+        self.__set_mask_bits(
+            DigitalOutMasterCtrlRegs.ADDR + DigitalOutMasterCtrlRegs.Offset.START_TRIG_MASK_0,
+            *dout_id_list)
 
 
     def disable_start_trigger(self, *dout_id_list):
@@ -135,23 +127,15 @@ class DigitalOutCtrl:
             cmn.log_error(e, self.__logger)
             raise
 
-        addr_0 = DigitalOutMasterCtrlRegs.ADDR + DigitalOutMasterCtrlRegs.Offset.START_TRIG_MASK_0
-        trig_mask_0, trig_mask_1 = self.__reg_access.read_multi(addr_0, 2)
-        
-        for dout_id in dout_id_list:
-            bit_pos = DigitalOutMasterCtrlRegs.Bit.dout(dout_id)
-            if dout_id <= sg.DigitalOut.U31:
-                trig_mask_0 &= 0xFFFFFFFF & (~(1 << bit_pos))
-            else:
-                trig_mask_1 &= 0xFFFFFFFF & (~(1 << bit_pos))
-
-        self.__reg_access.write_multi(addr_0, trig_mask_0, trig_mask_1)
+        self.__clear_mask_bits(
+            DigitalOutMasterCtrlRegs.ADDR + DigitalOutMasterCtrlRegs.Offset.START_TRIG_MASK_0,
+            *dout_id_list)
 
 
     def enable_restart_trigger(self, *dout_id_list):
         """引数で指定したディジタル出力モジュールのリスタートトリガを有効化する.
 
-        | リスタートトリガを有効化したディジタル出力モジュールが pause 状態のときに
+        | リスタートトリガを有効化したディジタル出力モジュールが Pause 状態のときに
         | Stimulus Generator が波形出力を開始すると, 現在の設定に基づいてディジタル値の出力を再スタートする.
         
         Args:
@@ -163,17 +147,9 @@ class DigitalOutCtrl:
             cmn.log_error(e, self.__logger)
             raise
 
-        addr_0 = DigitalOutMasterCtrlRegs.ADDR + DigitalOutMasterCtrlRegs.Offset.RESTART_TRIG_MASK_0
-        trig_mask_0, trig_mask_1 = self.__reg_access.read_multi(addr_0, 2)
-
-        for dout_id in dout_id_list:
-            bit_pos = DigitalOutMasterCtrlRegs.Bit.dout(dout_id)
-            if dout_id <= sg.DigitalOut.U31:
-                trig_mask_0 |= 1 << bit_pos
-            else:
-                trig_mask_1 |= 1 << bit_pos
-        
-        self.__reg_access.write_multi(addr_0, trig_mask_0, trig_mask_1)
+        self.__set_mask_bits(
+            DigitalOutMasterCtrlRegs.ADDR + DigitalOutMasterCtrlRegs.Offset.RESTART_TRIG_MASK_0,
+            *dout_id_list)
 
 
     def disable_restart_trigger(self, *dout_id_list):
@@ -188,17 +164,83 @@ class DigitalOutCtrl:
             cmn.log_error(e, self.__logger)
             raise
 
-        addr_0 = DigitalOutMasterCtrlRegs.ADDR + DigitalOutMasterCtrlRegs.Offset.RESTART_TRIG_MASK_0
-        trig_mask_0, trig_mask_1 = self.__reg_access.read_multi(addr_0, 2)
-        
-        for dout_id in dout_id_list:
-            bit_pos = DigitalOutMasterCtrlRegs.Bit.dout(dout_id)
-            if dout_id <= sg.DigitalOut.U31:
-                trig_mask_0 &= 0xFFFFFFFF & (~(1 << bit_pos))
-            else:
-                trig_mask_1 &= 0xFFFFFFFF & (~(1 << bit_pos))
+        self.__clear_mask_bits(
+            DigitalOutMasterCtrlRegs.ADDR + DigitalOutMasterCtrlRegs.Offset.RESTART_TRIG_MASK_0,
+            *dout_id_list)
 
-        self.__reg_access.write_multi(addr_0, trig_mask_0, trig_mask_1)
+
+    def enable_pause_trigger(self, *dout_id_list):
+        """引数で指定したディジタル出力モジュールの一時停止トリガを有効化する.
+
+        | 一時停止トリガを有効化したディジタル出力モジュールが Active 状態のときに
+        | Stimulus Generator が一時停止すると，それらも一時停止する.
+        
+        Args:
+            *dout_id_list (list of DigitalOut): 一時停止トリガを有効にするディジタル出力モジュールの ID
+        """
+        try:
+            self.__validate_dout_id(*dout_id_list)
+        except Exception as e:
+            cmn.log_error(e, self.__logger)
+            raise
+
+        self.__set_mask_bits(
+            DigitalOutMasterCtrlRegs.ADDR + DigitalOutMasterCtrlRegs.Offset.PAUSE_TRIG_MASK_0,
+            *dout_id_list)
+
+
+    def disable_pause_trigger(self, *dout_id_list):
+        """引数で指定したディジタル出力モジュールの一時停止トリガを無効化する.
+        
+        Args:
+            *dout_id_list (list of DigitalOut): 一時停止トリガを無効にするディジタル出力モジュールの ID
+        """
+        try:
+            self.__validate_dout_id(*dout_id_list)
+        except Exception as e:
+            cmn.log_error(e, self.__logger)
+            raise
+
+        self.__clear_mask_bits(
+            DigitalOutMasterCtrlRegs.ADDR + DigitalOutMasterCtrlRegs.Offset.PAUSE_TRIG_MASK_0,
+            *dout_id_list)
+
+
+    def enable_resume_trigger(self, *dout_id_list):
+        """引数で指定したディジタル出力モジュールの再開トリガを有効化する.
+
+        | 再開トリガ有効化したディジタル出力モジュールが Pause 状態のときに
+        | Stimulus Generator が動作を再開すると，それらも動作を再開する.
+        
+        Args:
+            *dout_id_list (list of DigitalOut): 一時停止トリガを有効にするディジタル出力モジュールの ID
+        """
+        try:
+            self.__validate_dout_id(*dout_id_list)
+        except Exception as e:
+            cmn.log_error(e, self.__logger)
+            raise
+
+        self.__set_mask_bits(
+            DigitalOutMasterCtrlRegs.ADDR + DigitalOutMasterCtrlRegs.Offset.RESUME_TRIG_MASK_0,
+            *dout_id_list)
+
+
+    def disable_resume_trigger(self, *dout_id_list):
+        """引数で指定したディジタル出力モジュールの再開トリガを無効化する.
+        
+        Args:
+            *dout_id_list (list of DigitalOut): 再開トリガを無効にするディジタル出力モジュールの ID
+        """
+        try:
+            self.__validate_dout_id(*dout_id_list)
+        except Exception as e:
+            cmn.log_error(e, self.__logger)
+            raise
+
+        self.__clear_mask_bits(
+            DigitalOutMasterCtrlRegs.ADDR + DigitalOutMasterCtrlRegs.Offset.RESUME_TRIG_MASK_0,
+            *dout_id_list)
 
 
     def start_douts(self, *dout_id_list):
@@ -392,32 +434,54 @@ class DigitalOutCtrl:
 
     def __select_ctrl_target(self, *dout_id_list):
         """一括制御を有効にするディジタル出力モジュールを選択する"""
-        addr_0 = DigitalOutMasterCtrlRegs.ADDR + DigitalOutMasterCtrlRegs.Offset.CTRL_TARGET_SEL_0
-        target_sel_0, target_sel_1 = self.__reg_access.read_multi(addr_0, 2)
-
-        for dout_id in dout_id_list:
-            bit_pos = DigitalOutMasterCtrlRegs.Bit.dout(dout_id)
-            if dout_id <= sg.DigitalOut.U31:
-                target_sel_0 |= 1 << bit_pos
-            else:
-                target_sel_1 |= 1 << bit_pos
-
-        self.__reg_access.write_multi(addr_0, target_sel_0, target_sel_1)
+        self.__set_mask_bits(
+            DigitalOutMasterCtrlRegs.ADDR + DigitalOutMasterCtrlRegs.Offset.CTRL_TARGET_SEL_0,
+            *dout_id_list)
 
 
     def __deselect_ctrl_target(self, *dout_id_list):
         """一括制御を無効にするディジタル出力モジュールを選択する"""
-        addr_0 = DigitalOutMasterCtrlRegs.ADDR + DigitalOutMasterCtrlRegs.Offset.CTRL_TARGET_SEL_0
-        target_sel_0, target_sel_1 = self.__reg_access.read_multi(addr_0, 2)
+        self.__clear_mask_bits(
+            DigitalOutMasterCtrlRegs.ADDR + DigitalOutMasterCtrlRegs.Offset.CTRL_TARGET_SEL_0,
+            *dout_id_list)
+
+
+    def __set_mask_bits(self, mask_reg_addr, *dout_id_list):
+        """ビットマスクレジスタの特定のビットを 1 にする
+        
+        Args:
+            mask_reg_addr (int): 値を変更するビットマスクレジスタのアドレス
+            *dout_id_list (list of STG): このリストのディジタル出力モジュールに対応するビットを全て 1 にする
+        """
+        reg_0, reg_1 = self.__reg_access.read_multi(mask_reg_addr, 2)
 
         for dout_id in dout_id_list:
             bit_pos = DigitalOutMasterCtrlRegs.Bit.dout(dout_id)
             if dout_id <= sg.DigitalOut.U31:
-                target_sel_0 &= 0xFFFFFFFF & (~(1 << bit_pos))
+                reg_0 |= 1 << bit_pos
             else:
-                target_sel_1 &= 0xFFFFFFFF & (~(1 << bit_pos))
+                reg_1 |= 1 << bit_pos
 
-        self.__reg_access.write_multi(addr_0, target_sel_0, target_sel_1)
+        self.__reg_access.write_multi(mask_reg_addr, reg_0, reg_1)
+
+
+    def __clear_mask_bits(self, mask_reg_addr, *dout_id_list):
+        """ビットマスクレジスタの特定のビットを 0 にする
+        
+        Args:
+            mask_reg_addr (int): 値を変更するビットマスクレジスタのアドレス
+            *dout_id_list (list of STG): このリストのディジタル出力モジュールに対応するビットを全て 0 にする
+        """
+        reg_0, reg_1 = self.__reg_access.read_multi(mask_reg_addr, 2)
+
+        for dout_id in dout_id_list:
+            bit_pos = DigitalOutMasterCtrlRegs.Bit.dout(dout_id)
+            if dout_id <= sg.DigitalOut.U31:
+                reg_0 &= 0xFFFFFFFF & (~(1 << bit_pos))
+            else:
+                reg_1 &= 0xFFFFFFFF & (~(1 << bit_pos))
+
+        self.__reg_access.write_multi(mask_reg_addr, reg_0, reg_1)
 
 
     def __reset_douts(self, *dout_id_list):

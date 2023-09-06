@@ -2,6 +2,7 @@ import sys
 import pathlib
 import os
 import logging
+import time
 
 lib_path = str(pathlib.Path(__file__).resolve().parents[2])
 sys.path.append(lib_path)
@@ -14,7 +15,6 @@ try:
 except Exception:
     is_all_sync_design = False
 
-
 ZCU111_IP_ADDR = os.environ.get('ZCU111_IP_ADDR', "192.168.1.3")
 DAC_FREQ = 614.4 # Msps
 
@@ -23,18 +23,9 @@ if is_all_sync_design:
 else:
     BITSTREAM = cmn.FpgaDesign.STIM_GEN
 
-stg_list = sg.STG.all()
-dout_list = [sg.DigitalOut.U0, sg.DigitalOut.U1]
-stg_to_freq = {
-    sg.STG.U0 : 1.0,
-    sg.STG.U1 : 1.5,
-    sg.STG.U2 : 2.0,
-    sg.STG.U3 : 2.5,
-    sg.STG.U4 : 3.0,
-    sg.STG.U5 : 3.5,
-    sg.STG.U6 : 4.0,
-    sg.STG.U7 : 4.5
-} # MHz
+stg_list = [sg.STG.U4]
+dout_list = sg.DigitalOut.all()
+stg_to_freq = { sg.STG.U4 : 1 } # MHz
 
 
 def output_rfdc_interrupt_details(stg_ctrl, stg_to_interrupts):
@@ -74,8 +65,8 @@ def set_stimulus(stg_ctrl):
         # 波形のサンプルデータを作成する
         samples = gen_example_sample_data(stg_id)
         # 波形サンプルを Stimulus オブジェクトにセットし, Stimulus オブジェクトを dict に格納する
-        stimulus = sg.Stimulus(num_wait_words = 0, num_seq_repeats = 0xFFFFFFFF)
-        stimulus.add_chunk(samples = samples, num_blank_words = 0, num_repeats = 0xFFFFFFFF)
+        stimulus = sg.Stimulus(num_wait_words = 0, num_seq_repeats = 1)
+        stimulus.add_chunk(samples = samples, num_blank_words = 0, num_repeats = 1)
         stg_to_stimulus[stg_id] = stimulus
 
     # 波形情報を Stimulus Generator に送信する.
@@ -83,7 +74,7 @@ def set_stimulus(stg_ctrl):
 
 
 def setup_stim_gens(stg_ctrl):
-    """Stimulue Generator の波形出力に必要な設定を行う"""
+    """Stimulus Generator の波形出力に必要な設定を行う"""
     # STG デザイン用に DAC を設定
     stg_ctrl.setup_dacs()
     # DAC タイル同期
@@ -94,25 +85,49 @@ def setup_stim_gens(stg_ctrl):
     set_stimulus(stg_ctrl)
 
 
-def set_digital_out_data(digital_out_ctrl):
+def set_digital_out_data(digital_out_ctrl, bit_patterns):
     # ディジタル出力データの作成
-    dout_data_list = sg.DigitalOutputDataList()
-    (dout_data_list
-        .add(0xFF, 0xFFFFFFFF))
-    # 出力データをディジタル出力モジュールに設定
-    digital_out_ctrl.set_output_data(dout_data_list, *dout_list)
+    dout_time = 153599803 if is_all_sync_design else 400000000 # 4 [sec]
+    for dout_id in dout_list:
+        dout_data_list = sg.DigitalOutputDataList()
+        for bit_pattern in bit_patterns:
+            dout_data_list.add(bit_pattern, dout_time)
+
+        # 出力データをディジタル出力モジュールに設定
+        digital_out_ctrl.set_output_data(dout_data_list, dout_id)
+
+
+def set_default_digital_out_data(digital_out_ctrl):
+    # デフォルトのディジタル出力データの設定
+    for dout_id in dout_list:
+        digital_out_ctrl.set_default_output_data(0, dout_id)
 
 
 def setup_digital_output_modules(digital_out_ctrl):
     """ディジタル出力に必要な設定を行う"""
     # ディジタル出力モジュール初期化
     digital_out_ctrl.initialize(*dout_list)
+    # デフォルトのディジタル出力データの設定
+    set_default_digital_out_data(digital_out_ctrl)
     # ディジタル出力データの設定
-    set_digital_out_data(digital_out_ctrl)
-    # Stimulus Generator からのスタートトリガを受け付けるように設定.
-    # このスタートトリガは, 何れかの Stimulus Generator の波形出力開始と同時にアサートされる.
-    # なお, StimGenCtrl.start_stgs で複数の STG をスタートしてもスタートトリガは一度しかアサートされない.
-    digital_out_ctrl.enable_start_trigger(*dout_list)
+    bit_patterns = [1, 2]
+    set_digital_out_data(digital_out_ctrl, bit_patterns)
+    # Stimulus Generator からのリスタートトリガを受け付けるように設定.
+    # このリスタートトリガは, 何れかの Stimulus Generator の波形出力開始と同時にアサートされる.
+    digital_out_ctrl.enable_restart_trigger(*dout_list)
+
+
+def restart_douts(mode, stg_ctrl, digital_out_ctrl):
+    """ディジタル出力モジュールを再スタートする"""
+    if mode == 1:
+        # 再スタート
+        digital_out_ctrl.restart_douts(*dout_list)
+    else:
+        # STG の波形出力スタート.
+        # STG の波形出力開始に合わせてディジタル出力モジュールが再スタートする.
+        stg_ctrl.start_stgs(*stg_list)
+        # 波形出力完了待ち
+        stg_ctrl.wait_for_stgs_to_stop(5, *stg_list)
 
 
 def main(logger):
@@ -126,13 +141,25 @@ def main(logger):
         setup_stim_gens(rft.stg_ctrl)
         # ディジタル出力モジュールのセットアップ
         setup_digital_output_modules(rft.digital_out_ctrl)
-        # 波形出力スタート
-        rft.stg_ctrl.start_stgs(*stg_list)
-        input('press Enter to stop STGs.')
-        # 波形出力強制停止
-        rft.stg_ctrl.terminate_stgs(*stg_list)
-        # ディジタル値出力強制停止
-        rft.digital_out_ctrl.terminate_douts(*dout_list)
+        # ディジタル出力スタート
+        rft.digital_out_ctrl.start_douts(*dout_list)
+        time.sleep(2)
+        # ディジタル出力一時停止
+        rft.digital_out_ctrl.pause_douts(*dout_list)
+        ctrl_sel = input('input\n    0: resume\n    1: restart from software\n    2: restart from STG\n')
+        
+        if int(ctrl_sel) == 0:
+            # 再開
+            rft.digital_out_ctrl.resume_douts(*dout_list)
+        else:
+            # ディジタル出力データを変更
+            bit_patterns = [3, 2, 1]
+            set_digital_out_data(rft.digital_out_ctrl, bit_patterns)
+            # 再スタート
+            restart_douts(int(ctrl_sel), rft.stg_ctrl, rft.digital_out_ctrl)
+
+        # ディジタル出力モジュール動作完了待ち
+        rft.digital_out_ctrl.wait_for_douts_to_stop(15, *dout_list)
         # 波形出力完了フラグクリア
         rft.stg_ctrl.clear_stg_stop_flags(*stg_list)
         # ディジタル出力モジュール動作完了フラグクリア

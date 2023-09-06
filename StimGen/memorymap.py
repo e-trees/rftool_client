@@ -10,8 +10,9 @@ class StgMasterCtrlRegs(object):
         BUSY_STATUS         = 0x10
         READY_STATUS        = 0x14
         DONE_STATUS         = 0x18
-        READ_ERR            = 0x1C
-        SAMPLE_SHORTAGE_ERR = 0x20
+        PAUSED_STATUS       = 0x1C
+        READ_ERR            = 0x20
+        SAMPLE_SHORTAGE_ERR = 0x24
 
     class Bit(object):
         CTRL_RESET     = 0
@@ -19,6 +20,8 @@ class StgMasterCtrlRegs(object):
         CTRL_START     = 2
         CTRL_TERMINATE = 3
         CTRL_DONE_CLR  = 4
+        CTRL_PAUSE     = 5
+        CTRL_RESUME    = 6
         STG_0  = 0
         STG_1  = 1
         STG_2  = 2
@@ -66,10 +69,13 @@ class StgCtrlRegs(object):
         CTRL_START          = 2
         CTRL_TERMINATE      = 3
         CTRL_DONE_CLR       = 4
+        CTRL_PAUSE          = 5
+        CTRL_RESUME         = 6
         STATUS_WAKEUP       = 0
         STATUS_BUSY         = 1
         STATUS_READY        = 2
         STATUS_DONE         = 3
+        STATUS_PAUSED       = 4
         ERR_READ            = 0
         ERR_SAMPLE_SHORTAGE = 1
 
@@ -143,6 +149,10 @@ class DigitalOutMasterCtrlRegs(object):
         START_TRIG_MASK_1   = 0x14
         RESTART_TRIG_MASK_0 = 0x18
         RESTART_TRIG_MASK_1 = 0x1C
+        PAUSE_TRIG_MASK_0   = 0x20
+        PAUSE_TRIG_MASK_1   = 0x24
+        RESUME_TRIG_MASK_0  = 0x28
+        RESUME_TRIG_MASK_1  = 0x2C
 
     class Bit(object):
         CTRL_RESET     = 0

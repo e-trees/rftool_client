@@ -20,7 +20,23 @@ STG の制御には専用の Python API を用います．
 ![システムオーバービュー](images/stg_system_overview.png)
 
 
-## 3. 出力波形の構造
+## 3. STG の状態
+
+STG は下図の状態を持ち，特定の Python API (図中の青字) が呼ばれたときか，ユーザ定義波形の出力が完了したときに状態遷移します．
+
+![ディジタル出力モジュールの状態](images/stg_state.png)
+
+**状態の説明**
+
+| 状態名 | 説明 |
+| --- | --- |
+| Idle | 初期状態. |
+| Active | ユーザ定義波形を出力します．|
+| Pause | ユーザ定義波形の出力を一時停止します．<br> 停止中に STG から出力されるサンプル値は 0 です．|
+
+<br>
+
+## 4. 出力波形の構造
 
 STG が出力可能な波形の構造と制約について説明します．
 
@@ -70,11 +86,11 @@ $$
 
 ![post blank](images/post_blank.png)
 
-## 4. STG 制御用 API の詳細
+## 5. STG 制御用 API の詳細
 
 本章では STG の操作に必要な Python API を手順ごとに説明します．
 
-### 4.1. STG と DAC の初期化
+### 5.1. STG と DAC の初期化
 
 STG と DAC は，次節以降で述べる操作を行う前に必ず初期化しなければなりません．
 初期化には StimGenCtrl クラスの setup_dacs, sync_dac_tiles, initialize メソッドを使用します．
@@ -107,7 +123,7 @@ with client.RftoolClient(logger) as rft:
     stg_ctrl.initialize(sg.STG.U0, sg.STG.U4)
 ```
 
-### 4.2. 波形データの設定
+### 5.2. 波形データの設定
 
 STG に設定する波形データは，StimGen パッケージの Stimulus クラスを用いて作成します．
 2 章で説明したユーザ定義波形の
@@ -173,7 +189,7 @@ with client.RftoolClient(logger) as rft:
     stg_ctrl.set_stimulus(stg_to_stimulus)
 ```
 
-### 4.3. 波形の出力開始と完了待ち
+### 5.3. 波形の出力開始と完了待ち
 
 STG の波形出力を開始するには StimGenCtrl クラスの start_stgs メソッドを使用します．
 このメソッドで指定した全ての STG は同時にユーザ定義波形の出力を開始します．
@@ -190,12 +206,63 @@ import StimGen as sg
 with client.RftoolClient(logger) as rft:
 
     ### STG / DAC 初期化 (省略) ###
-
     ### 波形データの設定 (省略) ###
     
-    # STG 0 と STG 4 の波形出力スタート
+    # STG 0 と STG 4 のユーザ定義波形出力スタート
     rft.stg_ctrl.start_stgs(sg.STG.U0, sg.STG.U4)
     
     # タイムアウト 5 秒で STG 0 と STG 4 の波形出力完了待ち
     rft.stg_ctrl.wait_for_stgs_to_stop(5, sg.STG.U0, sg.STG.U4)
 ```
+
+### 5.4. 波形出力の一時停止
+
+ユーザ定義波形の出力を一時停止するには StimGenCtrl クラスの pause_stgs メソッドを使用します．
+このメソッドで指定した全ての STG は同時にユーザ定義波形の出力を一時停止します．
+
+ユーザ定義波形の出力を一時停止するコードの例を以下に示します．
+
+```
+from RftoolClient import client
+import StimGen as sg
+
+# RftoolClient オブジェクトを作成する
+with client.RftoolClient(logger) as rft:
+
+    ### STG / DAC 初期化 (省略) ###
+    ### 波形データの設定 (省略) ###  
+    ### STG の波形出力スタート (省略) ###
+    
+    # STG 0 と STG 4 のユーザ定義波形の出力を一時停止
+    rft.stg_ctrl.pause_stgs(sg.STG.U0, sg.STG.U4)
+```
+
+### 5.5. 波形出力の再開
+
+ユーザ定義波形の出力を再開するには StimGenCtrl クラスの resume_stgs メソッドを使用します．
+このメソッドで指定した全ての STG は同時にユーザ定義波形の出力を再開します．
+
+ユーザ定義波形の出力を再開するコードの例を以下に示します．
+
+```
+from RftoolClient import client
+import time
+import StimGen as sg
+
+
+# RftoolClient オブジェクトを作成する
+with client.RftoolClient(logger) as rft:
+
+    ### STG / DAC 初期化 (省略) ###
+    ### 波形データの設定 (省略) ###  
+    ### STG の波形出力スタート (省略) ###
+
+    # STG 0 と STG 4 のユーザ定義波形の出力を一時停止
+    rft.stg_ctrl.pause_stgs(sg.STG.U0, sg.STG.U4)
+
+    time.sleep(2)
+
+    # STG 0 と STG 4 のユーザ定義波形の出力を再開
+    rft.stg_ctrl.resume_stgs(sg.STG.U0, sg.STG.U4)
+```
+

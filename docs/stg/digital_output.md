@@ -20,19 +20,21 @@ STG およびディジタル出力モジュールを搭載したデザインに�
 
 ## 3. ディジタル出力モジュールの状態
 
-ディジタル出力モジュールは下図の状態を持ち，次の 3 つのイベントで状態遷移します．
+ディジタル出力モジュールは下図の状態を持ち，次の 5 つのイベントで状態遷移します．
  - STG の波形出力が開始される
+ - STG が波形出力が一時停止される
+ - STG の波形出力が再開される
  - 全ディジタル出力値の出力が完了する
  - 特定の Python API (図中の青字) が呼ばれる
 
-![ディジタル出力モジュールの状態](images/state.png)
+![ディジタル出力モジュールの状態](images/dout_state.png)
 
 **状態の説明**
 
 | 状態名 | 説明 |
 | --- | --- |
 | Idle | 初期状態. |
-| Prepare | 現在設定されているディジタル出力値リストの値を最初から出力するための準備を行います． |
+| Prepare | 現在設定されているディジタル出力値リストの値を最初から出力するための準備を行います．|
 | Active | ディジタル出力値リストから値を順に出力します．|
 | Pause | ディジタル出力モジュールの動作を一時停止します．|
 
@@ -274,5 +276,51 @@ with client.RftoolClient(logger) as rft:
 
     # 再スタートトリガの有効化
     # 以降 STG の波形出力開始に合わせてディジタル出力モジュール 0 と 1 が再スタートする
+    dout_ctrl.enable_restart_trigger(sg.DigitalOut.U0, sg.DigitalOut.U1)
+```
+
+### 5.9. 一時停止トリガの有効化
+
+ディジタル出力モジュールの一時停止は，Python API (DigitalOutCtrl.pause_douts) を使わずに STG の波形出力一時停止に合わせて行うことが可能です．
+STG の波形出力一時停止に合わせて一時停止する場合，一時停止トリガを有効にしなければなりません． 一時停止トリガの有効化には DigitalOutCtrl クラスの enable_pause_trigger メソッドを使用します．
+
+再スタートトリガを有効化するコード例を以下に示します．
+
+```
+from RftoolClient import client
+import StimGen as sg
+
+# RftoolClient オブジェクトを作成する
+with client.RftoolClient(logger) as rft:
+    
+    ### ディジタル出力モジュールの初期化 (省略) ###
+    ### ディジタル出力データの設定 (省略) ###
+
+    # 一時停止トリガの有効化
+    # 以降 ディジタル出力モジュール 0 と 1 は Active 状態のときに
+    # STG の波形出力一時停止に合わせて一時停止する.
+    dout_ctrl.enable_restart_trigger(sg.DigitalOut.U0, sg.DigitalOut.U1)
+```
+
+### 5.10. 再開トリガの有効化
+
+ディジタル出力モジュールの動作の再開は，Python API (DigitalOutCtrl.resume_douts) を使わずに STG の波形出力再開に合わせて行うことが可能です．
+STG の波形出力再開に合わせてディジタル出力モジュールの動作を再開する場合，再開トリガを有効にしなければなりません． 再開トリガの有効化には DigitalOutCtrl クラスの enable_resume_trigger メソッドを使用します．
+
+再開トリガを有効化するコード例を以下に示します．
+
+```
+from RftoolClient import client
+import StimGen as sg
+
+# RftoolClient オブジェクトを作成する
+with client.RftoolClient(logger) as rft:
+    
+    ### ディジタル出力モジュールの初期化 (省略) ###
+    ### ディジタル出力データの設定 (省略) ###
+
+    # 再開トリガの有効化
+    # 以降 ディジタル出力モジュール 0 と 1 は Pause 状態のときに
+    # STG の波形出力再開に合わせて動作を再開する.
     dout_ctrl.enable_restart_trigger(sg.DigitalOut.U0, sg.DigitalOut.U1)
 ```

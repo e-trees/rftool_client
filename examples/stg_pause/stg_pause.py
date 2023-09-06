@@ -2,6 +2,7 @@ import sys
 import pathlib
 import os
 import logging
+import time
 
 lib_path = str(pathlib.Path(__file__).resolve().parents[2])
 sys.path.append(lib_path)
@@ -22,9 +23,16 @@ if is_all_sync_design:
 else:
     BITSTREAM = cmn.FpgaDesign.STIM_GEN
 
-stg_list = [sg.STG.U0]
+stg_list = sg.STG.all()
 dout_list = sg.DigitalOut.all()
-stg_to_freq = { sg.STG.U0 : 1.0 } # MHz
+stg_to_freq = { sg.STG.U0 : 1,
+                sg.STG.U1 : 1,
+                sg.STG.U2 : 1,
+                sg.STG.U3 : 1,
+                sg.STG.U4 : 1,
+                sg.STG.U5 : 1,
+                sg.STG.U6 : 1,
+                sg.STG.U7 : 1 } # MHz
 
 
 def output_rfdc_interrupt_details(stg_ctrl, stg_to_interrupts):
@@ -48,7 +56,7 @@ def output_stim_gen_err_details(stg_to_errs):
 
 def gen_example_sample_data(stg_id):
     """出力サンプルデータの例として sin カーブを作る"""
-    wave = cmn.SinWave(3, stg_to_freq[stg_id] * 1e6, 30000)
+    wave = cmn.SinWave(5, stg_to_freq[stg_id] * 1e6, 30000)
     samples = wave.gen_samples(DAC_FREQ * 1e6) # samples は 16-bit 符号付整数のリスト
     # サンプル数を 1024 の倍数に調整する
     rem = len(samples) % sg.Stimulus.MIN_UNIT_SAMPLES_FOR_WAVE_PART
@@ -65,7 +73,7 @@ def set_stimulus(stg_ctrl):
         samples = gen_example_sample_data(stg_id)
         # 波形サンプルを Stimulus オブジェクトにセットし, Stimulus オブジェクトを dict に格納する
         stimulus = sg.Stimulus(num_wait_words = 0, num_seq_repeats = 1)
-        stimulus.add_chunk(samples = samples, num_blank_words = 0, num_repeats = 1)
+        stimulus.add_chunk(samples = samples, num_blank_words = 0, num_repeats = int(1e6))
         stg_to_stimulus[stg_id] = stimulus
 
     # 波形情報を Stimulus Generator に送信する.
@@ -73,7 +81,7 @@ def set_stimulus(stg_ctrl):
 
 
 def setup_stim_gens(stg_ctrl):
-    """Stimulue Generator の波形出力に必要な設定を行う"""
+    """Stimulus Generator の波形出力に必要な設定を行う"""
     # STG デザイン用に DAC を設定
     stg_ctrl.setup_dacs()
     # DAC タイル同期
@@ -84,13 +92,14 @@ def setup_stim_gens(stg_ctrl):
     set_stimulus(stg_ctrl)
 
 
-def set_digital_out_data(digital_out_ctrl):
+def set_digital_out_data(digital_out_ctrl, bit_patterns):
     # ディジタル出力データの作成
+    dout_time = 192000000 if is_all_sync_design else 500000000 # 5 [sec]
     for dout_id in dout_list:
         dout_data_list = sg.DigitalOutputDataList()
-        for i in range(10):
-            bits = (dout_id << 8) + (i + 1)
-            dout_data_list.add(bits, 2)
+        for bit_pattern in bit_patterns:
+            dout_data_list.add(bit_pattern, dout_time)
+
         # 出力データをディジタル出力モジュールに設定
         digital_out_ctrl.set_output_data(dout_data_list, dout_id)
 
@@ -98,8 +107,7 @@ def set_digital_out_data(digital_out_ctrl):
 def set_default_digital_out_data(digital_out_ctrl):
     # デフォルトのディジタル出力データの設定
     for dout_id in dout_list:
-        bit_pattern = dout_id + 2
-        digital_out_ctrl.set_default_output_data(bit_pattern, dout_id)
+        digital_out_ctrl.set_default_output_data(0, dout_id)
 
 
 def setup_digital_output_modules(digital_out_ctrl):
@@ -109,11 +117,17 @@ def setup_digital_output_modules(digital_out_ctrl):
     # デフォルトのディジタル出力データの設定
     set_default_digital_out_data(digital_out_ctrl)
     # ディジタル出力データの設定
-    set_digital_out_data(digital_out_ctrl)
+    bit_patterns = [3]
+    set_digital_out_data(digital_out_ctrl, bit_patterns)
     # Stimulus Generator からのスタートトリガを受け付けるように設定.
     # このスタートトリガは, 何れかの Stimulus Generator の波形出力開始と同時にアサートされる.
-    # なお, StimGenCtrl.start_stgs で複数の STG をスタートしてもスタートトリガは一度しかアサートされない.
     digital_out_ctrl.enable_start_trigger(*dout_list)
+    # Stimulus Generator からの一時停止トリガを受け付けるように設定.
+    # この一時停止トリガは, 何れかの Stimulus Generator の波形出力一時停止と同時にアサートされる.
+    digital_out_ctrl.enable_pause_trigger(*dout_list)
+    # Stimulus Generator からの再開トリガを受け付けるように設定.
+    # この再開トリガは, 何れかの Stimulus Generator の波形出力再開と同時にアサートされる.
+    digital_out_ctrl.enable_resume_trigger(*dout_list)
 
 
 def main(logger):
@@ -122,17 +136,23 @@ def main(logger):
         rft.connect(ZCU111_IP_ADDR)
         rft.command.TermMode(0)
         # FPGA コンフィギュレーション
-        rft.command.ConfigFpga(BITSTREAM, 10)
+        rft.command.ConfigFpga(BITSTREAM, 10)       
         # Stimulus Generator のセットアップ
         setup_stim_gens(rft.stg_ctrl)
         # ディジタル出力モジュールのセットアップ
         setup_digital_output_modules(rft.digital_out_ctrl)
         # 波形出力スタート
         rft.stg_ctrl.start_stgs(*stg_list)
+        time.sleep(2)
+        # 波形出力一時停止
+        rft.stg_ctrl.pause_stgs(*stg_list)
+        input("Press 'Enter' to resume STGs\n")
+        # 波形出力再開
+        rft.stg_ctrl.resume_stgs(*stg_list)
         # 波形出力完了待ち
-        rft.stg_ctrl.wait_for_stgs_to_stop(5, *stg_list)
+        rft.stg_ctrl.wait_for_stgs_to_stop(6, *stg_list)
         # ディジタル出力モジュール動作完了待ち
-        rft.digital_out_ctrl.wait_for_douts_to_stop(5, *dout_list)
+        rft.digital_out_ctrl.wait_for_douts_to_stop(6, *dout_list)
         # 波形出力完了フラグクリア
         rft.stg_ctrl.clear_stg_stop_flags(*stg_list)
         # ディジタル出力モジュール動作完了フラグクリア
