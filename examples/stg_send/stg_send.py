@@ -160,7 +160,7 @@ def set_stimulus(stg_ctrl):
 
 
 def setup_stim_gens(stg_ctrl):
-    """Stimulue Generator の波形出力に必要な設定を行う"""
+    """Stimulus Generator の波形出力に必要な設定を行う"""
     # STG デザイン用に DAC を設定
     stg_ctrl.setup_dacs()
     # DAC タイル同期

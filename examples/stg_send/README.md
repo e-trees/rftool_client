@@ -1,6 +1,6 @@
 # 8つの STG から正弦波を出力する
 
-[stim_gen_send.py](./stim_gen_send.py) は，8 つの STG (Stimulus Generator) から異なるパターンの波形を出力するスクリプトです．
+[stg_send.py](./stg_send.py) は，8 つの STG (Stimulus Generator) から異なるパターンの波形を出力するスクリプトです．
 本スクリプトでは，STG デザインの **独立クロックバージョン** と **同一クロックバージョン** の動作を確認できます．
 2 つのバージョンの詳細は，[ディジタル出力モジュールユーザマニュアル](../../docs/stg/digital_output.md) を参照してください．
 
@@ -15,7 +15,7 @@ DAC, PMOD とオシロスコープを接続します．
 以下のコマンドを実行します．
 
 ```
-python stim_gen_send.py
+python stg_send.py
 ```
 
 DAC と PMOD からの出力がオシロスコープで観察できます．
@@ -86,7 +86,7 @@ STG 0, PMOD 0 (P6, P7) の波形   (上から順に STG 0, PMOD 0 P6, P7)
 以下のコマンドを実行します．
 
 ```
-python stim_gen_send.py sync_all
+python stg_send.py sync_all
 ```
 
 DAC と PMOD からの出力がオシロスコープで観察できます．

@@ -2,7 +2,6 @@ import sys
 import pathlib
 import os
 import logging
-import time
 
 lib_path = str(pathlib.Path(__file__).resolve().parents[2])
 sys.path.append(lib_path)
@@ -23,9 +22,9 @@ if is_all_sync_design:
 else:
     BITSTREAM = cmn.FpgaDesign.STIM_GEN
 
-stg_list = [sg.STG.U4]
+stg_list = [sg.STG.U0]
 dout_list = sg.DigitalOut.all()
-stg_to_freq = { sg.STG.U4 : 1 } # MHz
+stg_to_freq = { sg.STG.U0 : 1.0 } # MHz
 
 
 def output_rfdc_interrupt_details(stg_ctrl, stg_to_interrupts):
@@ -74,7 +73,7 @@ def set_stimulus(stg_ctrl):
 
 
 def setup_stim_gens(stg_ctrl):
-    """Stimulue Generator の波形出力に必要な設定を行う"""
+    """Stimulus Generator の波形出力に必要な設定を行う"""
     # STG デザイン用に DAC を設定
     stg_ctrl.setup_dacs()
     # DAC タイル同期
@@ -85,14 +84,13 @@ def setup_stim_gens(stg_ctrl):
     set_stimulus(stg_ctrl)
 
 
-def set_digital_out_data(digital_out_ctrl, bit_patterns):
+def set_digital_out_data(digital_out_ctrl):
     # ディジタル出力データの作成
-    dout_time = 153599803 if is_all_sync_design else 400000000 # 4 [sec]
     for dout_id in dout_list:
         dout_data_list = sg.DigitalOutputDataList()
-        for bit_pattern in bit_patterns:
-            dout_data_list.add(bit_pattern, dout_time)
-
+        for i in range(10):
+            bits = (dout_id << 8) + (i + 1)
+            dout_data_list.add(bits, 2)
         # 出力データをディジタル出力モジュールに設定
         digital_out_ctrl.set_output_data(dout_data_list, dout_id)
 
@@ -100,7 +98,8 @@ def set_digital_out_data(digital_out_ctrl, bit_patterns):
 def set_default_digital_out_data(digital_out_ctrl):
     # デフォルトのディジタル出力データの設定
     for dout_id in dout_list:
-        digital_out_ctrl.set_default_output_data(0, dout_id)
+        bit_pattern = dout_id + 2
+        digital_out_ctrl.set_default_output_data(bit_pattern, dout_id)
 
 
 def setup_digital_output_modules(digital_out_ctrl):
@@ -110,24 +109,11 @@ def setup_digital_output_modules(digital_out_ctrl):
     # デフォルトのディジタル出力データの設定
     set_default_digital_out_data(digital_out_ctrl)
     # ディジタル出力データの設定
-    bit_patterns = [1, 2]
-    set_digital_out_data(digital_out_ctrl, bit_patterns)
-    # Stimulus Generator からのリスタートトリガを受け付けるように設定.
-    # このリスタートトリガは, 何れかの Stimulus Generator の波形出力開始と同時にアサートされる.
-    digital_out_ctrl.enable_restart_trigger(*dout_list)
-
-
-def restart_douts(mode, stg_ctrl, digital_out_ctrl):
-    """ディジタル出力モジュールを再スタートする"""
-    if mode == 1:
-        # 再スタート
-        digital_out_ctrl.restart_douts(*dout_list)
-    else:
-        # STG の波形出力スタート.
-        # STG の波形出力開始に合わせてディジタル出力モジュールが再スタートする.
-        stg_ctrl.start_stgs(*stg_list)
-        # 波形出力完了待ち
-        stg_ctrl.wait_for_stgs_to_stop(5, *stg_list)
+    set_digital_out_data(digital_out_ctrl)
+    # Stimulus Generator からのスタートトリガを受け付けるように設定.
+    # このスタートトリガは, 何れかの Stimulus Generator の波形出力開始と同時にアサートされる.
+    # なお, StimGenCtrl.start_stgs で複数の STG をスタートしてもスタートトリガは一度しかアサートされない.
+    digital_out_ctrl.enable_start_trigger(*dout_list)
 
 
 def main(logger):
@@ -141,25 +127,12 @@ def main(logger):
         setup_stim_gens(rft.stg_ctrl)
         # ディジタル出力モジュールのセットアップ
         setup_digital_output_modules(rft.digital_out_ctrl)
-        # ディジタル出力スタート
-        rft.digital_out_ctrl.start_douts(*dout_list)
-        time.sleep(2)
-        # ディジタル出力一時停止
-        rft.digital_out_ctrl.pause_douts(*dout_list)
-        ctrl_sel = input('input\n    0: resume\n    1: restart from software\n    2: restart from STG\n')
-        
-        if int(ctrl_sel) == 0:
-            # 再開
-            rft.digital_out_ctrl.resume_douts(*dout_list)
-        else:
-            # ディジタル出力データを変更
-            bit_patterns = [3, 2, 1]
-            set_digital_out_data(rft.digital_out_ctrl, bit_patterns)
-            # 再スタート
-            restart_douts(int(ctrl_sel), rft.stg_ctrl, rft.digital_out_ctrl)
-
+        # 波形出力スタート
+        rft.stg_ctrl.start_stgs(*stg_list)
+        # 波形出力完了待ち
+        rft.stg_ctrl.wait_for_stgs_to_stop(5, *stg_list)
         # ディジタル出力モジュール動作完了待ち
-        rft.digital_out_ctrl.wait_for_douts_to_stop(15, *dout_list)
+        rft.digital_out_ctrl.wait_for_douts_to_stop(5, *dout_list)
         # 波形出力完了フラグクリア
         rft.stg_ctrl.clear_stg_stop_flags(*stg_list)
         # ディジタル出力モジュール動作完了フラグクリア

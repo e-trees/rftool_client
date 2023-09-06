@@ -139,6 +139,46 @@ class StimGenCtrl(object):
         self.__deselect_ctrl_target(*stg_id_list)
 
 
+    def pause_stgs(self, *stg_id_list):
+        """引数で指定した全ての Stimulus Generator の波形出力を一時停止させる
+
+        Args:
+            *stg_id_list (list of STG): 波形出力を一時停止させる STG の ID
+        """
+        try:
+            self.__validate_stg_id(*stg_id_list)
+        except Exception as e:
+            cmn.log_error(e, self.__logger)
+            raise
+    
+        self.__select_ctrl_target(*stg_id_list)
+        addr = StgMasterCtrlRegs.ADDR + StgMasterCtrlRegs.Offset.CTRL
+        self.__reg_access.write_bits(addr, StgMasterCtrlRegs.Bit.CTRL_PAUSE, 1, 0)
+        self.__reg_access.write_bits(addr, StgMasterCtrlRegs.Bit.CTRL_PAUSE, 1, 1)
+        self.__reg_access.write_bits(addr, StgMasterCtrlRegs.Bit.CTRL_PAUSE, 1, 0)
+        self.__deselect_ctrl_target(*stg_id_list)
+
+
+    def resume_stgs(self, *stg_id_list):
+        """引数で指定した全ての Stimulus Generator の波形出力を再開させる
+
+        Args:
+            *stg_id_list (list of STG): 波形出力を再開させる STG の ID
+        """
+        try:
+            self.__validate_stg_id(*stg_id_list)
+        except Exception as e:
+            cmn.log_error(e, self.__logger)
+            raise
+    
+        self.__select_ctrl_target(*stg_id_list)
+        addr = StgMasterCtrlRegs.ADDR + StgMasterCtrlRegs.Offset.CTRL
+        self.__reg_access.write_bits(addr, StgMasterCtrlRegs.Bit.CTRL_RESUME, 1, 0)
+        self.__reg_access.write_bits(addr, StgMasterCtrlRegs.Bit.CTRL_RESUME, 1, 1)
+        self.__reg_access.write_bits(addr, StgMasterCtrlRegs.Bit.CTRL_RESUME, 1, 0)
+        self.__deselect_ctrl_target(*stg_id_list)
+
+
     def wait_for_stgs_to_stop(self, timeout, *stg_id_list):
         """引数で指定した全ての Stimulus Generator の波形の送信が終了するのを待つ
 
@@ -350,15 +390,21 @@ class StimGenCtrl(object):
     def __select_ctrl_target(self, *stg_id_list):
         """一括制御を有効にする Stimulus Generator を選択する"""
         addr = StgMasterCtrlRegs.ADDR + StgMasterCtrlRegs.Offset.CTRL_TARGET_SEL
+        reg_val = self.__reg_access.read(addr)
         for stg_id in stg_id_list:
-            self.__reg_access.write_bits(addr, StgMasterCtrlRegs.Bit.stg(stg_id), 1, 1)
+            bit_pos = StgMasterCtrlRegs.Bit.stg(stg_id)
+            reg_val |= 1 << bit_pos
+        self.__reg_access.write(addr, reg_val)
 
 
     def __deselect_ctrl_target(self, *stg_id_list):
         """一括制御を無効にする Stimulus Generator を選択する"""
         addr = StgMasterCtrlRegs.ADDR + StgMasterCtrlRegs.Offset.CTRL_TARGET_SEL
+        reg_val = self.__reg_access.read(addr)
         for stg_id in stg_id_list:
-            self.__reg_access.write_bits(addr, StgMasterCtrlRegs.Bit.stg(stg_id), 1, 0)
+            bit_pos = StgMasterCtrlRegs.Bit.stg(stg_id)
+            reg_val &= 0xFFFFFFFF & (~(1 << bit_pos))
+        self.__reg_access.write(addr, reg_val)
 
 
     def __reset_stgs(self, *stg_id_list):
