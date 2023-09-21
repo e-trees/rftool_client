@@ -26,7 +26,8 @@ import sys
 import time
 import logging
 import numpy as np
-import pathlib
+import rftoolclient as rftc
+import rftoolclient.awgsa as awgsa
 
 try:
     import matplotlib
@@ -34,11 +35,6 @@ try:
     matplotlib.rcParams["agg.path.chunksize"] = 20000
 finally:
     import matplotlib.pyplot as plt
-
-lib_path = str(pathlib.Path(__file__).resolve().parents[2])
-sys.path.append(lib_path)
-from RftoolClient import client, ndarrayutil
-import AwgSa as awgsa
 
 try:
     is_private_capture_ram = (sys.argv[1] == "prv_cap_ram")
@@ -53,13 +49,13 @@ LOG_LEVEL = logging.INFO
 
 # Constants
 if is_private_capture_ram:
-    BITSTREAM = 9  # AWG SA BRAM CAPTURE
+    BITSTREAM = rftc.FpgaDesign.AWG_SA_BRAM_CAPTURE  # AWG SA BRAM CAPTURE
     PLOT_DIR = "plot_awg_x8_iq_send_iq_recv_prv_cap_ram/"
     DAC_FREQ = 6554.0
     ADC_FREQ = 2334.72
     CAPTURE_DELAY = 250
 else:
-    BITSTREAM = 7  # AWG SA DRAM CAPTURE
+    BITSTREAM = rftc.FpgaDesign.AWG_SA  # AWG SA DRAM CAPTURE
     PLOT_DIR = "plot_awg_x8_iq_send_iq_recv/"
     DAC_FREQ = 6554.0
     ADC_FREQ = 1720.32
@@ -70,9 +66,7 @@ BITSTREAM_LOAD_TIMEOUT = 10
 TRIG_BUSY_TIMEOUT = 60
 DUC_DDC_FACTOR = 1
 
-# ADC or DAC
-ADC = 0
-DAC = 1
+# mixer frequency
 DAC_MIXER_FREQ = 350 #MHz
 ADC_MIXER_FREQ = 50  #MHz
 
@@ -173,7 +167,6 @@ def plot_graph_fft_abs(spectrum, sampling_rate, plot_range, color, title, filena
 
     part_of_spectrum = spectrum[begin : end]
     bin_no = [i * freq_res for i in range(begin, end)]
-    fig = plt.figure(figsize=(8, 6), dpi=300)
     plt.title(title)
     plt.suptitle(
         "sampling rate: {} [Msps],  bin: {}-{},  FFT size: {}"
@@ -193,23 +186,11 @@ def plot_graph_fft_abs(spectrum, sampling_rate, plot_range, color, title, filena
     return
 
 
-def config_bitstream(rftcmd, num_design):
-    if rftcmd.GetBitstream() != num_design:
-        rftcmd.SetBitstream(num_design)
-        for i in range(BITSTREAM_LOAD_TIMEOUT):
-            time.sleep(2.)
-            if rftcmd.GetBitstreamStatus() == 1:
-                break
-            if i > BITSTREAM_LOAD_TIMEOUT:
-                raise Exception(
-                    "Failed to configure bitstream, please reboot ZCU111.")
-
-
 def check_intr_flags(rftcmd, type, ch):
-    if type == ADC:
+    if type == rftc.ADC:
         tile = int(ch / 2)
         block = ch % 2
-    elif type == DAC:
+    elif type == rftc.DAC:
         tile = int(ch / 4)
         block = ch % 4
     flags = rftcmd.GetIntrStatus(type, tile, block)[3]
@@ -217,13 +198,13 @@ def check_intr_flags(rftcmd, type, ch):
         return
     else:
         print("# WARNING: An interrupt flag was asserted in {} Ch.{} (Tile:{} Block:{}).".format(
-            "ADC" if type == ADC else "DAC", ch, tile, block))
+            "ADC" if type == rftc.ADC else "DAC", ch, tile, block))
     details = []
     if (flags & 0x40000000):
         details.append("Datapath interrupt asserted.")
     if (flags & 0x000003F0):
         details.append("Overflow detected in {} stage datapath.".format(
-            "ADC Decimation" if type == ADC else "DAC Interpolation"))
+            "ADC Decimation" if type == rftc.ADC else "DAC Interpolation"))
     if (flags & 0x00000400):
         details.append("Overflow detected in QMC Gain/Phase.")
     if (flags & 0x00000800):
@@ -252,30 +233,30 @@ def check_intr_flags(rftcmd, type, ch):
 def setup_dac(rftcmd):
     print("Setup DAC.")
     for tile in [0, 1]:
-        rftcmd.SetupFIFO(DAC, tile, 0)
-        rftcmd.SetFabClkOutDiv(DAC, tile, 2 + int(np.log2(DUC_DDC_FACTOR)))
+        rftcmd.SetupFIFO(rftc.DAC, tile, 0)
+        rftcmd.SetFabClkOutDiv(rftc.DAC, tile, 2 + int(np.log2(DUC_DDC_FACTOR)))
         for block in [0, 1, 2, 3]:
-            rftcmd.SetMixerSettings(DAC, tile, block, DAC_MIXER_FREQ, 45.0, 2, 2, 16, 2, 0)
-            rftcmd.ResetNCOPhase(DAC, tile, block)
-            rftcmd.UpdateEvent(DAC, tile, block, 1)
+            rftcmd.SetMixerSettings(rftc.DAC, tile, block, DAC_MIXER_FREQ, 45.0, 2, 2, 16, 2, 0)
+            rftcmd.ResetNCOPhase(rftc.DAC, tile, block)
+            rftcmd.UpdateEvent(rftc.DAC, tile, block, 1)
             rftcmd.SetInterpolationFactor(tile, block, DUC_DDC_FACTOR + 1) #I/Q データの場合 x2 以上で補間される
-            rftcmd.IntrClr(DAC, tile, block, 0xFFFFFFFF)
-        rftcmd.SetupFIFO(DAC, tile, 1)
+            rftcmd.IntrClr(rftc.DAC, tile, block, 0xFFFFFFFF)
+        rftcmd.SetupFIFO(rftc.DAC, tile, 1)
 
 
 def setup_adc(rftcmd):
     print("Setup ADC.")
     for tile in [0, 1, 2, 3]:
-        rftcmd.SetupFIFO(ADC, tile, 0)
-        rftcmd.SetFabClkOutDiv(ADC, tile, 2 + int(np.log2(DUC_DDC_FACTOR)))
+        rftcmd.SetupFIFO(rftc.ADC, tile, 0)
+        rftcmd.SetFabClkOutDiv(rftc.ADC, tile, 2 + int(np.log2(DUC_DDC_FACTOR)))
         for block in [0, 1]:
-            rftcmd.SetMixerSettings(ADC, tile, block, ADC_MIXER_FREQ, 45.0, 2, 2, 16, 3, 0)
-            rftcmd.ResetNCOPhase(ADC, tile, block)
-            rftcmd.UpdateEvent(ADC, tile, block, 1)
+            rftcmd.SetMixerSettings(rftc.ADC, tile, block, ADC_MIXER_FREQ, 45.0, 2, 2, 16, 3, 0)
+            rftcmd.ResetNCOPhase(rftc.ADC, tile, block)
+            rftcmd.UpdateEvent(rftc.ADC, tile, block, 1)
             rftcmd.SetDither(tile, block, 1 if ADC_FREQ > 3000. else 0)
             rftcmd.SetDecimationFactor(tile, block, DUC_DDC_FACTOR)
-            rftcmd.IntrClr(ADC, tile, block, 0xFFFFFFFF)
-        rftcmd.SetupFIFO(ADC, tile, 1)
+            rftcmd.IntrClr(rftc.ADC, tile, block, 0xFFFFFFFF)
+        rftcmd.SetupFIFO(rftc.ADC, tile, 1)
 
 
 USE_INTERNAL_PLL = 1
@@ -304,7 +285,7 @@ def set_adc_sampling_rate(rftcmd, adc_sampling_rate):
     rftcmd.SetExtPllClkRate(0, PLL_B, lmx2594_config)
     # サンプリングレート設定 (Msps)
     for tile in [0, 1, 2, 3]:
-        rftcmd.DynamicPLLConfig(ADC, tile, USE_INTERNAL_PLL, ref_clock_freq, adc_sampling_rate)
+        rftcmd.DynamicPLLConfig(rftc.ADC, tile, USE_INTERNAL_PLL, ref_clock_freq, adc_sampling_rate)
     return
 
 
@@ -327,7 +308,7 @@ def set_dac_sampling_rate(rftcmd, dac_sampling_rate):
     rftcmd.SetExtPllClkRate(0, PLL_C, lmx2594_config)
     # サンプリングレート設定 (Msps)
     for tile in [0, 1]:
-        rftcmd.DynamicPLLConfig(DAC, tile, USE_INTERNAL_PLL, ref_clock_freq, dac_sampling_rate)
+        rftcmd.DynamicPLLConfig(rftc.DAC, tile, USE_INTERNAL_PLL, ref_clock_freq, dac_sampling_rate)
     return
 
 
@@ -335,16 +316,16 @@ def shutdown_all_tiles(rftcmd):
     """
     DAC と ADC の全タイルをシャットダウンする
     """
-    rftcmd.Shutdown(DAC, -1)
-    rftcmd.Shutdown(ADC, -1)
+    rftcmd.Shutdown(rftc.DAC, -1)
+    rftcmd.Shutdown(rftc.ADC, -1)
 
 
 def startup_all_tiles(rftcmd):
     """
     DAC と ADC の全タイルを起動する
     """
-    rftcmd.StartUp(DAC, -1)
-    rftcmd.StartUp(ADC, -1)
+    rftcmd.StartUp(rftc.DAC, -1)
+    rftcmd.StartUp(rftc.ADC, -1)
 
 
 def wait_for_sequence_to_finish(awg_sa_cmd, *awg_id_list):
@@ -455,7 +436,7 @@ def output_capture_data(awg_id_to_iq_data, num_frames, sample_offset, fft_size):
     length = int(ADC_FREQ / min(awg_to_freq.values()))
     for awg_id in awg_id_to_iq_data:
         step_id = 0
-        iq_samples = ndarrayutil.NdarrayUtil.bytes_to_real_32(awg_id_to_iq_data[awg_id])
+        iq_samples = rftc.NdarrayUtil.bytes_to_real_32(awg_id_to_iq_data[awg_id])
         i_samples = iq_samples[0 : len(iq_samples) : 2]
         q_samples = iq_samples[1 : len(iq_samples) : 2]
         output_wave_graphs(
@@ -468,7 +449,7 @@ def output_spectrum_data(awg_id_to_spectrum, num_frames, step_id, fft_size):
     スペクトラムデータ出力
     """
     for awg_id in awg_id_to_spectrum:
-        iq_spectrum = ndarrayutil.NdarrayUtil.bytes_to_real_64(awg_id_to_spectrum[awg_id])
+        iq_spectrum = rftc.NdarrayUtil.bytes_to_real_64(awg_id_to_spectrum[awg_id])
         i_real      = iq_spectrum[0 : len(iq_spectrum) : 4]
         i_imaginary = iq_spectrum[1 : len(iq_spectrum) : 4]
         i_abs       = np.sqrt(i_real * i_real + i_imaginary * i_imaginary)
@@ -584,13 +565,13 @@ def start_awg_and_capture(awg_sa_cmd):
 
 def main():
 
-    with client.RftoolClient(logger=logger) as rft:
+    with rftc.RftoolClient(logger=logger) as rft:
         print("Connect to RFTOOL Server.")
         rft.connect(ZCU111_IP_ADDR)
         rft.command.TermMode(0)
 
         print("Configure Bitstream.")
-        config_bitstream(rft.command, BITSTREAM)
+        rft.command.ConfigFpga(BITSTREAM, BITSTREAM_LOAD_TIMEOUT)
         shutdown_all_tiles(rft.command)
         set_adc_sampling_rate(rft.command, ADC_FREQ)
         set_dac_sampling_rate(rft.command, DAC_FREQ)
@@ -614,9 +595,9 @@ def main():
         check_skipped_step(rft.awg_sa_cmd)
         check_capture_data_fifo_oevrflow(rft.awg_sa_cmd)
         for ch in range(8):
-            check_intr_flags(rft.command, ADC, ch)
+            check_intr_flags(rft.command, rftc.ADC, ch)
         for ch in range(8):
-            check_intr_flags(rft.command, DAC, ch)
+            check_intr_flags(rft.command, rftc.DAC, ch)
         
         # キャプチャデータ取得
         print("Get capture data.")
