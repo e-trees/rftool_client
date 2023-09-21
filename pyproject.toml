@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools", "setuptools_scm"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "rftoolclient"
+description = "rftoolclient is a package included in the ZCU111 support package."
+version = "1.0.0"
+requires-python = ">=3.9"
+dependencies = [
+  "numpy==1.26.0",
+  "matplotlib==3.8.0"
+]
+
+[tool.setuptools]
+packages = ["rftoolclient", "rftoolclient.core", "rftoolclient.common", "rftoolclient.awgsa", "rftoolclient.stimgen"]

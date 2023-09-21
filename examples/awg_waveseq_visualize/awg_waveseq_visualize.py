@@ -6,34 +6,16 @@ AWG サンプルプログラム:
 """
 
 import os
-import sys
-import time
 import logging
-import pathlib
-
-lib_path = str(pathlib.Path(__file__).resolve().parents[2])
-sys.path.append(lib_path)
-from RftoolClient import client
-import AwgSa as awgsa
+import rftoolclient as rftc
+import rftoolclient.awgsa as awgsa
 
 LOG_LEVEL = logging.INFO
 ZCU111_IP_ADDR = os.environ.get('ZCU111_IP_ADDR', "192.168.1.3")
 DAC_FREQ = 4096.0
-BITSTREAM = 7 # AWG SA DRAM CAPTURE
+BITSTREAM = rftc.FpgaDesign.AWG_SA # AWG SA DRAM CAPTURE
 BITSTREAM_LOAD_TIMEOUT = 10
 PLOT_DIR = "plot_awg_waveseq_visualize/"
-
-def config_bitstream(rftcmd, num_design):
-    if rftcmd.GetBitstream() != num_design:
-        rftcmd.SetBitstream(num_design)
-        for i in range(BITSTREAM_LOAD_TIMEOUT):
-            time.sleep(2.)
-            if rftcmd.GetBitstreamStatus() == 1:
-                break
-            if i > BITSTREAM_LOAD_TIMEOUT:
-                raise Exception(
-                    "Failed to configure bitstream, please reboot ZCU111.")
-
 
 def output_samples(filename, step_id_to_samples):
     """
@@ -109,13 +91,13 @@ def set_wave_sequence(awg_sa_cmd):
 
 def main():   
 
-    with client.RftoolClient(logger=logger) as rft:
+    with rftc.RftoolClient(logger=logger) as rft:
         print("Connect to RFTOOL Server.")
         rft.connect(ZCU111_IP_ADDR)
         rft.command.TermMode(0)
 
         print("Configure Bitstream.")
-        config_bitstream(rft.command, BITSTREAM)
+        rft.command.ConfigFpga(BITSTREAM, BITSTREAM_LOAD_TIMEOUT)
 
         # 初期化    
         rft.awg_sa_cmd.initialize_awg_sa()

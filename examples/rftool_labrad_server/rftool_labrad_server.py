@@ -1,22 +1,15 @@
 #!/usr/bin/env python3
 # coding: utf-8
 
-import sys
-import time
-import logging
-import pathlib
 import os
+import logging
+import rftoolclient as rftc
 from labrad.server import LabradServer, setting
 from twisted.internet.defer import inlineCallbacks
-
-lib_path = str(pathlib.Path(__file__).resolve().parents[2])
-sys.path.append(lib_path)
-from RftoolClient import client
 
 ZCU111_IP_ADDR = os.environ.get('ZCU111_IP_ADDR', "192.168.1.3")
 LOG_LEVEL = logging.DEBUG
 BUF_MEM_SIZE = 1024 * 1024 * 1024
-
 
 class RftoolClientWrappedServer(LabradServer):
     name = "LABRAD Server wrapped RFTOOL Client"
@@ -29,7 +22,7 @@ class RftoolClientWrappedServer(LabradServer):
         handler.setLevel(LOG_LEVEL)
         logger.setLevel(LOG_LEVEL)
         logger.addHandler(handler)
-        self.rft = client.RftoolClient(logger)
+        self.rft = rftc.RftoolClient(logger)
         self.rft.connect(ZCU111_IP_ADDR)
         self.wr_size = 0
         self.wr_pos = 0

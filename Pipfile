@@ -1,16 +1,17 @@
 [[source]]
-name = "pypi"
 url = "https://pypi.org/simple"
 verify_ssl = true
+name = "pypi"
+
+[packages]
+scipy = "*"
+twisted = "*"
+pylabrad = "*"
+build = "*"
+rftoolclient = {path = "./dist/rftoolclient-1.0.0-py3-none-any.whl"}
 
 [dev-packages]
 
-[packages]
-numpy = "*"
-scipy = "*"
-matplotlib = "*"
-twisted = "*"
-pylabrad = "*"
-
 [requires]
 python_version = "3.9"
+python_full_version = "3.9.16"

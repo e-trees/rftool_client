@@ -1,15 +1,10 @@
 import sys
-import pathlib
-import logging
 import os
+import logging
 import math
+import rftoolclient as rftc
+import rftoolclient.stimgen as sg
 from collections import namedtuple
-
-lib_path = str(pathlib.Path(__file__).resolve().parents[2])
-sys.path.append(lib_path)
-from RftoolClient import client
-import StimGen as sg
-import common as cmn
 
 try:
     is_all_sync_design = (sys.argv[1] == "sync_all")
@@ -21,9 +16,9 @@ DAC_FREQ = 614.4 # Msps
 WAVE_FREQ = DAC_FREQ / sg.Stimulus.MIN_UNIT_SAMPLES_FOR_WAVE_PART #MHz
 
 if is_all_sync_design:
-    BITSTREAM = cmn.FpgaDesign.STIM_GEN_ALL_SYNC
+    BITSTREAM = rftc.FpgaDesign.STIM_GEN_ALL_SYNC
 else:
-    BITSTREAM = cmn.FpgaDesign.STIM_GEN
+    BITSTREAM = rftc.FpgaDesign.STIM_GEN
 
 stg_list = sg.STG.all()
 dout_list = [sg.DigitalOut.U0, sg.DigitalOut.U1]
@@ -109,7 +104,7 @@ def output_rfdc_interrupt_details(stg_ctrl, stg_to_interrupts):
         tile, block = stg_ctrl.stg_to_dac_tile_block(stg)
         print('Interrupts on DAC tile {}, block {}  (Stimulus Generator {})'.format(tile, block, stg))
         for interrupt in interrupts:
-            print('  ', cmn.RfdcInterrupt.to_msg(interrupt))
+            print('  ', rftc.RfdcInterrupt.to_msg(interrupt))
         print()
 
 
@@ -125,11 +120,11 @@ def output_stim_gen_err_details(stg_to_errs):
 def gen_wave_samples(type):
     """引数に応じて「正弦波」「ノコギリ波」「矩形波」のいずれかを作る"""
     if type == 'sin':
-        wave = cmn.SinWave(1, WAVE_FREQ * 1e6, 30000)
+        wave = rftc.SinWave(1, WAVE_FREQ * 1e6, 30000)
     elif type == 'saw':
-        wave = cmn.SawtoothWave(1, WAVE_FREQ * 1e6, 30000, phase = math.pi, crest_pos = 0.0)
+        wave = rftc.SawtoothWave(1, WAVE_FREQ * 1e6, 30000, phase = math.pi, crest_pos = 0.0)
     elif type == 'squ':
-        wave = cmn.SquareWave(1, WAVE_FREQ * 1e6, 30000)
+        wave = rftc.SquareWave(1, WAVE_FREQ * 1e6, 30000)
     
     # サンプル数を 1024 の倍数に調整する
     samples = wave.gen_samples(DAC_FREQ * 1e6) # samples は 16-bit 符号付整数のリスト
@@ -202,7 +197,7 @@ def setup_digital_output_modules(digital_out_ctrl):
 
 
 def main(logger):
-    with client.RftoolClient(logger) as rft:
+    with rftc.RftoolClient(logger) as rft:
         print('Connect to RFTOOL Server.')
         rft.connect(ZCU111_IP_ADDR)
         rft.command.TermMode(0)

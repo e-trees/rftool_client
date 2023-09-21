@@ -9,11 +9,11 @@ MTS 版 AWG x8 サンプルプログラム.
 """
 
 import os
-import sys
 import time
 import logging
 import numpy as np
-import pathlib
+import rftoolclient as rftc
+import rftoolclient.awgsa as awgsa
 
 try:
     import matplotlib
@@ -21,11 +21,6 @@ try:
     matplotlib.rcParams["agg.path.chunksize"] = 20000
 finally:
     import matplotlib.pyplot as plt
-
-lib_path = str(pathlib.Path(__file__).resolve().parents[2])
-sys.path.append(lib_path)
-from RftoolClient import client, ndarrayutil
-import AwgSa as awgsa
 
 # Parameters
 ZCU111_IP_ADDR = os.environ.get('ZCU111_IP_ADDR', "192.168.1.3")
@@ -35,17 +30,13 @@ PLOT_DIR = "plot_mts_awg_x8_low_sampling_rate/"
 LOG_LEVEL = logging.INFO
 
 # Constants
-BITSTREAM = 12  # MTS AWG SA LOW SAMPLING RATE
+BITSTREAM = rftc.FpgaDesign.MTS_AWG_SA_LOW_SAMPLING_RATE  # MTS AWG SA LOW SAMPLING RATE
 BITSTREAM_LOAD_TIMEOUT = 10
 TRIG_BUSY_TIMEOUT = 60
 DUC_DDC_FACTOR = 1
 DAC_FREQ = 614.4
 ADC_FREQ = 1105.92
 CAPTURE_DELAY = 2250
-
-# ADC or DAC
-ADC = 0
-DAC = 1
 
 awg_list = [awgsa.AwgId.AWG_0, awgsa.AwgId.AWG_1,
             awgsa.AwgId.AWG_4, awgsa.AwgId.AWG_5,
@@ -145,7 +136,6 @@ def plot_graph_fft_abs(spectrum, sampling_rate, plot_range, color, title, filena
 
     part_of_spectrum = spectrum[begin : end]
     bin_no = [i * freq_res for i in range(begin, end)]
-    fig = plt.figure(figsize=(8, 6), dpi=300)
     plt.title(title)
     plt.suptitle(
         "sampling rate: {} [Msps],  bin: {}-{},  FFT size: {},  Freq res: {} [KHz]"
@@ -165,23 +155,11 @@ def plot_graph_fft_abs(spectrum, sampling_rate, plot_range, color, title, filena
     return
 
 
-def config_bitstream(rftcmd, num_design):
-    if rftcmd.GetBitstream() != num_design:
-        rftcmd.SetBitstream(num_design)
-        for i in range(BITSTREAM_LOAD_TIMEOUT):
-            time.sleep(2.)
-            if rftcmd.GetBitstreamStatus() == 1:
-                break
-            if i > BITSTREAM_LOAD_TIMEOUT:
-                raise Exception(
-                    "Failed to configure bitstream, please reboot ZCU111.")
-
-
 def check_intr_flags(rftcmd, type, ch):
-    if type == ADC:
+    if type == rftc.ADC:
         tile = int(ch / 2)
         block = ch % 2
-    elif type == DAC:
+    elif type == rftc.DAC:
         tile = int(ch / 4)
         block = ch % 4
     flags = rftcmd.GetIntrStatus(type, tile, block)[3]
@@ -189,13 +167,13 @@ def check_intr_flags(rftcmd, type, ch):
         return
     else:
         print("# WARNING: An interrupt flag was asserted in {} Ch.{} (Tile:{} Block:{}).".format(
-            "ADC" if type == ADC else "DAC", ch, tile, block))
+            "ADC" if type == rftc.ADC else "DAC", ch, tile, block))
     details = []
     if (flags & 0x40000000):
         details.append("Datapath interrupt asserted.")
     if (flags & 0x000003F0):
         details.append("Overflow detected in {} stage datapath.".format(
-            "ADC Decimation" if type == ADC else "DAC Interpolation"))
+            "ADC Decimation" if type == rftc.ADC else "DAC Interpolation"))
     if (flags & 0x00000400):
         details.append("Overflow detected in QMC Gain/Phase.")
     if (flags & 0x00000800):
@@ -223,26 +201,26 @@ def check_intr_flags(rftcmd, type, ch):
 def setup_dac(rftcmd):
     print("Setup DAC.")
     for tile in [0, 1]:
-        rftcmd.SetupFIFO(DAC, tile, 0)
+        rftcmd.SetupFIFO(rftc.DAC, tile, 0)
         for block in [0, 1, 2, 3]:
-            rftcmd.SetMixerSettings(DAC, tile, block, 0.0, 0.0, 2, 1, 16, 4, 0)
-            rftcmd.UpdateEvent(DAC, tile, block, 1)
+            rftcmd.SetMixerSettings(rftc.DAC, tile, block, 0.0, 0.0, 2, 1, 16, 4, 0)
+            rftcmd.UpdateEvent(rftc.DAC, tile, block, 1)
             rftcmd.SetInterpolationFactor(tile, block, DUC_DDC_FACTOR)
-            rftcmd.IntrClr(DAC, tile, block, 0xFFFFFFFF)
-        rftcmd.SetupFIFO(DAC, tile, 1)
+            rftcmd.IntrClr(rftc.DAC, tile, block, 0xFFFFFFFF)
+        rftcmd.SetupFIFO(rftc.DAC, tile, 1)
 
 
 def setup_adc(rftcmd):
     print("Setup ADC.")
     for tile in [0, 1, 2, 3]:
-        rftcmd.SetupFIFO(ADC, tile, 0)
+        rftcmd.SetupFIFO(rftc.ADC, tile, 0)
         for block in [0, 1]:
-            rftcmd.SetMixerSettings(ADC, tile, block, 0.0, 0.0, 2, 1, 16, 4, 0)
-            rftcmd.UpdateEvent(ADC, tile, block, 1)
+            rftcmd.SetMixerSettings(rftc.ADC, tile, block, 0.0, 0.0, 2, 1, 16, 4, 0)
+            rftcmd.UpdateEvent(rftc.ADC, tile, block, 1)
             rftcmd.SetDither(tile, block, 1 if ADC_FREQ > 3000. else 0)
             rftcmd.SetDecimationFactor(tile, block, DUC_DDC_FACTOR)
-            rftcmd.IntrClr(ADC, tile, block, 0xFFFFFFFF)
-        rftcmd.SetupFIFO(ADC, tile, 1)
+            rftcmd.IntrClr(rftc.ADC, tile, block, 0xFFFFFFFF)
+        rftcmd.SetupFIFO(rftc.ADC, tile, 1)
 
 
 def wait_for_sequence_to_finish(awg_sa_cmd, awg_id_list):
@@ -345,7 +323,7 @@ def output_spectrum_data(awg_id_to_spectrum, num_frames, step_id, fft_size):
     スペクトラムデータ出力
     """
     for awg_id in awg_id_to_spectrum:
-        spectrum  = ndarrayutil.NdarrayUtil.bytes_to_real_64(awg_id_to_spectrum[awg_id])
+        spectrum  = rftc.NdarrayUtil.bytes_to_real_64(awg_id_to_spectrum[awg_id])
         real      = spectrum[0 : len(spectrum) : 2]
         imaginary = spectrum[1 : len(spectrum) : 2]
         absolute  = np.sqrt(real * real + imaginary * imaginary)
@@ -440,13 +418,13 @@ def set_capture_sequence(awg_sa_cmd, awg_id_to_wave_sequence):
 
 
 def main():
-    with client.RftoolClient(logger=logger) as rft:
+    with rftc.RftoolClient(logger=logger) as rft:
         print("Connect to RFTOOL Server.")
         rft.connect(ZCU111_IP_ADDR)
         rft.command.TermMode(0)
 
         print("Configure Bitstream.")
-        config_bitstream(rft.command, BITSTREAM)
+        rft.command.ConfigFpga(BITSTREAM, BITSTREAM_LOAD_TIMEOUT)
         setup_dac(rft.command)
         setup_adc(rft.command)
         rft.awg_sa_cmd.sync_dac_tiles()
@@ -471,17 +449,16 @@ def main():
         check_skipped_step(rft.awg_sa_cmd)
         check_capture_data_fifo_oevrflow(rft.awg_sa_cmd)
         for ch in range(8):
-            check_intr_flags(rft.command, ADC, ch)
+            check_intr_flags(rft.command, rftc.ADC, ch)
         for ch in range(8):
-            check_intr_flags(rft.command, DAC, ch)
+            check_intr_flags(rft.command, rftc.DAC, ch)
     
         # キャプチャデータ取得
         print("Get capture data.")
-        nu = ndarrayutil.NdarrayUtil
         awg_id_to_wave_samples = {}
         for awg_id in awg_list:
             wave_data = rft.awg_sa_cmd.read_capture_data(awg_id, step_id = 0)
-            awg_id_to_wave_samples[awg_id] = nu.bytes_to_real_32(wave_data)
+            awg_id_to_wave_samples[awg_id] = rftc.NdarrayUtil.bytes_to_real_32(wave_data)
 
         # キャプチャデータ出力
         print("Output capture data.")
@@ -505,7 +482,8 @@ def main():
 
         # 送信波形をグラフ化
         for awg_id in awg_list:
-           rft.awg_sa_cmd.get_waveform_sequence(awg_id).save_as_img(PLOT_DIR + "waveform/awg_{}_waveform.png".format(awg_id))
+           rft.awg_sa_cmd.get_waveform_sequence(awg_id).save_as_img(
+               PLOT_DIR + "waveform/awg_{}_waveform.png".format(awg_id))
 
     print("Done.")
     return

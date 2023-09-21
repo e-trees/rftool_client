@@ -1,14 +1,9 @@
 import sys
-import pathlib
 import os
 import logging
 import time
-
-lib_path = str(pathlib.Path(__file__).resolve().parents[2])
-sys.path.append(lib_path)
-from RftoolClient import client
-import StimGen as sg
-import common as cmn
+import rftoolclient as rftc
+import rftoolclient.stimgen as sg
 
 try:
     is_all_sync_design = (sys.argv[1] == "sync_all")
@@ -19,9 +14,9 @@ ZCU111_IP_ADDR = os.environ.get('ZCU111_IP_ADDR', "192.168.1.3")
 DAC_FREQ = 614.4 # Msps
 
 if is_all_sync_design:
-    BITSTREAM = cmn.FpgaDesign.STIM_GEN_ALL_SYNC
+    BITSTREAM = rftc.FpgaDesign.STIM_GEN_ALL_SYNC
 else:
-    BITSTREAM = cmn.FpgaDesign.STIM_GEN
+    BITSTREAM = rftc.FpgaDesign.STIM_GEN
 
 stg_list = [sg.STG.U4]
 dout_list = sg.DigitalOut.all()
@@ -34,7 +29,7 @@ def output_rfdc_interrupt_details(stg_ctrl, stg_to_interrupts):
         tile, block = stg_ctrl.stg_to_dac_tile_block(stg)
         print('Interrupts on DAC tile {}, block {}  (Stimulus Generator {})'.format(tile, block, stg))
         for interrupt in interrupts:
-            print('  ', cmn.RfdcInterrupt.to_msg(interrupt))
+            print('  ', rftc.RfdcInterrupt.to_msg(interrupt))
         print()
 
 
@@ -49,7 +44,7 @@ def output_stim_gen_err_details(stg_to_errs):
 
 def gen_example_sample_data(stg_id):
     """出力サンプルデータの例として sin カーブを作る"""
-    wave = cmn.SinWave(3, stg_to_freq[stg_id] * 1e6, 30000)
+    wave = rftc.SinWave(3, stg_to_freq[stg_id] * 1e6, 30000)
     samples = wave.gen_samples(DAC_FREQ * 1e6) # samples は 16-bit 符号付整数のリスト
     # サンプル数を 1024 の倍数に調整する
     rem = len(samples) % sg.Stimulus.MIN_UNIT_SAMPLES_FOR_WAVE_PART
@@ -131,7 +126,7 @@ def restart_douts(mode, stg_ctrl, digital_out_ctrl):
 
 
 def main(logger):
-    with client.RftoolClient(logger) as rft:
+    with rftc.RftoolClient(logger) as rft:
         print("Connect to RFTOOL Server.")
         rft.connect(ZCU111_IP_ADDR)
         rft.command.TermMode(0)
