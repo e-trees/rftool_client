@@ -24,8 +24,7 @@ def main():
 
     try:
         cxn = labrad.connect(LABRAD_HOST)
-        rft = cxn.zcu111_rftool_labrad_server
-        rft.version()
+        cxn.zcu111_rftool_labrad_server.version()
     except Exception as e:
         status = 1
         print("exception:", e)

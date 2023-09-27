@@ -15,7 +15,7 @@ ADC から入力される波形をキャプチャするには，以下の3つの
 
 ### ウィンドウなしキャプチャの定義
 
-ウィンドウなしキャプチャの定義には，`awgsa` パッケージの `AwgCapture` クラスを使用します．
+ウィンドウなしキャプチャの定義には，`rftoolclient.awgsa` パッケージの `AwgCapture` クラスを使用します．
 このクラスのコンストラクタで，各キャプチャのパラメータ (ディレイ、キャプチャ時間，積算の有効・無効) を設定します．
 ディレイとは，キャプチャの起点となる時刻 (具体的には，キャプチャが登録されたステップの開始時刻) から，実際に ADC データを取り込むまでの時間です．
 積算を有効にすると，波形シーケンスを繰り返し実行したときに，ループ間で同じ ID を持つステップのキャプチャデータをサンプルごとに積算して保持します。
@@ -23,6 +23,8 @@ ADC から入力される波形をキャプチャするには，以下の3つの
 次のようにAPIを利用します．
 
 ```
+import rftoolclient.awgsa as awgsa
+
 capture_0 = awgsa.AwgCapture(
     time = 500,
 	delay = 335,
@@ -35,7 +37,7 @@ capture_0 = awgsa.AwgCapture(
 
 ### ウィンドウ付きキャプチャの定義
 
-ウィンドウ付きキャプチャの定義には，`awgsa` パッケージの `WindowedAwgCapture` クラスを使用します．
+ウィンドウ付きキャプチャの定義には，`rftoolclient.awgsa` パッケージの `WindowedAwgCapture` クラスを使用します．
 このクラスのコンストラクタで，各キャプチャのパラメータ (ディレイ、ウィンドウ幅，ウィンドウの数) を設定します．
 ウィンドウ付きキャプチャでは，ウィンドウ単位で ADC データをキャプチャし，ウィンドウ同士をサンプルごとに足し合わせて保持します。
 波形シーケンスを繰り返し実行した場合，各ループでの積算結果を全て足し合わせてキャプチャデータを保持します。
@@ -45,6 +47,8 @@ capture_0 = awgsa.AwgCapture(
 次のようにAPIを利用します．
 
 ```
+import rftoolclient.awgsa as awgsa
+
 capture_0 = awgsa.AwgWindowedCapture(
     time = 100, # ns
     num_windows = 3,
@@ -62,7 +66,7 @@ capture_0 = awgsa.AwgWindowedCapture(
 
 ## キャプチャシーケンスの定義
 
-キャプチャシーケンスの定義には，`awgsa` パッケージの `CaptureSequence` クラスとそのメソッド `add_step` を使用します．
+キャプチャシーケンスの定義には，`rftoolclient.awgsa` パッケージの `CaptureSequence` クラスとそのメソッド `add_step` を使用します．
 この API により `AwgCapture` で定義したキャプチャにステップ ID を割り当てます．
 `delay` を含めたキャプチャは，割り当てたステップ ID と同じ ID の波形ステップが始まるタイミングで実行されます．
 そのため，キャプチャに割り当てるステップID と同じ ID の波形ステップが AWG に登録済みでなければなりません．
@@ -71,6 +75,8 @@ capture_0 = awgsa.AwgWindowedCapture(
 API使用例は次の通りです．
 
 ```
+import rftoolclient.awgsa as awgsa
+
 capture_sequence_0 = (awgsa.CaptureSequence(ADC_FREQ, is_iq_data = False)
     .add_step(step_id = 0, capture = capture_0)
     .add_step(step_id = 1, capture = capture_1))
@@ -83,25 +89,29 @@ capture_sequence_0 = (awgsa.CaptureSequence(ADC_FREQ, is_iq_data = False)
 ## キャプチャシーケンスの登録
 
 キャプチャシーケンスの登録では，以下の2つのクラスとメソッドを使用します
-- `CaptureConfig` クラスと `add_capture_sequence` メソッド (`awgsa` パッケージ)
-- `AwgSaCommand` クラスとそのメソッド `set_capture_config` (`RftoolClient` パッケージ)
-これらの API でキャプチャシーケンスとそれを実行するキャプチャモジュールの対応付けが行われます．
+- `rftoolclient.awgsa.CaptureConfig` クラスとそのメソッド `add_capture_sequence`
+- `rftoolclient.AwgSaCommand` クラスとそのメソッド `set_capture_config`
 
 ### 注意事項
 `set_capture_config` は `set_wave_sequence` で波形シーケンスを登録した後に呼ばなければなりません．
-また，キャプチャモジュールに設定する全てのキャプチャシーケンスは `CaptureConfig` オブジェクトにひとまとめにして，同時に `set_wave_sequence` で登録しなければなりません．
+また，キャプチャモジュールに設定する全てのキャプチャシーケンスは `CaptureConfig` オブジェクトにひとまとめにして，同時に `set_capture_config` で登録しなければなりません．
 
 ### 使用例
 
 APIの使用例とその動作例は次の通りです．
 
 ```
-# キャプチャシーケンスとキャプチャモジュールを対応づける
-capture_config = (awgsa.CaptureConfig()
-    .add_capture_sequence(awgsa.AwgId.AWG_0, capture_sequence_0) # AWG_0〜AWG_7を設定可能
-    .add_capture_sequence(awgsa.AwgId.AWG_1, capture_sequence_1))
-# キャプチャモジュールにキャプチャシーケンスを設定する
-awg_sa_cmd.set_capture_config(capture_config)
+import rftoolclient as rftc
+import rftoolclient.awgsa as awgsa
+
+with rftc.RftoolClient(logger) as client:
+    # キャプチャシーケンスとキャプチャモジュールを対応づける
+    capture_config = (awgsa.CaptureConfig()
+        .add_capture_sequence(awgsa.AwgId.AWG_0, capture_sequence_0) # AWG_0〜AWG_7を設定可能
+        .add_capture_sequence(awgsa.AwgId.AWG_1, capture_sequence_1))
+
+    # キャプチャモジュールにキャプチャシーケンスを設定する
+    client.awg_sa_cmd.set_capture_config(capture_config)
 ```
 
 ![AWGに登録されたキャプチャシーケンスの例](images/capture-sequence-registration-example.png)
@@ -117,15 +127,19 @@ awg_sa_cmd.set_capture_config(capture_config)
 APIの使用例とその動作例は次の通りです．
 
 ```
-# キャプチャエラーチェック
-if awg_sa_cmd.is_capture_step_skipped(awgsa.AwgId.AWG_0, step_id = 1):
-    raise Exception("キャプチャモジュール 0 のキャプチャステップ 1 がスキップされました")
+import rftoolclient as rftc
+import rftoolclient.awgsa as awgsa
 
-if awg_sa_cmd.is_capture_data_fifo_overflowed(awgsa.AwgId.AWG_0, step_id = 1):
-    raise Exception("キャプチャモジュール 0 のキャプチャステップ 1 で ADC データの取りこぼしが発生しました")
+with rftc.RftoolClient(logger) as client:
+    # キャプチャエラーチェック
+    if client.awg_sa_cmd.is_capture_step_skipped(awgsa.AwgId.AWG_0, step_id = 1):
+        raise Exception("キャプチャモジュール 0 のキャプチャステップ 1 がスキップされました")
 
-# キャプチャデータの取得
-capture_data = awg_sa_cmd.read_capture_data(awgsa.AwgId.AWG_0, step_id = 1)
+    if client.awg_sa_cmd.is_capture_data_fifo_overflowed(awgsa.AwgId.AWG_0, step_id = 1):
+        raise Exception("キャプチャモジュール 0 のキャプチャステップ 1 で ADC データの取りこぼしが発生しました")
+
+    # キャプチャデータの取得
+    capture_data = client.awg_sa_cmd.read_capture_data(awgsa.AwgId.AWG_0, step_id = 1)
 
 ```
 

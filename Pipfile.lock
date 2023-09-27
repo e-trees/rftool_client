@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "44eea7b8e5e00229017e19606ba83bd56dd9d5c448059de696ac7f6d1d8b0b0f"
+            "sha256": "7ea11260579eb3b8fc724d3f094d3336b35f5f4c4124e2df8613f676cfe67c72"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -716,10 +716,10 @@
         },
         "rftoolclient": {
             "hashes": [
-                "sha256:8fa372d821d67fa48c3a289ec8baba0a8e3c551d161c54a78284b8d7f5873f75"
+                "sha256:d253fef2ab30d2838d4d6fb28c47c986820fba49dc56a8b9054008bc5c29cef6"
             ],
-            "path": "./dist/rftoolclient-1.0.0-py3-none-any.whl",
-            "version": "==1.0.0"
+            "path": "./dist/rftoolclient-1.0.2-py3-none-any.whl",
+            "version": "==1.0.2"
         },
         "scipy": {
             "hashes": [

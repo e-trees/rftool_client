@@ -108,35 +108,35 @@ def setup_digital_output_modules(digital_out_ctrl):
     # Stimulus Generator からのスタートトリガを受け付けるように設定.
     # このスタートトリガは, 何れかの Stimulus Generator の波形出力開始と同時にアサートされる.
     # なお, StimGenCtrl.start_stgs で複数の STG をスタートしてもスタートトリガは一度しかアサートされない.
-    digital_out_ctrl.enable_start_trigger(*dout_list)
+    digital_out_ctrl.enable_trigger(sg.DigitalOutTrigger.START, *dout_list)
 
 
 def main(logger):
-    with rftc.RftoolClient(logger) as rft:
+    with rftc.RftoolClient(logger) as client:
         print("Connect to RFTOOL Server.")
-        rft.connect(ZCU111_IP_ADDR)
-        rft.command.TermMode(0)
+        client.connect(ZCU111_IP_ADDR)
+        client.command.TermMode(0)
         # FPGA コンフィギュレーション
-        rft.command.ConfigFpga(BITSTREAM, 10)
+        client.command.ConfigFpga(BITSTREAM, 10)
         # Stimulus Generator のセットアップ
-        setup_stim_gens(rft.stg_ctrl)
+        setup_stim_gens(client.stg_ctrl)
         # ディジタル出力モジュールのセットアップ
-        setup_digital_output_modules(rft.digital_out_ctrl)
+        setup_digital_output_modules(client.digital_out_ctrl)
         # 波形出力スタート
-        rft.stg_ctrl.start_stgs(*stg_list)
+        client.stg_ctrl.start_stgs(*stg_list)
         # 波形出力完了待ち
-        rft.stg_ctrl.wait_for_stgs_to_stop(5, *stg_list)
+        client.stg_ctrl.wait_for_stgs_to_stop(5, *stg_list)
         # ディジタル出力モジュール動作完了待ち
-        rft.digital_out_ctrl.wait_for_douts_to_stop(5, *dout_list)
+        client.digital_out_ctrl.wait_for_douts_to_stop(5, *dout_list)
         # 波形出力完了フラグクリア
-        rft.stg_ctrl.clear_stg_stop_flags(*stg_list)
+        client.stg_ctrl.clear_stg_stop_flags(*stg_list)
         # ディジタル出力モジュール動作完了フラグクリア
-        rft.digital_out_ctrl.clear_dout_stop_flags(*dout_list)
+        client.digital_out_ctrl.clear_dout_stop_flags(*dout_list)
         # DAC 割り込みチェック
-        stg_to_interrupts = rft.stg_ctrl.check_dac_interrupt(*stg_list)
-        output_rfdc_interrupt_details(rft.stg_ctrl, stg_to_interrupts)
+        stg_to_interrupts = client.stg_ctrl.check_dac_interrupt(*stg_list)
+        output_rfdc_interrupt_details(client.stg_ctrl, stg_to_interrupts)
         # Stimulus Generator エラーチェック
-        stg_to_errs = rft.stg_ctrl.check_stg_err(*stg_list)
+        stg_to_errs = client.stg_ctrl.check_stg_err(*stg_list)
         output_stim_gen_err_details(stg_to_errs)
 
 

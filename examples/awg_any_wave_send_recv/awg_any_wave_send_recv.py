@@ -541,49 +541,49 @@ def set_capture_sequence(awg_sa_cmd, seq_0, seq_1):
 
 def main():   
 
-    with rftc.RftoolClient(logger=logger) as rft:
+    with rftc.RftoolClient(logger) as client:
         print("Connect to RFTOOL Server.")
-        rft.connect(ZCU111_IP_ADDR)
-        rft.command.TermMode(0)
+        client.connect(ZCU111_IP_ADDR)
+        client.command.TermMode(0)
 
         print("Configure Bitstream.")
-        rft.command.ConfigFpga(BITSTREAM, BITSTREAM_LOAD_TIMEOUT)
-        shutdown_all_tiles(rft.command)
-        set_adc_sampling_rate(rft.command, ADC_FREQ)
-        set_dac_sampling_rate(rft.command, DAC_FREQ)
-        startup_all_tiles(rft.command)
-        setup_dac(rft.command)
-        setup_adc(rft.command)
+        client.command.ConfigFpga(BITSTREAM, BITSTREAM_LOAD_TIMEOUT)
+        shutdown_all_tiles(client.command)
+        set_adc_sampling_rate(client.command, ADC_FREQ)
+        set_dac_sampling_rate(client.command, DAC_FREQ)
+        startup_all_tiles(client.command)
+        setup_dac(client.command)
+        setup_adc(client.command)
         
         # 初期化    
-        rft.awg_sa_cmd.initialize_awg_sa()
+        client.awg_sa_cmd.initialize_awg_sa()
         # AWG 有効化
-        rft.awg_sa_cmd.enable_awg(awgsa.AwgId.AWG_0, awgsa.AwgId.AWG_1)
+        client.awg_sa_cmd.enable_awg(awgsa.AwgId.AWG_0, awgsa.AwgId.AWG_1)
         # ADC キャリブレーション
-        calibrate_adc(rft.awg_sa_cmd)
+        calibrate_adc(client.awg_sa_cmd)
         # 波形シーケンス設定
-        (wave_seq_0, wave_seq_1) = set_wave_sequence(rft.awg_sa_cmd)
+        (wave_seq_0, wave_seq_1) = set_wave_sequence(client.awg_sa_cmd)
         # キャプチャシーケンス設定
-        set_capture_sequence(rft.awg_sa_cmd, wave_seq_0, wave_seq_1)
+        set_capture_sequence(client.awg_sa_cmd, wave_seq_0, wave_seq_1)
         # 波形出力 & キャプチャスタート
-        rft.awg_sa_cmd.start_wave_sequence()
+        client.awg_sa_cmd.start_wave_sequence()
         # 終了待ち
-        wait_for_sequence_to_finish(rft.awg_sa_cmd)
+        wait_for_sequence_to_finish(client.awg_sa_cmd)
         # エラーチェック
-        check_skipped_step(rft.awg_sa_cmd)
-        check_capture_data_fifo_oevrflow(rft.awg_sa_cmd)
+        check_skipped_step(client.awg_sa_cmd)
+        check_capture_data_fifo_oevrflow(client.awg_sa_cmd)
         for ch in range(8):
-            check_intr_flags(rft.command, rftc.ADC, ch)
+            check_intr_flags(client.command, rftc.ADC, ch)
         for ch in range(8):
-            check_intr_flags(rft.command, rftc.DAC, ch)
+            check_intr_flags(client.command, rftc.DAC, ch)
 
         # キャプチャデータ取得
-        r_samples_0 = rft.awg_sa_cmd.read_capture_data(awgsa.AwgId.AWG_0, step_id = 0)
-        r_samples_1 = rft.awg_sa_cmd.read_capture_data(awgsa.AwgId.AWG_1, step_id = 0)
+        r_samples_0 = client.awg_sa_cmd.read_capture_data(awgsa.AwgId.AWG_0, step_id = 0)
+        r_samples_1 = client.awg_sa_cmd.read_capture_data(awgsa.AwgId.AWG_1, step_id = 0)
 
         # キャプチャデータ出力
         num_frames = 1
-        fft_size = rft.awg_sa_cmd.get_fft_size()
+        fft_size = client.awg_sa_cmd.get_fft_size()
         awg_id_to_wave_data = {awgsa.AwgId.AWG_0 : r_samples_0, awgsa.AwgId.AWG_1 : r_samples_1}
         awg_id_to_wave_seq = {awgsa.AwgId.AWG_0 : wave_seq_0, awgsa.AwgId.AWG_1 : wave_seq_1}
         awg_id_to_num_waves = {awgsa.AwgId.AWG_0 : 2.5, awgsa.AwgId.AWG_1 : 8}
@@ -591,7 +591,7 @@ def main():
 
         # スペクトラム取得
         start_sample_idx = 32 # FFT 開始サンプルのインデックス
-        spectrum_1 = rft.awg_sa_cmd.get_spectrum(
+        spectrum_1 = client.awg_sa_cmd.get_spectrum(
             awgsa.AwgId.AWG_1, step_id = 0, start_sample_idx = start_sample_idx, num_frames = num_frames)
 
         # スペクトラム出力
@@ -600,10 +600,10 @@ def main():
 
         # 送信波形をグラフ化
         wave_seq_0.get_waveform_sequence().save_as_img(PLOT_DIR + "waveform/user_def_seq_0_waveform.png")
-        rft.awg_sa_cmd.get_waveform_sequence(awgsa.AwgId.AWG_0).save_as_img(PLOT_DIR + "waveform/actual_seq_0_waveform.png")
+        client.awg_sa_cmd.get_waveform_sequence(awgsa.AwgId.AWG_0).save_as_img(PLOT_DIR + "waveform/actual_seq_0_waveform.png")
 
         wave_seq_1.get_waveform_sequence().save_as_img(PLOT_DIR + "waveform/user_def_seq_1_waveform.png")
-        rft.awg_sa_cmd.get_waveform_sequence(awgsa.AwgId.AWG_1).save_as_img(PLOT_DIR + "waveform/actual_seq_1_waveform.png")
+        client.awg_sa_cmd.get_waveform_sequence(awgsa.AwgId.AWG_1).save_as_img(PLOT_DIR + "waveform/actual_seq_1_waveform.png")
 
     print("Done.")
     return
