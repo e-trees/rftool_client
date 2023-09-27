@@ -203,49 +203,48 @@ def startup_all_tiles(rftcmd):
 
 def main():
 
-    rft_0 = rftc.RftoolClient(logger=logger)
-    rft_1 = rftc.RftoolClient(logger=logger)
+    client_0 = rftc.RftoolClient(logger=logger)
+    client_1 = rftc.RftoolClient(logger=logger)
     clk_setting = rftc.ClockSrc.INTERNAL if is_async else rftc.ClockSrc.EXTERNAL
 
-    for rft, ipaddr in [(rft_0, ZCU111_IP_ADDR_0), (rft_1, ZCU111_IP_ADDR_1)]:
+    for client, ipaddr in [(client_0, ZCU111_IP_ADDR_0), (client_1, ZCU111_IP_ADDR_1)]:
         print("Connect to RFTOOL Server.")
-        rft.connect(ipaddr)
-        rft.command.TermMode(0)
+        client.connect(ipaddr)
+        client.command.TermMode(0)
 
         print("Configure Bitstream.")
-        rft.command.ConfigFpga(BITSTREAM, BITSTREAM_LOAD_TIMEOUT)
-        shutdown_all_tiles(rft.command)
+        client.command.ConfigFpga(BITSTREAM, BITSTREAM_LOAD_TIMEOUT)
+        shutdown_all_tiles(client.command)
         # ソースクロックの選択
-        rft.awg_sa_cmd.select_src_clk(clk_setting)
-        startup_all_tiles(rft.command)
-        setup_dac(rft.command)
-        setup_adc(rft.command)
-        rft.awg_sa_cmd.sync_dac_tiles()
-        rft.awg_sa_cmd.sync_adc_tiles()
+        client.awg_sa_cmd.select_src_clk(clk_setting)
+        startup_all_tiles(client.command)
+        setup_dac(client.command)
+        setup_adc(client.command)
+        client.awg_sa_cmd.sync_dac_tiles()
+        client.awg_sa_cmd.sync_adc_tiles()
 
         # 初期化
-        rft.awg_sa_cmd.initialize_awg_sa()
+        client.awg_sa_cmd.initialize_awg_sa()
         # AWG 有効化
-        rft.awg_sa_cmd.enable_awg(*awg_list)
+        client.awg_sa_cmd.enable_awg(*awg_list)
         # 波形シーケンス設定
-        set_wave_sequence(rft.awg_sa_cmd)
+        set_wave_sequence(client.awg_sa_cmd)
         # 波形出力スタート
-        rft.awg_sa_cmd.start_wave_sequence()
+        client.awg_sa_cmd.start_wave_sequence()
     
-    print("Press enter to stop all AWGs")
-    input()
-    for rft in [rft_0, rft_1]:
-        rft.awg_sa_cmd.terminate_all_awgs()
-        wait_for_sequence_to_finish(rft.awg_sa_cmd, *awg_list)
+    input("Press 'Enter' to stop all AWGs")
+    for client in [client_0, client_1]:
+        client.awg_sa_cmd.terminate_all_awgs()
+        wait_for_sequence_to_finish(client.awg_sa_cmd, *awg_list)
 
-    for rft in [rft_0, rft_1]:
+    for client in [client_0, client_1]:
         # エラーチェック
         print("Check for errors")
         for ch in range(8):
-            check_intr_flags(rft.command, rftc.DAC, ch)
+            check_intr_flags(client.command, rftc.DAC, ch)
 
-    rft_0.close()
-    rft_1.close()
+    client_0.close()
+    client_1.close()
     print("Done.")
     return
 

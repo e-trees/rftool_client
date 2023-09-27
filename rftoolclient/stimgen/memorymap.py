@@ -3,16 +3,18 @@ class StgMasterCtrlRegs(object):
     ADDR = 0x0
 
     class Offset(object):
-        VERSION             = 0x0
-        CTRL_TARGET_SEL     = 0x4
-        CTRL                = 0x8
-        WAKEUP_STATUS       = 0xC
-        BUSY_STATUS         = 0x10
-        READY_STATUS        = 0x14
-        DONE_STATUS         = 0x18
-        PAUSED_STATUS       = 0x1C
-        READ_ERR            = 0x20
-        SAMPLE_SHORTAGE_ERR = 0x24
+        VERSION               = 0x0
+        CTRL_TARGET_SEL       = 0x4
+        CTRL                  = 0x8
+        WAKEUP_STATUS         = 0xC
+        BUSY_STATUS           = 0x10
+        READY_STATUS          = 0x14
+        DONE_STATUS           = 0x18
+        PAUSED_STATUS         = 0x1C
+        READ_ERR              = 0x20
+        SAMPLE_SHORTAGE_ERR   = 0x24
+        EXT_START_TRIG_ON     = 0x28
+        EXT_START_TRIG_ENABLE = 0x2C
 
     class Bit(object):
         CTRL_RESET     = 0

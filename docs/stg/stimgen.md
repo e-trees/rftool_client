@@ -86,6 +86,7 @@ $$
 
 ![post blank](images/post_blank.png)
 
+
 ## 5. STG 制御用 API の詳細
 
 本章では STG の操作に必要な Python API を手順ごとに説明します．
@@ -98,17 +99,16 @@ STG と DAC は，次節以降で述べる操作を行う前に必ず初期化�
 初期化のコード例を以下に示します
 
 ```
-from RftoolClient import client
-import StimGen as sg
-import common as cmn
+import rftoolclient as rftc
+import rftoolclient.stimgen as sg
 
 # RftoolClient オブジェクトを作成する
-with client.RftoolClient(logger) as rft:
+with rftc.RftoolClient(logger) as client:
     # ZCU111 に接続
     rft.connect(ZCU111_IP_ADDR)
     
     # FPGA コンフィギュレーション
-    rft.command.ConfigFpga(cmn.FpgaDesign.STIM_GEN, 10)
+    rft.command.ConfigFpga(rftc.FpgaDesign.STIM_GEN, 10)
 
     # RftoolClient オブジェクトから StimGenCtrl オブジェクトを取得
     stg_ctrl = rft.stg_ctrl
@@ -142,7 +142,7 @@ STG に設定する波形データは，StimGen パッケージの Stimulus ク�
 波形データを作成するコードの例を以下に示します．
 
 ```
-import StimGen as sg
+import rftoolclient.stimgen as sg
 
 stimulus = sg.Stimulus(
     num_wait_words = 10,  # wiat word の STG ワード数
@@ -171,11 +171,11 @@ set_stimulus メソッドは，呼び出すと以前設定した波形データ�
 波形データを設定するコードの例を以下に示します．
 
 ```
-from RftoolClient import client
-import StimGen as sg
+import rftoolclient as rftc
+import rftoolclient.stimgen as sg
 
 # RftoolClient オブジェクトを作成する
-with client.RftoolClient(logger) as rft:
+with rftc.RftoolClient(logger) as client:
 
     ### STG / DAC 初期化 (省略) ###
 
@@ -199,11 +199,11 @@ STG の波形出力が完了するのを待つには StimGenCtrl クラスの wa
 波形の出力開始と完了待ちを行うコードの例を以下に示します．
 
 ```
-from RftoolClient import client
-import StimGen as sg
+import rftoolclient as rftc
+import rftoolclient.stimgen as sg
 
 # RftoolClient オブジェクトを作成する
-with client.RftoolClient(logger) as rft:
+with rftc.RftoolClient(logger) as client:
 
     ### STG / DAC 初期化 (省略) ###
     ### 波形データの設定 (省略) ###
@@ -223,11 +223,11 @@ with client.RftoolClient(logger) as rft:
 ユーザ定義波形の出力を一時停止するコードの例を以下に示します．
 
 ```
-from RftoolClient import client
-import StimGen as sg
+import rftoolclient as rftc
+import rftoolclient.stimgen as sg
 
 # RftoolClient オブジェクトを作成する
-with client.RftoolClient(logger) as rft:
+with rftc.RftoolClient(logger) as client:
 
     ### STG / DAC 初期化 (省略) ###
     ### 波形データの設定 (省略) ###  
@@ -245,13 +245,11 @@ with client.RftoolClient(logger) as rft:
 ユーザ定義波形の出力を再開するコードの例を以下に示します．
 
 ```
-from RftoolClient import client
-import time
-import StimGen as sg
-
+import rftoolclient as rftc
+import rftoolclient.stimgen as sg
 
 # RftoolClient オブジェクトを作成する
-with client.RftoolClient(logger) as rft:
+with rftc.RftoolClient(logger) as client:
 
     ### STG / DAC 初期化 (省略) ###
     ### 波形データの設定 (省略) ###  
@@ -266,3 +264,28 @@ with client.RftoolClient(logger) as rft:
     rft.stg_ctrl.resume_stgs(sg.STG.U0, sg.STG.U4)
 ```
 
+### 5.6 外部トリガの有効化
+
+STG の外部トリガを有効にした後で，PMOD 1 の P0 を Lo から Hi にすると STG の波形出力を開始することができます.
+
+![user define wave](images/pmod_ports.png)
+
+STG の外部トリガを有効にするコード例を以下に示します．
+
+```
+import rftoolclient as rftc
+import rftoolclient.stimgen as sg
+
+# RftoolClient オブジェクトを作成する
+with rftc.RftoolClient(logger) as client:
+    
+    ### STG / DAC 初期化 (省略) ###
+    ### 波形データの設定 (省略) ###  
+
+    # 外部スタートトリガを有効化する.
+    client.stg_ctrl.external_trigger_on(sg.StgTrigger.START)
+    # STG 0 と STG 4 が外部スタートトリガを受け付けるようにする.
+    client.stg_ctrl.enable_external_trigger(sg.StgTrigger.START, sg.STG.U0, sg.STG.U4)
+    
+    # 以降 PMOD 1 の P0 が Lo から Hi に変化すると STG 0 と STG 4 は波形の出力を開始する.
+```

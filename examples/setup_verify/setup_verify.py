@@ -19,12 +19,12 @@ LOG_LEVEL = logging.WARN
 
 def main():
     status = 0
-    rft = rftc.RftoolClient(logger=logger)
+    client = rftc.RftoolClient(logger=logger)
 
     try:
-        rft.connect(ZCU111_IP_ADDR)
-        rft.command.Version()
-        rft.close()
+        client.connect(ZCU111_IP_ADDR)
+        client.command.Version()
+        client.close()
     except Exception as e:
         status = 1
         print("exception:", e)

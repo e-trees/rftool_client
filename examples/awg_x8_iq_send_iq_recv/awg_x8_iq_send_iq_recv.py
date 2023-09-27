@@ -565,58 +565,58 @@ def start_awg_and_capture(awg_sa_cmd):
 
 def main():
 
-    with rftc.RftoolClient(logger=logger) as rft:
+    with rftc.RftoolClient(logger) as client:
         print("Connect to RFTOOL Server.")
-        rft.connect(ZCU111_IP_ADDR)
-        rft.command.TermMode(0)
+        client.connect(ZCU111_IP_ADDR)
+        client.command.TermMode(0)
 
         print("Configure Bitstream.")
-        rft.command.ConfigFpga(BITSTREAM, BITSTREAM_LOAD_TIMEOUT)
-        shutdown_all_tiles(rft.command)
-        set_adc_sampling_rate(rft.command, ADC_FREQ)
-        set_dac_sampling_rate(rft.command, DAC_FREQ)
-        startup_all_tiles(rft.command)
-        setup_dac(rft.command)
-        setup_adc(rft.command)
+        client.command.ConfigFpga(BITSTREAM, BITSTREAM_LOAD_TIMEOUT)
+        shutdown_all_tiles(client.command)
+        set_adc_sampling_rate(client.command, ADC_FREQ)
+        set_dac_sampling_rate(client.command, DAC_FREQ)
+        startup_all_tiles(client.command)
+        setup_dac(client.command)
+        setup_adc(client.command)
 
         # 初期化    
-        rft.awg_sa_cmd.initialize_awg_sa()
+        client.awg_sa_cmd.initialize_awg_sa()
         # AWG 有効化
-        rft.awg_sa_cmd.enable_awg(*awg_list)
+        client.awg_sa_cmd.enable_awg(*awg_list)
         # ADC キャリブレーション
-        calibrate_adc(rft.awg_sa_cmd)
+        calibrate_adc(client.awg_sa_cmd)
         # 波形シーケンス設定
-        awg_id_to_wave_sequence = set_wave_sequence(rft.awg_sa_cmd)
+        awg_id_to_wave_sequence = set_wave_sequence(client.awg_sa_cmd)
         # キャプチャシーケンス設定
-        set_capture_sequence(rft.awg_sa_cmd, awg_id_to_wave_sequence)
+        set_capture_sequence(client.awg_sa_cmd, awg_id_to_wave_sequence)
         # 波形出力 & キャプチャスタート
-        start_awg_and_capture(rft.awg_sa_cmd)
+        start_awg_and_capture(client.awg_sa_cmd)
         # エラーチェック
-        check_skipped_step(rft.awg_sa_cmd)
-        check_capture_data_fifo_oevrflow(rft.awg_sa_cmd)
+        check_skipped_step(client.awg_sa_cmd)
+        check_capture_data_fifo_oevrflow(client.awg_sa_cmd)
         for ch in range(8):
-            check_intr_flags(rft.command, rftc.ADC, ch)
+            check_intr_flags(client.command, rftc.ADC, ch)
         for ch in range(8):
-            check_intr_flags(rft.command, rftc.DAC, ch)
+            check_intr_flags(client.command, rftc.DAC, ch)
         
         # キャプチャデータ取得
         print("Get capture data.")
         awg_id_to_wave_data = {}
         for awg_id in awg_list:
-            awg_id_to_wave_data[awg_id] = rft.awg_sa_cmd.read_capture_data(awg_id, step_id = 0)
+            awg_id_to_wave_data[awg_id] = client.awg_sa_cmd.read_capture_data(awg_id, step_id = 0)
 
         # キャプチャデータ出力
         print("Output capture data.")
         num_frames = 1
         start_sample_idx = 1024 # FFT 開始サンプルのインデックス
-        fft_size = rft.awg_sa_cmd.get_fft_size()
+        fft_size = client.awg_sa_cmd.get_fft_size()
         output_capture_data(awg_id_to_wave_data, num_frames, start_sample_idx, fft_size)
         
         # スペクトラム取得
         print("Get spectrums.")
         awg_id_to_spectrum = {}
         for awg_id in awg_list:
-            awg_id_to_spectrum[awg_id] = rft.awg_sa_cmd.get_spectrum(
+            awg_id_to_spectrum[awg_id] = client.awg_sa_cmd.get_spectrum(
                 awg_id, step_id = 0,
                 start_sample_idx = start_sample_idx, num_frames = num_frames, is_iq_data = True)
         
@@ -626,7 +626,7 @@ def main():
         
         # 送信波形をグラフ化
         for awg_id in awg_list:
-           rft.awg_sa_cmd.get_waveform_sequence(awg_id).save_as_img(PLOT_DIR + "waveform/awg_{}_waveform.png".format(awg_id))
+           client.awg_sa_cmd.get_waveform_sequence(awg_id).save_as_img(PLOT_DIR + "waveform/awg_{}_waveform.png".format(awg_id))
 
     print("Done.")
     return

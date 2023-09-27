@@ -539,49 +539,49 @@ def start_external_trigger(awg_sa_cmd):
 
 def main():
 
-    with rftc.RftoolClient(logger=logger) as rft:
+    with rftc.RftoolClient(logger) as client:
         print("Connect to RFTOOL Server.")
-        rft.connect(ZCU111_IP_ADDR)
-        rft.command.TermMode(0)
+        client.connect(ZCU111_IP_ADDR)
+        client.command.TermMode(0)
 
         print("Configure Bitstream.")
-        rft.command.ConfigFpga(BITSTREAM, BITSTREAM_LOAD_TIMEOUT)
-        shutdown_all_tiles(rft.command)
-        set_adc_sampling_rate(rft.command, ADC_FREQ)
-        set_dac_sampling_rate(rft.command, DAC_FREQ)
-        startup_all_tiles(rft.command)
-        setup_dac(rft.command)
-        setup_adc(rft.command)
+        client.command.ConfigFpga(BITSTREAM, BITSTREAM_LOAD_TIMEOUT)
+        shutdown_all_tiles(client.command)
+        set_adc_sampling_rate(client.command, ADC_FREQ)
+        set_dac_sampling_rate(client.command, DAC_FREQ)
+        startup_all_tiles(client.command)
+        setup_dac(client.command)
+        setup_adc(client.command)
 
         # 初期化
-        rft.awg_sa_cmd.initialize_awg_sa()
+        client.awg_sa_cmd.initialize_awg_sa()
         # AWG 有効化
-        rft.awg_sa_cmd.enable_awg(*awg_list)
+        client.awg_sa_cmd.enable_awg(*awg_list)
         # ADC キャリブレーション
-        calibrate_adc(rft.awg_sa_cmd)
+        calibrate_adc(client.awg_sa_cmd)
         # AWG の波形シーケンス設定
-        awg_id_to_wave_sequence = set_wave_sequence(rft.awg_sa_cmd)
+        awg_id_to_wave_sequence = set_wave_sequence(client.awg_sa_cmd)
         # キャプチャシーケンス設定
-        set_capture_sequence(rft.awg_sa_cmd, awg_id_to_wave_sequence)        
+        set_capture_sequence(client.awg_sa_cmd, awg_id_to_wave_sequence)        
         # トリガモードの設定
         for awg_id, trigger_mode in awg_to_trigger_mode.items():
-            rft.awg_sa_cmd.set_trigger_mode(awg_id, trigger_mode)
+            client.awg_sa_cmd.set_trigger_mode(awg_id, trigger_mode)
 
         # AWG 4 にマニュアルトリガを発行して, 波形の出力を開始する.
-        start_awg_and_capture(rft.awg_sa_cmd)
+        start_awg_and_capture(client.awg_sa_cmd)
         # 外部トリガ設定 & 起動
         # 外部トリガモジュールは起動後すぐに, 出力中の AWG 4 の波形を読み取って外部トリガを発行する.
         # その結果, AWG 0 ～ 3, 5 ～ 7 が起動して波形の出力とキャプチャが始まる.
-        start_external_trigger(rft.awg_sa_cmd)
+        start_external_trigger(client.awg_sa_cmd)
         # 波形キャプチャ終了待ち
-        wait_for_sequence_to_finish(rft.awg_sa_cmd, *awg_list)
+        wait_for_sequence_to_finish(client.awg_sa_cmd, *awg_list)
         # エラーチェック
-        check_skipped_step(rft.awg_sa_cmd, awg_id_to_wave_sequence)
-        check_capture_data_fifo_oevrflow(rft.awg_sa_cmd, awg_id_to_wave_sequence)
+        check_skipped_step(client.awg_sa_cmd, awg_id_to_wave_sequence)
+        check_capture_data_fifo_oevrflow(client.awg_sa_cmd, awg_id_to_wave_sequence)
         for ch in range(8):
-            check_intr_flags(rft.command, rftc.ADC, ch)
+            check_intr_flags(client.command, rftc.ADC, ch)
         for ch in range(8):
-            check_intr_flags(rft.command, rftc.DAC, ch)
+            check_intr_flags(client.command, rftc.DAC, ch)
         
         # キャプチャデータ取得
         print("Get capture data.")
@@ -589,7 +589,7 @@ def main():
         awg_id_to_wave_samples = {}
         for awg_id, wave_sequence in awg_id_to_wave_sequence.items():
             step_id_list = wave_sequence.get_step_id_list()
-            wave_data = rft.awg_sa_cmd.read_capture_data(awg_id, step_id = step_id_list[0])
+            wave_data = client.awg_sa_cmd.read_capture_data(awg_id, step_id = step_id_list[0])
             awg_id_to_wave_samples[awg_id] = nu.bytes_to_real_32(wave_data)
 
         # キャプチャデータ出力
@@ -601,12 +601,12 @@ def main():
         print("Get spectrums.")
         num_frames = 1
         start_sample_idx = 16 # FFT 開始サンプルのインデックス
-        fft_size = rft.awg_sa_cmd.get_fft_size()
+        fft_size = client.awg_sa_cmd.get_fft_size()
         awg_id_to_spectrum = {}
         for awg_id, wave_sequence in awg_id_to_wave_sequence.items():
             if (wave_sequence.num_wave_steps() >= 2):
                 step_id_list = wave_sequence.get_step_id_list()
-                awg_id_to_spectrum[awg_id] = rft.awg_sa_cmd.get_spectrum(
+                awg_id_to_spectrum[awg_id] = client.awg_sa_cmd.get_spectrum(
                     awg_id, step_id = step_id_list[1],
                     start_sample_idx = start_sample_idx, num_frames = num_frames, is_iq_data = False)
 
@@ -618,7 +618,7 @@ def main():
         for awg_id in awg_list:
             if awg_to_trigger_mode[awg_id] == awgsa.TriggerMode.MANUAL:
                 continue
-            rft.awg_sa_cmd.get_waveform_sequence(awg_id).save_as_img(
+            client.awg_sa_cmd.get_waveform_sequence(awg_id).save_as_img(
                 PLOT_DIR + "waveform/awg_{}_waveform.png".format(awg_id))
 
     print("Done.")

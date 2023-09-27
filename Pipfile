@@ -8,7 +8,7 @@ scipy = "*"
 twisted = "*"
 pylabrad = "*"
 build = "*"
-rftoolclient = {path = "./dist/rftoolclient-1.0.0-py3-none-any.whl"}
+rftoolclient = {path = "./dist/rftoolclient-1.0.2-py3-none-any.whl"}
 
 [dev-packages]
 

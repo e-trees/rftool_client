@@ -91,17 +91,17 @@ def set_wave_sequence(awg_sa_cmd):
 
 def main():   
 
-    with rftc.RftoolClient(logger=logger) as rft:
+    with rftc.RftoolClient(logger) as client:
         print("Connect to RFTOOL Server.")
-        rft.connect(ZCU111_IP_ADDR)
-        rft.command.TermMode(0)
+        client.connect(ZCU111_IP_ADDR)
+        client.command.TermMode(0)
 
         print("Configure Bitstream.")
-        rft.command.ConfigFpga(BITSTREAM, BITSTREAM_LOAD_TIMEOUT)
+        client.command.ConfigFpga(BITSTREAM, BITSTREAM_LOAD_TIMEOUT)
 
         # 初期化    
-        rft.awg_sa_cmd.initialize_awg_sa()
-        (wave_seq_0, wave_seq_1) = set_wave_sequence(rft.awg_sa_cmd)
+        client.awg_sa_cmd.initialize_awg_sa()
+        (wave_seq_0, wave_seq_1) = set_wave_sequence(client.awg_sa_cmd)
 
         # Real 波形出力
         # Python スクリプト内で計算したサンプル値を保持するオブジェクトを取得
@@ -111,7 +111,7 @@ def main():
         output_samples(PLOT_DIR + "user_def_seq_0_waveform.txt", step_id_to_samples)
         
         # ハードウェア内部の RAM に格納されたサンプル値を保持するオブジェクトを取得
-        waveform_0 = rft.awg_sa_cmd.get_waveform_sequence(awgsa.AwgId.AWG_0)
+        waveform_0 = client.awg_sa_cmd.get_waveform_sequence(awgsa.AwgId.AWG_0)
         waveform_0.save_as_img(PLOT_DIR + "actual_seq_0_waveform.png")
         step_id_to_samples = waveform_0.get_samples_by_step_id()
         output_samples(PLOT_DIR + "actual_seq_0_waveform.txt", step_id_to_samples)
@@ -127,7 +127,7 @@ def main():
         output_samples(PLOT_DIR + "user_def_seq_1_q_waveform.txt", step_id_to_q_samples)
 
         # ハードウェア内部の RAM に格納されたサンプル値を保持するオブジェクトを取得
-        waveform_1 = rft.awg_sa_cmd.get_waveform_sequence(awgsa.AwgId.AWG_1)
+        waveform_1 = client.awg_sa_cmd.get_waveform_sequence(awgsa.AwgId.AWG_1)
         waveform_1.save_as_img(PLOT_DIR + "actual_seq_1_waveform.png")
         waveform_1.save_as_img(PLOT_DIR + "actual_seq_1_waveform_merged.png", iq_separation = False)
         step_id_to_i_samples = waveform_1.get_i_samples_by_step_id()

@@ -24,8 +24,8 @@ STG とディジタル出力モジュールが動作を開始すると DAC と P
 | --- | --- |
 | 黄色 | STG 4 |
 | 水色 | STG 5 |
-| 緑 | PMOD 1 P0 |
-| ピンク | PMOD 0 P0 |
+| 緑 | PMOD 0 P0 |
+| ピンク | PMOD 0 P1 |
 
 ![stg_pause_sync_0](images/stg_pause_0.jpg)
 
@@ -59,7 +59,7 @@ STG とディジタル出力モジュールが動作を開始すると DAC と P
 | --- | --- |
 | 黄色 | STG 4 |
 | 水色 | STG 5 |
-| 緑 | PMOD 1 P0 |
+| 緑 | PMOD 0 P0 |
 | ピンク | PMOD 0 P0 |
 
 ![stg_pause_sync_0](images/stg_pause_sync_0.jpg)

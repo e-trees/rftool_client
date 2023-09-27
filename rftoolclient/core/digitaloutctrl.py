@@ -24,8 +24,7 @@ class DigitalOutCtrl:
             rftc.log_error(e, self.__logger)
             raise
         
-        self.disable_start_trigger(*dout_id_list)
-        self.disable_restart_trigger(*dout_id_list)
+        self.disable_trigger(sg.DigitalOutTrigger.all(), *dout_id_list)
         self.__deselect_ctrl_target(*dout_id_list)
         for dout_id in dout_id_list:
             addr = DigitalOutCtrlRegs.Addr.dout(dout_id) + DigitalOutCtrlRegs.Offset.CTRL
@@ -92,151 +91,95 @@ class DigitalOutCtrl:
             self.__reg_access.write(addr, bits)
 
 
-    def enable_start_trigger(self, *dout_id_list):
-        """引数で指定したディジタル出力モジュールのスタートトリガを有効化する.
+    def enable_trigger(self, trig_list, *dout_id_list):
+        """dout_id_list で指定したディジタル出力モジュールが trig_list で指定したトリガを受け付けるようになる.
 
-        | スタートトリガを有効化したディジタル出力モジュールは Stimulus Generator の波形出力開始と同時に動作を開始する.
+        | トリガを受け付けるディジタル出力モジュールは Stimulus Generator の特定の動作に連動して動作する.
+        | トリガの種類とディジタル出力モジュールの動作の対応は以下の通り
+        |
+        | DigitalOutTrigger.START
+        |     ディジタル出力モジュールが Idle 状態のときに Stimulus Generator が波形出力を開始すると, 
+        |     現在の設定に基づいてディジタル値の出力を開始して Active 状態になる.
+        |
+        | DigitalOutTrigger.RESTART
+        |     ディジタル出力モジュールが Pause 状態のときに Stimulus Generator が波形出力を開始すると, 
+        |     現在の設定に基づいてディジタル値の出力を最初から始めて Active 状態になる.
+        | 
+        | DigitalOutTrigger.PAUSE
+        |     ディジタル出力モジュールが Active 状態のときに Stimulus Generator が一時停止すると, 
+        |     ディジタル値の出力を中断して Pause 状態になる.
+        | 
+        | DigitalOutTrigger.RESUME
+        |     ディジタル出力モジュールが Pause 状態のときに Stimulus Generator が動作を再開すると, 
+        |     ディジタル値の出力を再開して Active 状態になる.
         
-        Args:
-            *dout_id_list (list of DigitalOut): スタートトリガを有効にするディジタル出力モジュールの ID
+        Parameters
+        ----------
+        trig_list (StgTrigger, list of StgTrigger) :
+            | ディジタル出力モジュールが受け付けるようになるトリガの種類.
+            | DigitalOutTrigger のリストを指定した場合は, リスト内の全てのトリガを受け付けるようになる.
+
+        *dout_id_list (DigitalOut) : トリガの設定を変更するディジタル出力モジュール.
         """
+        if not isinstance(trig_list, (list, tuple)): 
+            trig_list = [trig_list]
+
         try:
             self.__validate_dout_id(*dout_id_list)
+            self.__validate_trigger_type(*trig_list)
         except Exception as e:
             rftc.log_error(e, self.__logger)
             raise
-
-        self.__set_mask_bits(
-            DigitalOutMasterCtrlRegs.ADDR + DigitalOutMasterCtrlRegs.Offset.START_TRIG_MASK_0,
-            *dout_id_list)
-
-
-    def disable_start_trigger(self, *dout_id_list):
-        """引数で指定したディジタル出力モジュールのスタートトリガを無効化する.
         
-        Args:
-            *dout_id_list (list of DigitalOut): スタートトリガを無効にするディジタル出力モジュールの ID
+        for trig in trig_list:
+            if trig == sg.DigitalOutTrigger.START:
+                offset = DigitalOutMasterCtrlRegs.Offset.START_TRIG_MASK_0
+            elif trig == sg.DigitalOutTrigger.RESTART:
+                offset = DigitalOutMasterCtrlRegs.Offset.RESTART_TRIG_MASK_0
+            elif trig == sg.DigitalOutTrigger.PAUSE:
+                offset = DigitalOutMasterCtrlRegs.Offset.PAUSE_TRIG_MASK_0
+            elif trig == sg.DigitalOutTrigger.RESUME:
+                offset = DigitalOutMasterCtrlRegs.Offset.RESUME_TRIG_MASK_0
+            else:
+                raise AssertionError('Unknown digital output trigger {}'.format(trig))
+
+            self.__set_mask_bits(DigitalOutMasterCtrlRegs.ADDR + offset, *dout_id_list)
+            
+
+    def disable_trigger(self, trig_list, *dout_id_list):
+        """dout_id_list で指定したディジタル出力モジュールが trig_list で指定したトリガを受け付けなくなる.
+        
+        Parameters
+        ----------
+        trig_list (StgTrigger, list of StgTrigger) :
+            | ディジタル出力モジュールが受け付けなくなるトリガの種類.
+            | DigitalOutTrigger のリストを指定した場合は, リスト内の全てのトリガを受け付けなくなる.
+
+        *dout_id_list (DigitalOut) : トリガの設定を変更するディジタル出力モジュール.
         """
+        if not isinstance(trig_list, (list, tuple)): 
+            trig_list = [trig_list]
+
         try:
             self.__validate_dout_id(*dout_id_list)
+            self.__validate_trigger_type(*trig_list)
         except Exception as e:
             rftc.log_error(e, self.__logger)
             raise
-
-        self.__clear_mask_bits(
-            DigitalOutMasterCtrlRegs.ADDR + DigitalOutMasterCtrlRegs.Offset.START_TRIG_MASK_0,
-            *dout_id_list)
-
-
-    def enable_restart_trigger(self, *dout_id_list):
-        """引数で指定したディジタル出力モジュールのリスタートトリガを有効化する.
-
-        | リスタートトリガを有効化したディジタル出力モジュールが Pause 状態のときに
-        | Stimulus Generator が波形出力を開始すると, 現在の設定に基づいてディジタル値の出力を再スタートする.
         
-        Args:
-            *dout_id_list (list of DigitalOut): リスタートトリガを有効にするディジタル出力モジュールの ID
-        """
-        try:
-            self.__validate_dout_id(*dout_id_list)
-        except Exception as e:
-            rftc.log_error(e, self.__logger)
-            raise
+        for trig in trig_list:
+            if trig == sg.DigitalOutTrigger.START:
+                offset = DigitalOutMasterCtrlRegs.Offset.START_TRIG_MASK_0
+            elif trig == sg.DigitalOutTrigger.RESTART:
+                offset = DigitalOutMasterCtrlRegs.Offset.RESTART_TRIG_MASK_0
+            elif trig == sg.DigitalOutTrigger.PAUSE:
+                offset = DigitalOutMasterCtrlRegs.Offset.PAUSE_TRIG_MASK_0
+            elif trig == sg.DigitalOutTrigger.RESUME:
+                offset = DigitalOutMasterCtrlRegs.Offset.RESUME_TRIG_MASK_0
+            else:
+                raise AssertionError('Unknown digital output trigger {}'.format(trig))
 
-        self.__set_mask_bits(
-            DigitalOutMasterCtrlRegs.ADDR + DigitalOutMasterCtrlRegs.Offset.RESTART_TRIG_MASK_0,
-            *dout_id_list)
-
-
-    def disable_restart_trigger(self, *dout_id_list):
-        """引数で指定したディジタル出力モジュールのリスタートトリガを無効化する.
-        
-        Args:
-            *dout_id_list (list of DigitalOut): リスタートトリガを無効にするディジタル出力モジュールの ID
-        """
-        try:
-            self.__validate_dout_id(*dout_id_list)
-        except Exception as e:
-            rftc.log_error(e, self.__logger)
-            raise
-
-        self.__clear_mask_bits(
-            DigitalOutMasterCtrlRegs.ADDR + DigitalOutMasterCtrlRegs.Offset.RESTART_TRIG_MASK_0,
-            *dout_id_list)
-
-
-    def enable_pause_trigger(self, *dout_id_list):
-        """引数で指定したディジタル出力モジュールの一時停止トリガを有効化する.
-
-        | 一時停止トリガを有効化したディジタル出力モジュールが Active 状態のときに
-        | Stimulus Generator が一時停止すると，それらも一時停止する.
-        
-        Args:
-            *dout_id_list (list of DigitalOut): 一時停止トリガを有効にするディジタル出力モジュールの ID
-        """
-        try:
-            self.__validate_dout_id(*dout_id_list)
-        except Exception as e:
-            rftc.log_error(e, self.__logger)
-            raise
-
-        self.__set_mask_bits(
-            DigitalOutMasterCtrlRegs.ADDR + DigitalOutMasterCtrlRegs.Offset.PAUSE_TRIG_MASK_0,
-            *dout_id_list)
-
-
-    def disable_pause_trigger(self, *dout_id_list):
-        """引数で指定したディジタル出力モジュールの一時停止トリガを無効化する.
-        
-        Args:
-            *dout_id_list (list of DigitalOut): 一時停止トリガを無効にするディジタル出力モジュールの ID
-        """
-        try:
-            self.__validate_dout_id(*dout_id_list)
-        except Exception as e:
-            rftc.log_error(e, self.__logger)
-            raise
-
-        self.__clear_mask_bits(
-            DigitalOutMasterCtrlRegs.ADDR + DigitalOutMasterCtrlRegs.Offset.PAUSE_TRIG_MASK_0,
-            *dout_id_list)
-
-
-    def enable_resume_trigger(self, *dout_id_list):
-        """引数で指定したディジタル出力モジュールの再開トリガを有効化する.
-
-        | 再開トリガ有効化したディジタル出力モジュールが Pause 状態のときに
-        | Stimulus Generator が動作を再開すると，それらも動作を再開する.
-        
-        Args:
-            *dout_id_list (list of DigitalOut): 一時停止トリガを有効にするディジタル出力モジュールの ID
-        """
-        try:
-            self.__validate_dout_id(*dout_id_list)
-        except Exception as e:
-            rftc.log_error(e, self.__logger)
-            raise
-
-        self.__set_mask_bits(
-            DigitalOutMasterCtrlRegs.ADDR + DigitalOutMasterCtrlRegs.Offset.RESUME_TRIG_MASK_0,
-            *dout_id_list)
-
-
-    def disable_resume_trigger(self, *dout_id_list):
-        """引数で指定したディジタル出力モジュールの再開トリガを無効化する.
-        
-        Args:
-            *dout_id_list (list of DigitalOut): 再開トリガを無効にするディジタル出力モジュールの ID
-        """
-        try:
-            self.__validate_dout_id(*dout_id_list)
-        except Exception as e:
-            rftc.log_error(e, self.__logger)
-            raise
-
-        self.__clear_mask_bits(
-            DigitalOutMasterCtrlRegs.ADDR + DigitalOutMasterCtrlRegs.Offset.RESUME_TRIG_MASK_0,
-            *dout_id_list)
+            self.__clear_mask_bits(DigitalOutMasterCtrlRegs.ADDR + offset, *dout_id_list)
 
 
     def start_douts(self, *dout_id_list):
@@ -426,6 +369,11 @@ class DigitalOutCtrl:
     def __validate_timeout(self, timeout):
         if (not isinstance(timeout, (int, float))) or (timeout < 0):
             raise ValueError('Invalid timeout {}'.format(timeout))
+
+
+    def __validate_trigger_type(self, *type):
+        if not sg.DigitalOutTrigger.includes(*type):
+            raise ValueError('Invalid digital output trigger type {}'.format(type))
 
 
     def __select_ctrl_target(self, *dout_id_list):

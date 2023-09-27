@@ -1,7 +1,6 @@
 import sys
 import os
 import logging
-import time
 import rftoolclient as rftc
 import rftoolclient.stimgen as sg
 
@@ -18,10 +17,7 @@ if is_all_sync_design:
 else:
     BITSTREAM = rftc.FpgaDesign.STIM_GEN
 
-stg_list = [sg.STG.U4]
-dout_list = sg.DigitalOut.all()
-stg_to_freq = { sg.STG.U4 : 1 } # MHz
-
+stg_list = sg.STG.all()
 
 def output_rfdc_interrupt_details(stg_ctrl, stg_to_interrupts):
     """RF Data Converter の割り込みを出力する"""
@@ -42,9 +38,9 @@ def output_stim_gen_err_details(stg_to_errs):
         print()
 
 
-def gen_example_sample_data(stg_id):
+def gen_example_sample_data():
     """出力サンプルデータの例として sin カーブを作る"""
-    wave = rftc.SinWave(3, stg_to_freq[stg_id] * 1e6, 30000)
+    wave = rftc.SinWave(500, 0.4e6, 30000)
     samples = wave.gen_samples(DAC_FREQ * 1e6) # samples は 16-bit 符号付整数のリスト
     # サンプル数を 1024 の倍数に調整する
     rem = len(samples) % sg.Stimulus.MIN_UNIT_SAMPLES_FOR_WAVE_PART
@@ -56,9 +52,9 @@ def gen_example_sample_data(stg_id):
 
 def set_stimulus(stg_ctrl):
     stg_to_stimulus = {}
+    samples = gen_example_sample_data()
     for stg_id in stg_list:
         # 波形のサンプルデータを作成する
-        samples = gen_example_sample_data(stg_id)
         # 波形サンプルを Stimulus オブジェクトにセットし, Stimulus オブジェクトを dict に格納する
         stimulus = sg.Stimulus(num_wait_words = 0, num_seq_repeats = 1)
         stimulus.add_chunk(samples = samples, num_blank_words = 0, num_repeats = 1)
@@ -78,51 +74,28 @@ def setup_stim_gens(stg_ctrl):
     stg_ctrl.initialize(*stg_list)
     # 波形データを Stimulus Generator に設定
     set_stimulus(stg_ctrl)
+    # 外部スタートトリガを有効化
+    stg_ctrl.external_trigger_on(sg.StgTrigger.START)
+    stg_ctrl.enable_external_trigger(sg.StgTrigger.START, *stg_list)
 
 
-def set_digital_out_data(digital_out_ctrl, bit_patterns):
+def set_digital_out_data(digital_out_ctrl):
     # ディジタル出力データの作成
-    dout_time = 153599803 if is_all_sync_design else 400000000 # 4 [sec]
-    for dout_id in dout_list:
-        dout_data_list = sg.DigitalOutputDataList()
-        for bit_pattern in bit_patterns:
-            dout_data_list.add(bit_pattern, dout_time)
-
-        # 出力データをディジタル出力モジュールに設定
-        digital_out_ctrl.set_output_data(dout_data_list, dout_id)
-
-
-def set_default_digital_out_data(digital_out_ctrl):
-    # デフォルトのディジタル出力データの設定
-    for dout_id in dout_list:
-        digital_out_ctrl.set_default_output_data(0, dout_id)
+    dout_time = 38 if is_all_sync_design else 100 # 1 [usec]
+    dout_data_list = sg.DigitalOutputDataList()
+    dout_data_list.add(1, dout_time)
+    # 出力データをディジタル出力モジュールに設定
+    digital_out_ctrl.set_output_data(dout_data_list, sg.DigitalOut.U0)
 
 
 def setup_digital_output_modules(digital_out_ctrl):
     """ディジタル出力に必要な設定を行う"""
     # ディジタル出力モジュール初期化
-    digital_out_ctrl.initialize(*dout_list)
+    digital_out_ctrl.initialize(sg.DigitalOut.U0)
     # デフォルトのディジタル出力データの設定
-    set_default_digital_out_data(digital_out_ctrl)
+    digital_out_ctrl.set_default_output_data(0, sg.DigitalOut.U0)
     # ディジタル出力データの設定
-    bit_patterns = [1, 2]
-    set_digital_out_data(digital_out_ctrl, bit_patterns)
-    # Stimulus Generator からのリスタートトリガを受け付けるように設定.
-    # このリスタートトリガは, 何れかの Stimulus Generator の波形出力開始と同時にアサートされる.
-    digital_out_ctrl.enable_trigger(sg.DigitalOutTrigger.RESTART ,*dout_list)
-
-
-def restart_douts(mode, stg_ctrl, digital_out_ctrl):
-    """ディジタル出力モジュールを再スタートする"""
-    if mode == 1:
-        # 再スタート
-        digital_out_ctrl.restart_douts(*dout_list)
-    else:
-        # STG の波形出力スタート.
-        # STG の波形出力開始に合わせてディジタル出力モジュールが再スタートする.
-        stg_ctrl.start_stgs(*stg_list)
-        # 波形出力完了待ち
-        stg_ctrl.wait_for_stgs_to_stop(5, *stg_list)
+    set_digital_out_data(digital_out_ctrl)
 
 
 def main(logger):
@@ -132,33 +105,24 @@ def main(logger):
         client.command.TermMode(0)
         # FPGA コンフィギュレーション
         client.command.ConfigFpga(BITSTREAM, 10)
+        input("Connect PMOD 0 port 0 to PMOD 1 port 0 and press 'Enter'")
         # Stimulus Generator のセットアップ
         setup_stim_gens(client.stg_ctrl)
         # ディジタル出力モジュールのセットアップ
         setup_digital_output_modules(client.digital_out_ctrl)
-        # ディジタル出力スタート
-        client.digital_out_ctrl.start_douts(*dout_list)
-        time.sleep(2)
-        # ディジタル出力一時停止
-        client.digital_out_ctrl.pause_douts(*dout_list)
-        ctrl_sel = input('input\n    0: resume\n    1: restart from software\n    2: restart from STG\n')
-        
-        if int(ctrl_sel) == 0:
-            # 再開
-            client.digital_out_ctrl.resume_douts(*dout_list)
-        else:
-            # ディジタル出力データを変更
-            bit_patterns = [3, 2, 1]
-            set_digital_out_data(client.digital_out_ctrl, bit_patterns)
-            # 再スタート
-            restart_douts(int(ctrl_sel), client.stg_ctrl, client.digital_out_ctrl)
-
+        # ディジタル出力モジュール 0 の動作を開始する.
+        # PMOD 0 の ポート 0 と PMOD 1 のポート 0 をつないでおくと,
+        # [ディジタル出力モジュール 0] --> [PMOD 0 Port 0] --> [PMOD 1 Port 0] --> [STG スタートトリガ]
+        # という経路で STG にスタートトリガが入力される.
+        client.digital_out_ctrl.start_douts(sg.DigitalOut.U0)
+        # 波形出力完了待ち
+        client.stg_ctrl.wait_for_stgs_to_stop(6, *stg_list)
         # ディジタル出力モジュール動作完了待ち
-        client.digital_out_ctrl.wait_for_douts_to_stop(15, *dout_list)
+        client.digital_out_ctrl.wait_for_douts_to_stop(6, sg.DigitalOut.U0)
         # 波形出力完了フラグクリア
         client.stg_ctrl.clear_stg_stop_flags(*stg_list)
         # ディジタル出力モジュール動作完了フラグクリア
-        client.digital_out_ctrl.clear_dout_stop_flags(*dout_list)
+        client.digital_out_ctrl.clear_dout_stop_flags(sg.DigitalOut.U0)
         # DAC 割り込みチェック
         stg_to_interrupts = client.stg_ctrl.check_dac_interrupt(*stg_list)
         output_rfdc_interrupt_details(client.stg_ctrl, stg_to_interrupts)

@@ -1,6 +1,7 @@
 import time
 import rftoolclient as rftc
 import rftoolclient.stimgen as sg
+from functools import reduce
 from rftoolclient.stimgen.memorymap import StgMasterCtrlRegs, StgCtrlRegs, WaveParamRegs
 from rftoolclient.stimgen.stghwparam import WAVE_RAM_WORD_SIZE, WAVE_RAM_SIZE
 
@@ -37,6 +38,7 @@ class StimGenCtrl(object):
         stimulus.add_chunk(samples, 0, 1)
         stg_to_stim = {stg_id : stimulus for stg_id in stg_id_list}
         self.set_stimulus(stg_to_stim)
+        self.disable_external_trigger(sg.StgTrigger.all(), *stg_id_list)
 
 
     def set_stimulus(self, stg_to_stim):
@@ -324,12 +326,11 @@ class StimGenCtrl(object):
 
 
     def stg_to_dac_tile_block(self, stg_id):
-        """引数で指定した Stimlus Generator に対応する DAC のタイル ID とブロック ID を取得する
+        """引数で指定した Stimulus Generator に対応する DAC のタイル ID とブロック ID を取得する
 
         Parameters
         ----------
-        stg_id : STG
-            この STG ID に対応する DAC のタイル ID とブロック ID を取得する
+        stg_id (STG): この STG ID に対応する DAC のタイル ID とブロック ID を取得する
         
         Returns
         -------
@@ -357,8 +358,107 @@ class StimGenCtrl(object):
             return (0, 3)
 
 
+    def external_trigger_on(self, *trig_list):
+        """trig_list で指定した外部トリガがの入力を有効にする
+
+        | 特定の外部トリガを Stimulus Generator に入力する場合, このメソッドでそのトリガを有効にしてから
+        | enable_external_trigger で, そのトリガを受け付ける Stimulus Generator を指定する必要がある.
+        
+        Parameters
+        ----------
+        *trig_list (list of StgTrigger) : 有効にするトリガの種類
+        """
+        try:
+            self.__validate_trigger_type(*trig_list)
+        except Exception as e:
+            rftc.log_error(e, self.__logger)
+            raise
+        
+        addr = StgMasterCtrlRegs.ADDR + StgMasterCtrlRegs.Offset.EXT_START_TRIG_ON
+        for trig in trig_list:
+            self.__reg_access.write_bits(addr, int(trig), 1, 1)
+
+
+    def external_trigger_off(self, *trig_list):
+        """trig_list で指定した外部トリガがの入力を無効にする
+
+        | このメソッドで無効にしたトリガは, あらゆる Stimulus Generator に入力されない.
+        
+        Parameters
+        ----------
+        *trig_list (list of StgTrigger) : 無効にするトリガの種類
+        """
+        try:
+            self.__validate_trigger_type(*trig_list)
+        except Exception as e:
+            rftc.log_error(e, self.__logger)
+            raise
+        
+        addr = StgMasterCtrlRegs.ADDR + StgMasterCtrlRegs.Offset.EXT_START_TRIG_ON
+        for trig in trig_list:
+            self.__reg_access.write_bits(addr, int(trig), 1, 0)
+
+
+    def enable_external_trigger(self, trig_list, *stg_id_list):
+        """std_id_list で指定した Stimulus Generator が trig_list で指定した外部トリガを受け付けるようになる.
+
+        Parameters
+        ----------
+        trig_list (StgTrigger, list of StgTrigger) :
+            | Stimulus Generator が受け付けるようになる外部トリガの種類.
+            | StgTrigger のリストを指定した場合は, リスト内の全てのトリガを受け付けるようになる.
+
+        *stg_id_list (STG) : 外部トリガの設定を変更する Stimulus Generator.
+        """
+        if not isinstance(trig_list, (list, tuple)): 
+            trig_list = [trig_list]
+
+        try:
+            self.__validate_stg_id(*stg_id_list)
+            self.__validate_trigger_type(*trig_list)
+        except Exception as e:
+            rftc.log_error(e, self.__logger)
+            raise
+        
+        addr = StgMasterCtrlRegs.ADDR + StgMasterCtrlRegs.Offset.EXT_START_TRIG_ENABLE
+        val = reduce(
+            lambda a, b: a | b,
+            [1 << stg_id for stg_id in stg_id_list])
+        val |= self.__reg_access.read(addr)
+        self.__reg_access.write(addr, val)
+
+
+    def disable_external_trigger(self, trig_list, *stg_id_list):
+        """std_id_list で指定した Stimulus Generator が trig_list で指定した外部トリガを受け付けなくなる.
+
+        Parameters
+        ----------
+        trig_list (StgTrigger, list of StgTrigger) :
+            | Stimulus Generator が受け付けなくなる外部トリガの種類.
+            | StgTrigger のリストを指定した場合は, リスト内の全てのトリガを受け付けなくなる.
+
+        *stg_id_list (STG) : 外部トリガの設定を変更する Stimulus Generator.
+        """
+        if not isinstance(trig_list, (list, tuple)): 
+            trig_list = [trig_list]
+
+        try:
+            self.__validate_stg_id(*stg_id_list)
+            self.__validate_trigger_type(*trig_list)
+        except Exception as e:
+            rftc.log_error(e, self.__logger)
+            raise
+        
+        addr = StgMasterCtrlRegs.ADDR + StgMasterCtrlRegs.Offset.EXT_START_TRIG_ENABLE
+        val = ~reduce(
+            lambda a, b: a | b,
+            [1 << stg_id for stg_id in stg_id_list])
+        val &= self.__reg_access.read(addr)
+        self.__reg_access.write(addr, val)
+
+
     def version(self):
-        """Stimlus Generator のバージョンを取得する
+        """Stimulus Generator のバージョンを取得する
 
         Returns:
             string: バージョンを表す文字列
@@ -380,6 +480,11 @@ class StimGenCtrl(object):
     def __validate_timeout(self, timeout):
         if (not isinstance(timeout, (int, float))) or (timeout < 0):
             raise ValueError('Invalid timeout {}'.format(timeout))
+
+
+    def __validate_trigger_type(self, *type):
+        if not sg.StgTrigger.includes(*type):
+            raise ValueError('Invalid stg trigger type {}'.format(type))
 
 
     def __select_ctrl_target(self, *stg_id_list):
